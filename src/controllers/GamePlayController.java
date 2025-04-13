@@ -1,9 +1,9 @@
 package controllers;
 
-import models.Item;
-import models.Path;
-import models.Result;
-import models.Tool;
+import models.*;
+import models.enums.CookingRecipeType;
+import models.enums.CraftingRecipeType;
+import models.enums.Direction;
 import models.enums.Weather;
 
 import javax.swing.text.Position;
@@ -133,6 +133,41 @@ public class GamePlayController {
     }
 
     public Result showCraftInfo(String craftName) {
+        return null;
+    }
+
+    public Result craftingShowRecipes() { return null; }
+    public Result craft(CraftingRecipeType item) {
+        return null;
+    }
+    private boolean canCraft(CraftingRecipeType item) {
+        return false;
+    }
+
+    public Result placeItem(Item item, Direction direction) {
+        return null;
+    }
+    private Position neighborTile(Direction direction) {
+        return null;
+    }
+    private Tile getTileByPosition(Position position) {
+        return null;
+    }
+    private boolean canItemBePlacedHere(Position position, Item item) {
+        return false;
+    }
+    public Result cheatAddItem(Item item, int count) {
+        return null;
+    }
+
+    public Result cookingSowRecipes() { return null; }
+    public Result cookingPrepare(CookingRecipeType food) {
+        return null;
+    }
+    private boolean canCook(CookingRecipeType food) {
+        return false;
+    }
+    public Result eat(CookingRecipeType food) {
         return null;
     }
 

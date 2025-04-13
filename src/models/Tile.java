@@ -1,5 +1,7 @@
 package models;
 
+import models.enums.TileType;
+
 public class Tile {
     private TileType type;
     private boolean walkable;
@@ -11,9 +13,7 @@ public class Tile {
         this.content = null;
     }
 
-    // Getters and Setters
-
-    public TileType getType() {
+    public TileType getTileType() {
         return type;
     }
 

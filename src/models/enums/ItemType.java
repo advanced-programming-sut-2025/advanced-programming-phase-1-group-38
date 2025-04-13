@@ -7,5 +7,7 @@ public enum ItemType {
     MATERIAL,
     RESOURCE,
     TREASURE,
-    QUEST_ITEM
+    QUEST_ITEM,
+    ANIMAL_PRODUCT
+    ;
 }

@@ -4,13 +4,13 @@ import models.enums.ItemType;
 
 public abstract class Item {
     private ItemType type;
+    private int price;
 
     public Item(ItemType type) {
         this.type = type;
     }
 
-    public void use(){
-
+    public void use() {
     }
 
     public ItemType getType() {
@@ -21,4 +21,11 @@ public abstract class Item {
         this.type = type;
     }
 
+    public int getPrice() {
+        return this.price;
+    }
+
+    public void setPrice(int price) {
+        this.price = price;
+    }
 }

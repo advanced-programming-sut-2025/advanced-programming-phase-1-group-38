@@ -8,11 +8,18 @@ public class Tool extends Item {
     private Skill relatedSkill;
     private Integer fixedEnergyCost;
     private FishingPoleType fishingPoleType;
+    private TrashCanQuality TrashCanQuality;
 
     public Tool(ToolType type, ToolQuality quality, Skill relatedSkill) {
         super(ItemType.TOOL);
         this.type = type;
         this.quality = quality;
+        this.relatedSkill = relatedSkill;
+    }
+    public Tool(ToolType type, TrashCanQuality quality, Skill relatedSkill) {
+        super(ItemType.TOOL);
+        this.type = type;
+        this.TrashCanQuality = quality;
         this.relatedSkill = relatedSkill;
     }
     public Tool(ToolType type, FishingPoleType fishingPoleType, Skill relatedSkill) {
