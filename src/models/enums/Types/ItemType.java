@@ -1,4 +1,4 @@
-package models.enums;
+package models.enums.Types;
 
 public enum ItemType {
     FOOD,
@@ -8,6 +8,9 @@ public enum ItemType {
     RESOURCE,
     TREASURE,
     QUEST_ITEM,
-    ANIMAL_PRODUCT
+    ANIMAL_PRODUCT,
+    TREE,
+    RECIPE,
+    MINERAL
     ;
 }

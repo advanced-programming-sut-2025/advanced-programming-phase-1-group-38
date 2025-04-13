@@ -1,4 +1,4 @@
-package models.enums;
+package models.enums.Types;
 
 public enum BackpackType {
     INITIAL(12, false),

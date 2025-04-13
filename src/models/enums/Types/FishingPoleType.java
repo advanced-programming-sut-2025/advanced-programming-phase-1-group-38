@@ -1,4 +1,4 @@
-package models.enums;
+package models.enums.Types;
 
 public enum FishingPoleType {
     TRAINING_POLE(8),

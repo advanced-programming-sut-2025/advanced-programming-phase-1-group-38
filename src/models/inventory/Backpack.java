@@ -1,6 +1,6 @@
 package models.inventory;
 
-import models.enums.BackpackType;
+import models.enums.Types.BackpackType;
 
 public class Backpack extends Inventory {
     private BackpackType type;

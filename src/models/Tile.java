@@ -1,11 +1,11 @@
 package models;
 
-import models.enums.TileType;
+import models.enums.Types.TileType;
 
 public class Tile {
     private TileType type;
     private boolean walkable;
-    private Object content; // Could be Item, ResourceNode, Building, etc.
+    private Object content;
 
     public Tile(TileType type, boolean walkable) {
         this.type = type;

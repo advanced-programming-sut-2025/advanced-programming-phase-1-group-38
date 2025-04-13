@@ -1,6 +1,9 @@
 package models;
 
 import models.enums.*;
+import models.enums.Types.FishingPoleType;
+import models.enums.Types.ItemType;
+import models.enums.Types.ToolType;
 
 public class Tool extends Item {
     private ToolType type;

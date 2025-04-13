@@ -1,10 +1,14 @@
 package controllers;
 
 import models.*;
-import models.enums.CookingRecipeType;
-import models.enums.CraftingRecipeType;
+import models.Animals.Animal;
+import models.enums.Types.AnimalType;
 import models.enums.Direction;
+import models.enums.Types.FarmBuildingType;
 import models.enums.Weather;
+import models.farming.FertilizerType;
+import models.recipe.CookingRecipe;
+import models.recipe.CraftingRecipe;
 
 import javax.swing.text.Position;
 
@@ -69,7 +73,7 @@ public class GamePlayController {
         return null;
     }
 
-    public Result printMap() {
+    public Result printMap(Map map) {
         return null;
     }
     public Result showHelpReadingMap() {
@@ -137,10 +141,10 @@ public class GamePlayController {
     }
 
     public Result craftingShowRecipes() { return null; }
-    public Result craft(CraftingRecipeType item) {
+    public Result craft(CraftingRecipe item) {
         return null;
     }
-    private boolean canCraft(CraftingRecipeType item) {
+    private boolean canCraft(CraftingRecipe item) {
         return false;
     }
 
@@ -160,15 +164,188 @@ public class GamePlayController {
         return null;
     }
 
-    public Result cookingSowRecipes() { return null; }
-    public Result cookingPrepare(CookingRecipeType food) {
+    public Result build(FarmBuildingType farmBuildingType, models.Position position) {
+        return new Result(true, "");
+    }
+
+    public Result buyAnimal(AnimalType animalType, String name) {
+        Animal animal = new Animal(name, animalType);
         return null;
     }
-    private boolean canCook(CookingRecipeType food) {
+
+    public Result pet(String animalName) {
+        Animal animal = getAnimalByName(animalName);
+        return null;
+    }
+
+    public Result cheatSetFriendship(String animalName, int amount) {
+        Animal animal = getAnimalByName(animalName);
+        return null;
+    }
+
+    public Result cookingShowRecipes() { return null; }
+    public Result cookingPrepare(Item cookingRecipe) {
+        return null;
+    }
+    private boolean canCook(CookingRecipe cookingRecipe) {
         return false;
     }
-    public Result eat(CookingRecipeType food) {
+    public Result eat(Item food) {
         return null;
     }
+
+    public Result plant(Item seed, Direction direction) {
+        return null;
+    }
+    public Result showPlant(Position position) {
+        return null;
+    }
+    public Result fertilize(FertilizerType fertilizer, Direction direction) {
+        return null;
+    }
+    public Result howMuchWater() {
+        return null;
+    }
+
+    public Result artisanUse(String artisanName, String itemName) {
+        return null;
+    }
+    public Result artisanGet(String artisanName) {
+        return null;
+    }
+
+    public Result friendships() {
+        return null;
+    }
+    public Result talk(String username, String message) {
+        return null;
+    }
+    public Result talkHistoryWithUser(String username) {
+        return null;
+    }
+    public Result giveGift(String username, String itemName, int amount) {
+        return null;
+    }
+    public Result giftList() {
+        return null;
+    }
+    public Result giftRate(int giftNumber, int rate) {
+        return null;
+    }
+    public Result giveHistory(String username) {
+        return null;
+    }
+    public Result hug(String username) {
+        return null;
+    }
+    public Result giveFlowerToUser(String username) {
+        return null;
+    }
+    public Result askMarriage(String username, Item ring) {
+        return null;
+    }
+    public Result respondToMarriageRequest(String respond, String username) {
+        return  null;
+    }
+
+    public Result startTrade() {
+        return null;
+    }
+    public Result tradeWithMoney(String targetUsername, String type, String itemName, int amount, int price) {
+        return null;
+    }
+    public Result tradeWithItem(String targetUsername, String type, String itemName, int amount, String targetItemName, int targetAmount) {
+        return null;
+    }
+    public Result showTradeList(String targetUsername, String type, String itemName, int amount, int price) {
+        return null;
+    }
+    public Result tradeResponse(String respond,int id) {
+        return null;
+    }
+    public Result showTradeHistory() {
+        return null;
+    }
+
+    public Result showMyAnimalsInfo() {
+        return null;
+    }
+
+    public Result shepherdAnimal(String animalName, models.Position position) {
+        return null;
+    }
+
+    public Result feedHayToAnimal(String animalName) {
+        return null;
+    }
+
+    public Result showProducedProducts() {
+        return null;
+    }
+    public Result collectProducts(String animalName) {
+        return null;
+    }
+
+    public Result sellAnimal(String animalName) {
+        return null;
+    }
+    private Animal getAnimalByName(String name) {
+        return null;
+    }
+    public Result fishing(String fishingPoleName) {
+        return null;
+    }
+
+    public int numberOfCaughtFish() {
+        return 0;
+    }
+    public int qualityOfCaughtFish() {
+        return 0;
+    }
+    private Tool getFishingPoleByName(String name) {
+        return null;
+    }
+
+    public Result showAllProducts() {
+        return null;
+    }
+    public Result showAvailableProducts() {
+        return null;
+    }
+    public Result purchase(String productName, Integer count) {
+        return null;
+    }
+    public Result cheatAddDollars(int amount) {
+        return null;
+    }
+    public Result sell(String productName, Integer count) {
+        return null;
+    }
+
+    public void movePlayer(Position position) {
+    }
+    public boolean canMove(Position position) {
+        return false;
+    }
+
+    public Result meetNPC(String NCPName) {
+        return null;
+    }
+    public Result giftNPC(String NCPName, String itemName) {
+        return null;
+    }
+    public Result showFriendshipNPCList() {
+        return null;
+    }
+    public Result showQuestsList() {
+        return null;
+    }
+    public Result finishQuest(int index) {
+        return null;
+    }
+    private NPC geNPCByName(String NPCName) {
+        return null;
+    }
+}
 
 }

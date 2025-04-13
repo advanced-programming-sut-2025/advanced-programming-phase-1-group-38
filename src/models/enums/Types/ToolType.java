@@ -1,4 +1,4 @@
-package models.enums;
+package models.enums.Types;
 
 public enum ToolType {
     HOE,

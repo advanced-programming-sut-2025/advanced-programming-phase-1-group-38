@@ -2,7 +2,7 @@ package models.Tools;
 
 import models.Tool;
 import models.enums.Direction;
-import models.enums.ToolType;
+import models.enums.Types.ToolType;
 
 public class MilkPail extends Tool {
     public MilkPail() {

@@ -1,14 +1,22 @@
 package models;
 
-import models.enums.ItemType;
+import models.enums.Types.ItemType;
 
 public abstract class Item {
     private ItemType type;
     private int price;
+    private String name;
+    private int basePrice;
 
     public Item(ItemType type) {
         this.type = type;
     }
+    public Item(String name, ItemType type, int basePrice) {
+        this.name = name;
+        this.type = type;
+        this.basePrice = basePrice;
+    }
+
 
     public void use() {
     }

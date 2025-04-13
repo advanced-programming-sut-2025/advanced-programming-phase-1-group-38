@@ -2,9 +2,7 @@ package models.Tools;
 
 import models.Tool;
 import models.enums.Direction;
-import models.enums.Skill;
-import models.enums.ToolQuality;
-import models.enums.ToolType;
+import models.enums.Types.ToolType;
 
 public class Shear extends Tool {
     public Shear() {
