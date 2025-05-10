@@ -118,8 +118,6 @@ public class GamePlayController {
         return null;
     }
 
-    // tools added
-
     public Result equipTool(Tool tool, Player player) {
         if (!(player.getBackpack().containsItem(tool))) {
             return new Result(false, "Tool does not exist");
