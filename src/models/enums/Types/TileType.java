@@ -5,5 +5,7 @@ public enum TileType {
     NOT_PLOWED_GROUND,
     STONE,
     WATER,
-    GRASS;
+    GRASS,
+    TREE,
+    BRANCH;
 }

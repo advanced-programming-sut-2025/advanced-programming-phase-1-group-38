@@ -6,4 +6,8 @@ public enum SkillLevel {
     LEVEL_TWO,
     LEVEL_THREE,
     LEVEL_FOUR;
+
+    public int toInt() {
+        return this.ordinal();
+    }
 }
