@@ -97,17 +97,23 @@ public class GamePlayController {
         return null;
     }
 
-    public Result showPlayerEnergy() {
-        return null;
+    public Result showPlayerEnergy(GameMap gameMap) {
+        Player player = gameMap.getCurrentPlayer();
+        int energy = player.getEnergy();
+        return new Result(true, "Current energy: " + energy);
     }
-    public Result setPlayerEnergy(int energyAmount) {
-        return null;
+    public Result setPlayerEnergy(GameMap gameMap, int energyAmount) {
+        Player player = gameMap.getCurrentPlayer();
+        player.setEnergy(energyAmount);
+        return new Result(true, "Energy set to " + energyAmount);
     }
-    public Result setUnlimitedEnergy() {
-        return null;
+    public Result setUnlimitedEnergy(GameMap gameMap) {
+        Player player = gameMap.getCurrentPlayer();
+        player.enableUnlimitedEnergy();
+        return new Result(true, "Unlimited energy mode enabled.");
     }
 
-    public Result faint() {
+    public Result faint(GameMap gameMap) {
         return null;
     }
 
@@ -232,6 +238,7 @@ public class GamePlayController {
     public Result howMuchWater() {
         return null;
     }
+    public Result resetCropWatering() { return null; }
 
     public Result artisanUse(String artisanName, String itemName) {
         return null;

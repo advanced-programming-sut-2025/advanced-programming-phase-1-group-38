@@ -1,11 +1,12 @@
 package models.enums.Types;
 
 public enum TileType {
-    PLOWED_GROUND,
-    NOT_PLOWED_GROUND,
-    STONE,
-    WATER,
     GRASS,
-    TREE,
-    BRANCH;
+    DIRT,
+    WATER,
+    REGULAR_GROUND,
+    PLOWED_GROUND,
+    QUARRY,
+    HOME,
+    GREENHOUSE,
 }

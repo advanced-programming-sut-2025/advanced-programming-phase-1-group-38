@@ -1,6 +1,7 @@
 package models.farming;
 
 import models.Item;
+import models.Tile;
 import models.enums.Types.ItemType;
 import models.enums.Seasons;
 
@@ -16,6 +17,7 @@ public class Crop extends Item {
     private final int energy;
     private final Seasons season;
     private final boolean canBecomeGiant;
+    private boolean isWatered;
 
     public Crop(String name, String source, String stages, int totalHarvestTime, boolean oneTime,
                 int regrowthTime, int baseSellPrice, boolean isEdible, int energy,
@@ -37,4 +39,17 @@ public class Crop extends Item {
     public boolean canBecomeGiant() { return canBecomeGiant; }
     public Seasons getSeason() { return season; }
     public int getBaseSellPrice() { return baseSellPrice; }
+    public boolean isWatered() {
+        return isWatered;
+    }
+
+    public void setWatered(boolean watered) {
+        this.isWatered = watered;
+    }
+
+    public void growIfWatered() {
+        if (isWatered) {
+            // TODO
+        }
+    }
 }

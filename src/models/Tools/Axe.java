@@ -1,12 +1,16 @@
 package models.Tools;
 
-import models.Player;
-import models.Tool;
+import models.*;
 import models.enums.Direction;
 import models.enums.Skill;
 import models.enums.SkillLevel;
 import models.enums.ToolQuality;
+import models.enums.Types.ItemType;
+import models.enums.Types.StoneType;
+import models.enums.Types.TileType;
 import models.enums.Types.ToolType;
+import models.farming.*;
+import models.farming.Tree;
 
 public class Axe extends Tool {
     public Axe(ToolQuality quality) {
@@ -15,15 +19,57 @@ public class Axe extends Tool {
 
     @Override
     public int getEnergyCost(Player player) {
-        if (player.getSkillLevel(getRelatedSkill()) == SkillLevel.LEVEL_FOUR) {
-            return getToolQuality().getEnergyCost() - 1;
+        int baseCost = getToolQuality().getEnergyCost();
+        if (player.getSkillLevel(Skill.FORAGING) == SkillLevel.LEVEL_FOUR) {
+            baseCost--;
         }
-        return getToolQuality().getEnergyCost();
+        return Math.max(baseCost, 0);
     }
 
     @Override
-    public void useTool(Direction direction) {
-        // TODO
+    public Result useTool(GameMap gameMap, Direction direction) {
+        Player player = gameMap.getCurrentPlayer();
+        Position target = player.getPosition().shift(direction);
+        Tile[][] tiles = gameMap.getTiles();
+        int cost = getEnergyCost(player);
+
+        if (player.getEnergy() < cost) {
+            return new Result(false, "You don't have enough energy to use axe.");
+        }
+
+        if (player.getEnergyUsedThisTurn() + cost > 50) {
+            return new Result(false, "Not enough energy for this turn.");
+        }
+
+        if (target.getX() < 0 || target.getY() < 0 ||
+            target.getX() >= gameMap.getWidth() ||
+            target.getY() >= gameMap.getHeight()) {
+            return new Result(false, "Target tile is out of bounds.");
+        }
+
+        Tile tile = tiles[target.getY()][target.getX()];
+        Object content = tile.getContent();
+
+        if (content == ItemType.BRANCH) {
+            tile.setContent(null);
+            player.reduceEnergy(cost);
+            player.addEnergyUsed(cost);
+            return new Result(true, "Removed a fallen branch at " + target);
+        }
+
+        if (content instanceof Tree) {
+            tile.setContent(null);
+            player.gainXP(Skill.FORAGING, Skill.FORAGING.getIncreasePerAction());
+            player.getBackpack().addToInventory(new Wood(), 1);
+            player.reduceEnergy(cost);
+            player.addEnergyUsed(cost);
+            return new Result(true, "Collected wood at " + target);
+        }
+
+        int reduced = Math.max(1, cost - 1);
+        player.reduceEnergy(reduced);
+        player.addEnergyUsed(reduced);
+        return new Result(false, "Nothing to use the axe.");
     }
 
     @Override

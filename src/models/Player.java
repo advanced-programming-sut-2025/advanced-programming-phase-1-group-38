@@ -14,6 +14,9 @@ public class Player {
     private Tool currentTool;
     private Map<Skill, SkillLevel> skillLevels = new HashMap<>();
     private Map<Skill, Integer> skillXP = new HashMap<>();
+    private int energy;
+    private boolean unlimitedEnergy = false;
+    private int energyUsedThisTurn = 0;
 
     public Player(Position position, Backpack backpack) {
         this.position = position;
@@ -23,6 +26,7 @@ public class Player {
             skillLevels.put(skill, SkillLevel.LEVEL_ZERO);
             skillXP.put(skill, 0);
         }
+        this.energy = 200;
     }
 
     public Position getPosition() {
@@ -52,13 +56,13 @@ public class Player {
         return skillLevels.getOrDefault(skill, SkillLevel.LEVEL_ZERO);
     }
 
-    public int getRequiredXPForNextLevel(Skill skill) {
+    private int getRequiredXPForNextLevel(Skill skill) {
         SkillLevel currentLevel = getSkillLevel(skill);
         int i = currentLevel.ordinal();
         return 50 + 100 * i;
     }
 
-    public void increaseSkill(Skill skill) {
+    private void increaseSkill(Skill skill) {
         SkillLevel current = getSkillLevel(skill);
         int nextOrdinal = Math.min(current.ordinal() + 1, SkillLevel.values().length - 1);
         skillLevels.put(skill, SkillLevel.values()[nextOrdinal]);
@@ -76,5 +80,41 @@ public class Player {
             increaseSkill(skill);
             skillXP.put(skill, currentXP - required);
         }
+    }
+
+    public int getEnergy() {
+        return energy;
+    }
+
+    public void reduceEnergy(int amount) {
+        if (!unlimitedEnergy) {
+            energy = Math.max(0, energy - amount);
+        }
+    }
+
+    public void setEnergy(int value) {
+        this.energy = Math.min(value, 200);
+    }
+
+    public void enableUnlimitedEnergy() {
+        this.unlimitedEnergy = true;
+    }
+
+    public boolean isFainted() {
+        return energy <= 0;
+    }
+
+    public int getEnergyUsedThisTurn() {
+        return energyUsedThisTurn;
+    }
+
+    public void addEnergyUsed(int amount) {
+        if (!unlimitedEnergy) {
+            energyUsedThisTurn += amount;
+        }
+    }
+
+    public void resetTurnEnergy() {
+        energyUsedThisTurn = 0;
     }
 }

@@ -22,4 +22,17 @@ public class ForagingMineral extends Item {
     public ForagingMineralTypes getMineralType() {
         return type;
     }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) return true;
+        if (!(obj instanceof ForagingMineral other)) return false;
+        return this.getMineralType() == other.getMineralType();
+    }
+
+    @Override
+    public int hashCode() {
+        return type.hashCode();
+    }
+
 }

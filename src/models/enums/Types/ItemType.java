@@ -10,7 +10,10 @@ public enum ItemType {
     QUEST_ITEM,
     ANIMAL_PRODUCT,
     TREE,
+    BRANCH,
+    WOOD,
     RECIPE,
-    MINERAL
+    MINERAL,
+    STONE,
     ;
 }

@@ -15,6 +15,7 @@ public class Tree extends Item {
     private final Seasons season;
     private boolean isBurnt;
 
+
     public Tree(String name, String source, String stages, int totalHarvestTime,
                 FruitType fruit, int fruitHarvestCycle, boolean isFruitEdible,
                 int fruitEnergy, Seasons season) {

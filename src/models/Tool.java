@@ -79,11 +79,17 @@ public abstract class Tool extends Item {
 
     public abstract int getEnergyCost(Player player);
 
-    public abstract void useTool(Direction direction);
+    public abstract Result useTool(GameMap gameMap, Direction direction);
 
     protected String formatEnumName(Enum<?> e) {
-        String name = e.name().toLowerCase().replace('_', ' ');
-        return Character.toUpperCase(name.charAt(0)) + name.substring(1);
+        String[] parts = e.name().toLowerCase().split("_");
+        StringBuilder formatted = new StringBuilder();
+        for (String part : parts) {
+            formatted.append(Character.toUpperCase(part.charAt(0)))
+                .append(part.substring(1))
+                .append(" ");
+        }
+        return formatted.toString().trim();
     }
 
     @Override
