@@ -20,4 +20,8 @@ public enum AnimalProductType {
     AnimalProductType(int basePrice) {
         this.basePrice = basePrice;
     }
+
+    public int getBasePrice() {
+        return basePrice;
+    }
 }

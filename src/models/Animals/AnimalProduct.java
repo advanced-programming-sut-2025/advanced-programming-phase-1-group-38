@@ -11,13 +11,13 @@ public class AnimalProduct extends Item {
     private ProductQuality quality;
     private Animal producerAnimal;
 
-    public void calculatePrice() {
-        this.setPrice((int) (this.basePrice * ((double) this.producerAnimal.getFriendshipLevel() / 1000 + 0.3)));
-    }
-
-    public AnimalProduct(AnimalProductType type) {
+    public AnimalProduct(AnimalProductType type, Animal producerAnimal) {
         super(ItemType.ANIMAL_PRODUCT);
         this.type = type;
+        this.producerAnimal = producerAnimal;
+        this.basePrice = type.getBasePrice();
+        this.quality = ProductQuality.NORMAL;
+        calculatePrice();
     }
 
     public AnimalProduct(AnimalProductType type, Animal producerAnimal, int basePrice, ProductQuality quality) {
@@ -26,6 +26,13 @@ public class AnimalProduct extends Item {
         this.producerAnimal = producerAnimal;
         this.basePrice = basePrice;
         this.quality = quality;
+        calculatePrice();
+    }
+
+    public void calculatePrice() {
+        double qualityMultiplier = this.quality.getPriceCoefficient();
+        double price = this.basePrice * ((double) this.producerAnimal.getFriendshipLevel() / 1000 + 0.3);
+        this.setPrice((int) (price * qualityMultiplier));
     }
 
     public AnimalProductType getProductType() {
