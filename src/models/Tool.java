@@ -49,13 +49,6 @@ public abstract class Tool extends Item {
         this.toolQuality = quality;
     }
 
-    public ToolType getToolType() {
-        return type;
-    }
-
-    public void setToolType(ToolType type) {
-        this.type = type;
-    }
 
     public FishingPoleType getFishingPoleType() {
         return fishingPoleType;
@@ -79,7 +72,7 @@ public abstract class Tool extends Item {
 
     public abstract int getEnergyCost(Player player);
 
-    public abstract Result useTool(GameMap gameMap, Direction direction);
+    public abstract Result useTool(Game game, Direction direction);
 
     protected String formatEnumName(Enum<?> e) {
         String[] parts = e.name().toLowerCase().split("_");
