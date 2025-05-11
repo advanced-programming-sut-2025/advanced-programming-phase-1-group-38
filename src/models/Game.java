@@ -1,5 +1,6 @@
 package models;
 
+import models.enums.Seasons;
 import models.enums.Weather;
 
 import java.util.HashMap;
@@ -12,16 +13,18 @@ public class Game {
     private List<Shop> shops;
     private int currentPlayerIndex = 0;
     private Weather currentWeather;
+    private Seasons currentSeason;
     private List<GameMap> gameMaps;
     private Map<Player, GameMap> playerGameMap;
 
-    public Game(List<Shop> shops, List<Player> players, Weather startingWeather, List<GameMap> gameMaps) {
+    public Game(List<Shop> shops, List<Player> players, Weather startingWeather, Seasons currentSeason, List<GameMap> gameMaps) {
         this.shops = shops;
         this.players = players;
         if (!players.isEmpty()) {
             this.currentPlayer = players.get(0);
         }
         this.currentWeather = startingWeather;
+        this.currentSeason = currentSeason;
         this.gameMaps = gameMaps;
         this.playerGameMap = new HashMap<>();
         for (int i = 0; i < players.size(); i++) {
@@ -53,6 +56,14 @@ public class Game {
     }
     public void setCurrentWeather(Weather weather) {
         this.currentWeather = weather;
+    }
+
+    public Seasons getCurrentSeason() {
+        return currentSeason;
+    }
+
+    public void setCurrentSeason(Seasons currentSeason) {
+        this.currentSeason = currentSeason;
     }
 
     public void switchTurn() {

@@ -15,5 +15,6 @@ public enum ItemType {
     RECIPE,
     MINERAL,
     STONE,
+    FISH
     ;
 }

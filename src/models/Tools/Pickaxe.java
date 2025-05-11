@@ -27,10 +27,11 @@ public class Pickaxe extends Tool {
     }
 
     @Override
-    public Result useTool(GameMap gameMap, Direction direction) {
-        Player player = gameMap.getCurrentPlayer();
+    public Result useTool(Game game, Direction direction) {
+        Player player = game.getCurrentPlayer();
         Position target = player.getPosition().shift(direction);
-        Tile[][] tiles = gameMap.getTiles();
+        GameMap currentGameMap = game.getCurrentPlayerMap();
+        Tile[][] tiles = currentGameMap.getTiles();
         int cost = getEnergyCost(player);
 
         if (player.getEnergy() < cost) {
@@ -42,8 +43,8 @@ public class Pickaxe extends Tool {
         }
 
         if (target.getX() < 0 || target.getY() < 0 ||
-            target.getX() >= gameMap.getWidth() ||
-            target.getY() >= gameMap.getHeight()) {
+            target.getX() >= currentGameMap.getWidth() ||
+            target.getY() >= currentGameMap.getHeight()) {
             return new Result(false, "Target tile is out of bounds.");
         }
 

@@ -24,15 +24,31 @@ public enum FishType {
     ANGLER ("Angler", 900, Seasons.FALL, true),
     CRIMSONFISH ("Crimsonfish", 1500, Seasons.SUMMER, true);
 
-    String name;
-    int basePrice;
-    Seasons season;
-    boolean isLegendary;
+    private final String name;
+    private final int basePrice;
+    private final Seasons season;
+    private final boolean isLegendary;
 
     FishType(String name, int basePrice, Seasons season, boolean isLegendary) {
         this.name = name;
         this.basePrice = basePrice;
         this.season = season;
         this.isLegendary = isLegendary;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public int getBasePrice() {
+        return basePrice;
+    }
+
+    public Seasons getSeason() {
+        return season;
+    }
+
+    public boolean isLegendary() {
+        return isLegendary;
     }
 }
