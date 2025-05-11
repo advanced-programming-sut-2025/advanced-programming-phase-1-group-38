@@ -97,18 +97,18 @@ public class GamePlayController {
         return null;
     }
 
-    public Result showPlayerEnergy(GameMap gameMap) {
-        Player player = gameMap.getCurrentPlayer();
+    public Result showPlayerEnergy(Game game) {
+        Player player = game.getCurrentPlayer();
         int energy = player.getEnergy();
         return new Result(true, "Current energy: " + energy);
     }
-    public Result setPlayerEnergy(GameMap gameMap, int energyAmount) {
-        Player player = gameMap.getCurrentPlayer();
+    public Result setPlayerEnergy(Game game, int energyAmount) {
+        Player player = game.getCurrentPlayer();
         player.setEnergy(energyAmount);
         return new Result(true, "Energy set to " + energyAmount);
     }
-    public Result setUnlimitedEnergy(GameMap gameMap) {
-        Player player = gameMap.getCurrentPlayer();
+    public Result setUnlimitedEnergy(Game game) {
+        Player player = game.getCurrentPlayer();
         player.enableUnlimitedEnergy();
         return new Result(true, "Unlimited energy mode enabled.");
     }

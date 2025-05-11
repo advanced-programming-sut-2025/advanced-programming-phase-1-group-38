@@ -2,7 +2,9 @@ package models;
 
 import models.enums.Weather;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class Game {
     private List<Player> players;
@@ -11,14 +13,20 @@ public class Game {
     private int currentPlayerIndex = 0;
     private Weather currentWeather;
     private List<GameMap> gameMaps;
+    private Map<Player, GameMap> playerGameMap;
 
-    public Game(List<Shop> shops, List<Player> players, Weather startingWeather) {
+    public Game(List<Shop> shops, List<Player> players, Weather startingWeather, List<GameMap> gameMaps) {
         this.shops = shops;
         this.players = players;
         if (!players.isEmpty()) {
             this.currentPlayer = players.get(0);
         }
         this.currentWeather = startingWeather;
+        this.gameMaps = gameMaps;
+        this.playerGameMap = new HashMap<>();
+        for (int i = 0; i < players.size(); i++) {
+            playerGameMap.put(players.get(i), gameMaps.get(i % gameMaps.size()));
+        }
     }
 
     public List<Shop> getShops() {
@@ -36,6 +44,10 @@ public class Game {
     public void setCurrentPlayer(Player player) {
         this.currentPlayer = player;
     }
+    public GameMap getCurrentPlayerMap() {
+        return playerGameMap.get(currentPlayer);
+    }
+
     public Weather getCurrentWeather() {
         return currentWeather;
     }
