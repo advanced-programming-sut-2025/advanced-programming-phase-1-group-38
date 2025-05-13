@@ -65,6 +65,10 @@ public class Crop extends Item {
         }
     }
 
+    public boolean shouldRemoveAfterHarvest() {
+        return type.isOneTime() || type.isForage();
+    }
+
     public String getName() {
         return type.getName();
     }

@@ -4,6 +4,8 @@ public enum ItemType {
     FOOD,
     TOOL,
     CROP,
+    FRUIT,
+    SYRUP,
     ANIMAL_PRODUCT,
     BRANCH,
     WEED,
@@ -12,6 +14,7 @@ public enum ItemType {
     MINERAL,
     STONE,
     FISH,
-    FERTILIZER
+    FERTILIZER,
+    SEED
     ;
 }

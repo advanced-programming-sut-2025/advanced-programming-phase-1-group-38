@@ -4,7 +4,7 @@ import models.*;
 import models.enums.Direction;
 import models.enums.Types.ItemType;
 import models.enums.Types.ToolType;
-import models.farming.Crop;
+import models.farming.*;
 
 public class Scythe extends Tool {
     public Scythe() {
@@ -46,10 +46,9 @@ public class Scythe extends Tool {
         player.addEnergyUsed(cost);
 
         if (content instanceof Crop crop && crop.isReadyToHarvest()) {
-            Item harvestedItem = new Crop(crop.getCropType());
-            player.getBackpack().addToInventory(harvestedItem, 1);
+            player.getBackpack().addToInventory(new HarvestedCrop(crop.getCropType()), 1);
 
-            if (crop.getCropType().isOneTime() || crop.getCropType().isForage()) {
+            if (crop.shouldRemoveAfterHarvest()) {
                 tile.setContent(null);
             } else {
                 crop.harvest();
@@ -58,9 +57,17 @@ public class Scythe extends Tool {
             return new Result(true, "Harvested " + crop.getName() + " at " + target);
         }
 
-        if (content == ItemType.WEED) {
+        if (content instanceof Tree tree && tree.canHarvestFruit()) {
+            FruitType fruitType = tree.harvestFruit();
+            if (fruitType != null) {
+                player.getBackpack().addToInventory(new Fruit(fruitType), 1);
+                return new Result(true, "Harvested " + fruitType.getName() + " from tree at " + target);
+            }
+        }
+
+        if (content instanceof Item item && item.getType() == ItemType.WEED) {
             tile.setContent(null);
-            return new Result(true, "Killed weed at " + target);
+            return new Result(true, "Cleared weed at " + target);
         }
 
         return new Result(false, "Nothing to harvest or cut.");

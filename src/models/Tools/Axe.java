@@ -58,13 +58,35 @@ public class Axe extends Tool {
             return new Result(true, "Removed a fallen branch at " + target);
         }
 
-        if (content instanceof Tree) {
-            tile.setContent(null);
+        if (content instanceof Tree tree) {
             player.gainXP(Skill.FORAGING, Skill.FORAGING.getIncreasePerAction());
+            tile.setContent(null);
+            boolean gaveSyrup = false;
+
+            if (tree.canHarvestSyrup()) {
+                SyrupType syrupType = tree.harvestSyrup();
+                if (syrupType != null) {
+                    player.getBackpack().addToInventory(new Syrup(syrupType), 1);
+                    gaveSyrup = true;
+                }
+            }
+
             player.getBackpack().addToInventory(new Wood(), 1);
+
+
+            Seed collectedSeed = TreeSeedType.getRandomSeedItem();
+            player.getBackpack().addToInventory(collectedSeed, 1);
+
             player.reduceEnergy(cost);
             player.addEnergyUsed(cost);
-            return new Result(true, "Collected wood at " + target);
+
+            StringBuilder message = new StringBuilder("Cut down tree at " + target);
+            if (gaveSyrup) {
+                message.insert(0, "Collected syrup. ");
+            }
+            message.append(". Collected seed: ").append(collectedSeed.getName());
+
+            return new Result(true, message.toString());
         }
 
         int reduced = Math.max(1, cost - 1);

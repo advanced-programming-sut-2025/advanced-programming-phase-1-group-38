@@ -1,37 +1,39 @@
 package models.farming;
 
-import models.enums.Seasons;
+public enum FruitType implements TreeProductType {
+    APRICOT("Apricot", 59, true, 38),
+    CHERRY("Cherry", 80, true, 38),
+    BANANA("Banana", 150, true, 75),
+    MANGO("Mango", 130, true, 100),
+    ORANGE("Orange", 100, true, 38),
+    PEACH("Peach", 140, true, 38),
+    APPLE("Apple", 100, true, 38),
+    POMEGRANATE("Pomegranate", 140, true, 38),
+    COMMON_MUSHROOM("Common Mushroom", 40, true, 38);
 
-public enum FruitType {
-    APRICOT(59, true, 38, Seasons.SPRING),
-    CHERRY(80, true, 38, Seasons.SPRING),
-    BANANA(150, true, 75, Seasons.SUMMER),
-    MANGO(130, true, 100, Seasons.SUMMER),
-    ORANGE(100, true, 38, Seasons.SUMMER),
-    PEACH(140, true, 38, Seasons.SUMMER),
-    APPLE(100, true, 38, Seasons.FALL),
-    POMEGRANATE(140, true, 38, Seasons.FALL),
-    OAK_RESIN(150, false, 0, Seasons.SPECIAL),
-    MAPLE_SYRUP(200, false, 0, Seasons.SPECIAL),
-    PINE_TAR(100, false, 0, Seasons.SPECIAL),
-    SAP(2, true, -2, Seasons.SPECIAL),
-    COMMON_MUSHROOM(40, true, 38, Seasons.SPECIAL),
-    MYSTIC_SYRUP(1000, true, 500, Seasons.SPECIAL);
-
-    private final int basePrice;
+    private final String name;
+    private final int baseSellPrice;
     private final boolean isEdible;
     private final int energy;
-    private final Seasons season;
 
-    FruitType(int basePrice, boolean isEdible, int energy, Seasons season) {
-        this.basePrice = basePrice;
+    FruitType(String name, int baseSellPrice, boolean isEdible, int energy) {
+        this.name = name;
+        this.baseSellPrice = baseSellPrice;
         this.isEdible = isEdible;
         this.energy = energy;
-        this.season = season;
     }
 
-    public int getBasePrice() { return basePrice; }
+    @Override
+    public String getName() { return name; }
+    @Override
+    public int getBaseSellPrice() { return baseSellPrice; }
+    @Override
     public boolean isEdible() { return isEdible; }
+    @Override
     public int getEnergy() { return energy; }
-    public Seasons getSeason() { return season; }
+
+    @Override
+    public String toString() {
+        return name;
+    }
 }
