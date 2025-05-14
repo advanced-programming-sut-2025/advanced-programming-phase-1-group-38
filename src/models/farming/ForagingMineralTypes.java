@@ -34,4 +34,9 @@ public enum ForagingMineralTypes {
     public int getSellPrice() {
         return sellPrice;
     }
+
+    @Override
+    public String toString() {
+        return displayName;
+    }
 }

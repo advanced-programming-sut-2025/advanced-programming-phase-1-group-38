@@ -17,10 +17,6 @@ public abstract class Item {
         this.basePrice = basePrice;
     }
 
-
-    public void use() {
-    }
-
     public ItemType getType() {
         return type;
     }

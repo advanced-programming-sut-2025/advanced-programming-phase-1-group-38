@@ -5,6 +5,7 @@ import models.enums.Direction;
 import models.enums.Skill;
 import models.enums.SkillLevel;
 import models.enums.ToolQuality;
+import models.enums.Types.ItemType;
 import models.enums.Types.StoneType;
 import models.enums.Types.TileType;
 import models.enums.Types.ToolType;
@@ -52,7 +53,7 @@ public class Pickaxe extends Tool {
         boolean isTilled = tile.getTileType() == TileType.PLOWED_GROUND;
 
         if (!tile.isOccupied() && isTilled) {
-            tile.setTileType(TileType.DIRT);
+            tile.setTileType(TileType.REGULAR_GROUND);
             player.reduceEnergy(cost);
             player.addEnergyUsed(cost);
             return new Result(true, "Dirt block at " + target);
@@ -81,6 +82,13 @@ public class Pickaxe extends Tool {
             } else {
                 return new Result(false, "Your tool isn't strong enough to break this mineral.");
             }
+        }
+
+        if (content instanceof ItemType itemType && itemType != ItemType.RECIPE) {
+            tile.setContent(null);
+            player.reduceEnergy(cost);
+            player.addEnergyUsed(cost);
+            return new Result(true, "Destroyed item at " + target);
         }
 
         int reduced = Math.max(1, cost - 1);

@@ -47,7 +47,7 @@ public class Hoe extends Tool {
 
         Tile tile = tiles[target.getY()][target.getX()];
 
-        boolean isTillable = tile.getTileType() == TileType.DIRT;
+        boolean isTillable = tile.getTileType() == TileType.REGULAR_GROUND;
         boolean isOccupied = tile.isOccupied();
 
         player.reduceEnergy(cost);

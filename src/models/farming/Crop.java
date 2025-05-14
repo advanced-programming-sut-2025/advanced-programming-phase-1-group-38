@@ -6,39 +6,77 @@ import models.enums.Types.ItemType;
 import models.enums.Seasons;
 
 public class Crop extends Item {
-    private final String name;
-    private final String source;
-    private final String stages;
-    private final int totalHarvestTime;
-    private final boolean oneTime;
-    private final int regrowthTime;
-    private final int baseSellPrice;
-    private final boolean isEdible;
-    private final int energy;
-    private final Seasons season;
-    private final boolean canBecomeGiant;
-    private boolean isWatered;
+    private final CropType type;
+    private boolean isWatered = false;
+    private boolean readyToHarvest = false;
+    private int currentStage = 0;
+    private int daysInCurrentStage = 0;
+    private int unwateredDays = 0;
+    private boolean isDead = false;
 
-    public Crop(String name, String source, String stages, int totalHarvestTime, boolean oneTime,
-                int regrowthTime, int baseSellPrice, boolean isEdible, int energy,
-                Seasons season, boolean canBecomeGiant) {
+    public Crop(CropType type) {
         super(ItemType.CROP);
-        this.name = name;
-        this.source = source;
-        this.stages = stages;
-        this.totalHarvestTime = totalHarvestTime;
-        this.oneTime = oneTime;
-        this.regrowthTime = regrowthTime;
-        this.baseSellPrice = baseSellPrice;
-        this.isEdible = isEdible;
-        this.energy = energy;
-        this.season = season;
-        this.canBecomeGiant = canBecomeGiant;
+        this.type = type;
+        if (type.isForage()) {
+            this.readyToHarvest = true;
+        }
     }
 
-    public boolean canBecomeGiant() { return canBecomeGiant; }
-    public Seasons getSeason() { return season; }
-    public int getBaseSellPrice() { return baseSellPrice; }
+    private void growIfWatered() {
+        if (type.isForage() || readyToHarvest || isDead || !isWatered) return;
+
+        daysInCurrentStage++;
+
+        if (daysInCurrentStage >= type.getGrowthStages().get(currentStage)) {
+            currentStage++;
+            daysInCurrentStage = 0;
+        }
+
+        if (currentStage >= type.getGrowthStages().size()) {
+            readyToHarvest = true;
+        }
+    }
+
+    public void cropNextDay() {
+        if (!isWatered) {
+            unwateredDays++;
+            if (unwateredDays >= 2) {
+                isDead = true;
+                return;
+            }
+        } else {
+            unwateredDays = 0;
+        }
+
+        growIfWatered();
+        isWatered = false;
+    }
+
+
+    public void harvest() {
+        if (!isReadyToHarvest() || isDead) return;
+
+        if (type.isOneTime() || type.isForage()) {
+            readyToHarvest = false;
+        } else {
+            readyToHarvest = false;
+            currentStage = type.getGrowthStages().size() - type.getRegrowthTime();
+            daysInCurrentStage = 0;
+        }
+    }
+
+    public boolean shouldRemoveAfterHarvest() {
+        return type.isOneTime() || type.isForage();
+    }
+
+    public String getName() {
+        return type.getName();
+    }
+
+    public CropType getCropType() {
+        return type;
+    }
+
     public boolean isWatered() {
         return isWatered;
     }
@@ -47,9 +85,19 @@ public class Crop extends Item {
         this.isWatered = watered;
     }
 
-    public void growIfWatered() {
-        if (isWatered) {
-            // TODO
-        }
+    public boolean isReadyToHarvest() {
+        return type.isForage() || readyToHarvest;
+    }
+
+    public int getCurrentStage() {
+        return currentStage;
+    }
+
+    public int getDaysInCurrentStage() {
+        return daysInCurrentStage;
+    }
+
+    public boolean isDead() {
+        return isDead;
     }
 }
