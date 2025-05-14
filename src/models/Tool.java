@@ -74,6 +74,16 @@ public abstract class Tool extends Item {
 
     public abstract Result useTool(Game game, Direction direction);
 
+    public int getModifiedEnergyCost(Player player, Weather weather) {
+        int base = getEnergyCost(player);
+
+        return switch (weather) {
+            case RAINY, STORM -> (int) Math.ceil(base * 1.5);
+            case SNOW  -> base * 2;
+            default    -> base;
+        };
+    }
+
     protected String formatEnumName(Enum<?> e) {
         String[] parts = e.name().toLowerCase().split("_");
         StringBuilder formatted = new StringBuilder();

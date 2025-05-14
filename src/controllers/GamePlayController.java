@@ -2,18 +2,24 @@ package controllers;
 
 import models.*;
 import models.Animals.Animal;
+import models.enums.Seasons;
 import models.enums.Types.AnimalType;
 import models.enums.Direction;
 import models.enums.Types.FarmBuildingType;
+import models.enums.Types.TileType;
 import models.enums.Weather;
-import models.farming.FertilizerType;
+import models.farming.*;
 import models.recipe.CookingRecipe;
 import models.recipe.CraftingRecipe;
 
-import javax.swing.text.Position;
+import models.Position;
 import java.util.Map;
 
 public class GamePlayController {
+    private final Game game;
+    public GamePlayController(Game game) {
+        this.game = game;
+    }
     public Result exitGame(){
         return null;
     }
@@ -226,8 +232,71 @@ public class GamePlayController {
         return null;
     }
 
-    public Result plant(Item seed, Direction direction) {
-        return null;
+    public Result plant(Seed seed, Direction direction) {
+        Player player = game.getCurrentPlayer();
+        Position target = player.getPosition().shift(direction);
+        Result canPlantResult = canPlant(target);
+
+        if (!player.getBackpack().hasItem(seed, 1)) {
+            return new Result(false, "You don't have that seed.");
+        }
+
+        if (!canPlantResult.success()) {
+            return canPlantResult;
+        }
+
+        Tile tile = game.getCurrentPlayerMap().getTile(target);
+        Seasons currentSeason = game.getCurrentSeason();
+
+        if (seed.isCropSeed()) {
+            CropType cropType = seed.getCropType();
+            if (!cropType.growsIn(currentSeason)) {
+                return new Result(false, cropType.getName() + " can't be planted in " + currentSeason.name().toLowerCase() + ".");
+            }
+
+            tile.setContent(new Crop(cropType));
+        }
+        else if (seed.isTreeSeed()) {
+            TreeType treeType = seed.getTreeType();
+            if (treeType.producesFruit() && !treeType.getSeasons().contains(currentSeason)) {
+                return new Result(false, treeType.getName() + " can't grow fruit in " + currentSeason.name().toLowerCase() + ".");
+            }
+
+            tile.setContent(new Tree(treeType));
+        } else {
+            return new Result(false, "Invalid seed type.");
+        }
+
+        player.getBackpack().removeFromInventory(seed, 1);
+
+        return new Result(true, "Planted " + seed.getName() + " at " + target);
+    }
+    public Result canPlant(Position position) {
+        if (!game.getCurrentPlayerMap().isInsideMap(position)) {
+            return new Result(false, "Position is out of bounds.");
+        }
+
+        Player player = game.getCurrentPlayer();
+        Position playerPos = player.getPosition();
+
+        int dx = Math.abs(playerPos.getX() - position.getX());
+        int dy = Math.abs(playerPos.getY() - position.getY());
+
+        if (dx > 1 || dy > 1 || (dx == 0 && dy == 0)) {
+            return new Result(false, "You can only plant in the 8 tiles around you.");
+        }
+
+        Tile tile = game.getCurrentPlayerMap().getTile(position);
+
+        if (tile.isOccupied()) {
+            return new Result(false, "This tile already has something planted.");
+        }
+
+        if (tile.getTileType() != TileType.PLOWED_GROUND) {
+            return new Result(false, "You can only plant on plowed ground.");
+        }
+
+        return new Result(true, "You can plant here.");
     }
     public Result showPlant(Position position) {
         return null;

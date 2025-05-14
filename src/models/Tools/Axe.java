@@ -32,7 +32,7 @@ public class Axe extends Tool {
         Position target = player.getPosition().shift(direction);
         GameMap currentGameMap = game.getCurrentPlayerMap();
         Tile[][] tiles = currentGameMap.getTiles();
-        int cost = getEnergyCost(player);
+        int cost = getModifiedEnergyCost(player, game.getCurrentWeather());
 
         if (player.getEnergy() < cost) {
             return new Result(false, "You don't have enough energy to use axe.");
@@ -51,7 +51,7 @@ public class Axe extends Tool {
         Tile tile = tiles[target.getY()][target.getX()];
         Object content = tile.getContent();
 
-        if (content == ItemType.BRANCH) {
+        if (content instanceof Branch) {
             tile.setContent(null);
             player.reduceEnergy(cost);
             player.addEnergyUsed(cost);
@@ -84,7 +84,7 @@ public class Axe extends Tool {
             if (gaveSyrup) {
                 message.insert(0, "Collected syrup. ");
             }
-            message.append(". Collected seed: ").append(collectedSeed.getName());
+            message.append("Collected seed: ").append(collectedSeed.getName());
 
             return new Result(true, message.toString());
         }
@@ -100,4 +100,3 @@ public class Axe extends Tool {
         return formatEnumName(type) + " (" + formatEnumName(getToolQuality()) + ")";
     }
 }
-

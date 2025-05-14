@@ -1,11 +1,13 @@
 package models;
 
 import models.enums.Seasons;
+import models.enums.Types.ItemType;
 import models.enums.Weather;
+import models.farming.Branch;
+import models.farming.Crop;
+import models.farming.Tree;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class Game {
     private List<Player> players;
@@ -16,6 +18,7 @@ public class Game {
     private Seasons currentSeason;
     private List<GameMap> gameMaps;
     private Map<Player, GameMap> playerGameMap;
+    private Time time = new Time();
 
     public Game(List<Shop> shops, List<Player> players, Weather startingWeather, Seasons currentSeason, List<GameMap> gameMaps) {
         this.shops = shops;
@@ -66,11 +69,101 @@ public class Game {
         this.currentSeason = currentSeason;
     }
 
+    public Time getTime() {
+        return time;
+    }
+
     public void switchTurn() {
         if (players == null || players.isEmpty()) return;
 
         currentPlayerIndex = (currentPlayerIndex + 1) % players.size();
         currentPlayer = players.get(currentPlayerIndex);
         currentPlayer.resetTurnEnergy();
+
+        if (currentPlayerIndex == 0) {
+            time.advance(1);
+
+            if (time.isBedTime()) {
+                handleEndOfDay();
+                time.skipToMorning(); // Skips to 9:00AM
+                enterNextDay();
+            }
+        }
+    }
+
+    public List<Position> applyStormLightning(GameMap map) {
+        List<Position> allPositions = new ArrayList<>();
+        List<Position> thorHits = new ArrayList<>();
+
+        for (int y = 0; y < map.getHeight(); y++) {
+            for (int x = 0; x < map.getWidth(); x++) {
+                allPositions.add(new Position(x, y));
+            }
+        }
+
+        Collections.shuffle(allPositions);
+        List<Position> struck = allPositions.subList(0, 3);
+
+        for (Position pos : struck) {
+            Tile tile = map.getTile(pos);
+            Object content = tile.getContent();
+
+            if (content instanceof Crop crop) {
+                crop.kill();
+                thorHits.add(pos);
+            } else if (content instanceof Tree tree) {
+                tree.burn();
+                thorHits.add(pos);
+            }
+        }
+
+        return thorHits;
+    }
+
+    public void enterNextDay() {
+        Seasons currentSeason = time.getCurrentSeason();
+
+        this.currentWeather = Weather.getRandom(currentSeason);
+
+        if (currentWeather == Weather.STORM) {
+            for (GameMap map : gameMaps) {
+                applyStormLightning(map);
+            }
+        }
+
+        for (GameMap map : gameMaps) {
+            Tile[][] tiles = map.getTiles();
+
+            for (int y = 0; y < map.getHeight(); y++) {
+                for (int x = 0; x < map.getWidth(); x++) {
+                    Tile tile = tiles[y][x];
+                    Object content = tile.getContent();
+
+                    if (content instanceof Crop crop) {
+                        if (!crop.getCropType().growsIn(currentSeason)) {
+                            crop.kill();
+                        } else if (!crop.isDead()) {
+                            crop.cropNextDay();
+                        }
+                    }
+
+                    if (content instanceof Tree tree) {
+                        tree.treeNextDay(currentSeason);
+                    }
+                }
+            }
+        }
+
+        for (Player player : players) {
+            player.resetTurnEnergy();
+        }
+    }
+
+    public void handleEndOfDay() {
+        for (Player player : players) {
+        //   player.goToBed();
+        }
+
+        // Optional: clear flags, reset daily data
     }
 }

@@ -29,7 +29,7 @@ public class Hoe extends Tool {
         GameMap currentGameMap = game.getCurrentPlayerMap();
         Tile[][] tiles = currentGameMap.getTiles();
 
-        int cost = getEnergyCost(player);
+        int cost = getModifiedEnergyCost(player, game.getCurrentWeather());
 
         if (player.getEnergy() < cost) {
             return new Result(false, "You don't have enough energy to use hoe.");

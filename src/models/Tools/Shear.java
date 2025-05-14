@@ -19,6 +19,8 @@ public class Shear extends Tool {
 
     @Override
     public Result useTool(Game game, Direction direction) {
+        Player player = game.getCurrentPlayer();
+        int cost = getModifiedEnergyCost(player, game.getCurrentWeather());
         return null;
     }
 

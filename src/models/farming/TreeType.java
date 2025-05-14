@@ -55,6 +55,9 @@ public enum TreeType {
     public int getHarvestCycle() { return harvestCycle; }
     public List<Seasons> getSeasons() { return seasons; }
     public boolean isForage() { return isForage; }
+    public boolean growsIn(Seasons season) {
+        return seasons.contains(season);
+    }
 
     public boolean producesFruit() {
         return product instanceof FruitType;

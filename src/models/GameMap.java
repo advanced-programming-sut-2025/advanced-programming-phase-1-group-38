@@ -1,8 +1,11 @@
 package models;
 
 import models.Animals.AnimalLivingSpace;
+import models.enums.Seasons;
 import models.enums.Weather;
 import models.enums.Types.FarmBuildingType;
+import models.farming.Crop;
+import models.farming.CropType;
 
 import java.util.*;
 
@@ -92,5 +95,21 @@ public class GameMap {
 
     public AnimalLivingSpace getAnimalBuildingAt(Position pos) {
         return animalBuildings.get(pos);
+    }
+
+    public void processSeasonalCrops(Seasons currentSeason) {
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                Tile tile = tiles[y][x];
+                Object content = tile.getContent();
+
+                if (content instanceof Crop crop) {
+                    CropType type = crop.getCropType();
+                    if (!type.growsIn(currentSeason)) {
+                        crop.kill();
+                    }
+                }
+            }
+        }
     }
 }

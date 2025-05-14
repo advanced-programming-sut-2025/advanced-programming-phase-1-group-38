@@ -38,10 +38,12 @@ public class Crop extends Item {
     }
 
     public void cropNextDay() {
+        if (isDead) return;
+
         if (!isWatered) {
             unwateredDays++;
             if (unwateredDays >= 2) {
-                isDead = true;
+                kill();
                 return;
             }
         } else {
@@ -99,5 +101,10 @@ public class Crop extends Item {
 
     public boolean isDead() {
         return isDead;
+    }
+
+    public void kill() {
+        this.isDead = true;
+        this.readyToHarvest = false;
     }
 }
