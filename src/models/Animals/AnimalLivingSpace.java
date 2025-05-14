@@ -16,6 +16,7 @@ public class AnimalLivingSpace extends FarmBuilding {
         this.animals = new ArrayList<>();
         this.isCage = farmBuildingType.name().contains("COOP");
     }
+//commit bog
 
     public boolean addAnimal(Animal animal) {
         if (isFull()) return false;

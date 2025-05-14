@@ -19,6 +19,7 @@ public class AnimalProduct extends Item {
         this.basePrice = type.getBasePrice();
         calculatePrice();
     }
+//commit bog
 
     private void calculatePrice() {
         double rawPrice = basePrice * (0.3 + producerAnimal.getFriendshipLevel() / 1000.0);

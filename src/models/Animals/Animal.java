@@ -75,7 +75,7 @@ public class Animal {
             updateFriendshipLevel(2);
         }
     }
-
+//commit bog
     public void pet() {
         if (!isPetToday) {
             isPetToday = true;
