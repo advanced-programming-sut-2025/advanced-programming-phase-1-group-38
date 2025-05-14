@@ -1,53 +1,49 @@
 package models.Animals;
 
 import models.Item;
-import models.enums.Types.ItemType;
-import models.enums.ProductQuality;
 import models.enums.Types.AnimalProductType;
+import models.enums.ProductQuality;
+import models.enums.Types.ItemType;
 
 public class AnimalProduct extends Item {
-    private AnimalProductType type;
-    private int basePrice;
-    private ProductQuality quality;
-    private Animal producerAnimal;
+    private final AnimalProductType type;
+    private final ProductQuality quality;
+    private final int basePrice;
+    private final Animal producerAnimal;
 
-    public AnimalProduct(AnimalProductType type, Animal producerAnimal) {
+    public AnimalProduct(AnimalProductType type, Animal producerAnimal, ProductQuality quality) {
         super(ItemType.ANIMAL_PRODUCT);
         this.type = type;
         this.producerAnimal = producerAnimal;
-        this.basePrice = type.getBasePrice();
-        this.quality = ProductQuality.NORMAL;
-        calculatePrice();
-    }
-
-    public AnimalProduct(AnimalProductType type, Animal producerAnimal, int basePrice, ProductQuality quality) {
-        super(ItemType.ANIMAL_PRODUCT);
-        this.type = type;
-        this.producerAnimal = producerAnimal;
-        this.basePrice = basePrice;
         this.quality = quality;
+        this.basePrice = type.getBasePrice();
         calculatePrice();
     }
 
-    public void calculatePrice() {
-        double qualityMultiplier = this.quality.getPriceCoefficient();
-        double price = this.basePrice * ((double) this.producerAnimal.getFriendshipLevel() / 1000 + 0.3);
-        this.setPrice((int) (price * qualityMultiplier));
+    private void calculatePrice() {
+        double rawPrice = basePrice * (0.3 + producerAnimal.getFriendshipLevel() / 1000.0);
+        int finalPrice = (int) (rawPrice * quality.getPriceCoefficient());
+        this.setPrice(finalPrice);
     }
 
     public AnimalProductType getProductType() {
-        return this.type;
+        return type;
     }
 
     public ProductQuality getQuality() {
-        return this.quality;
+        return quality;
     }
 
     public int getBasePrice() {
-        return this.basePrice;
+        return basePrice;
     }
 
     public Animal getProducerAnimal() {
-        return this.producerAnimal;
+        return producerAnimal;
+    }
+
+    @Override
+    public String toString() {
+        return type.name() + " (" + quality.name() + ") - " + getPrice() + "g";
     }
 }

@@ -5,6 +5,7 @@ import models.Position;
 import models.enums.Types.FarmBuildingType;
 
 import java.util.ArrayList;
+import java.util.List;
 
 public class AnimalLivingSpace extends FarmBuilding {
     private final ArrayList<Animal> animals;
@@ -28,17 +29,57 @@ public class AnimalLivingSpace extends FarmBuilding {
 
     public Animal getAnimalByName(String name) {
         for (Animal animal : animals) {
-            if (animal.getName().equalsIgnoreCase(name)) return animal;
+            if (animal.getName().equalsIgnoreCase(name)) {
+                return animal;
+            }
         }
         return null;
     }
 
-    public boolean hasAnimalWithName(String name) {
-        return getAnimalByName(name) != null;
+    public boolean feedAnimal(String name) {
+        Animal animal = getAnimalByName(name);
+        if (animal != null && !animal.isFedToday()) {
+            animal.feed();
+            return true;
+        }
+        return false;
+    }
+
+    public boolean petAnimal(String name) {
+        Animal animal = getAnimalByName(name);
+        if (animal != null && !animal.isPetToday()) {
+            animal.pet();
+            return true;
+        }
+        return false;
+    }
+
+    public AnimalProduct collectFromAnimal(String name) {
+        Animal animal = getAnimalByName(name);
+        if (animal != null && animal.isProductReady()) {
+            return animal.collectProduct();
+        }
+        return null;
+    }
+
+    public void resetDailyStatusForAllAnimals() {
+        for (Animal animal : animals) {
+            animal.resetDailyStatus();
+        }
+    }
+
+    public List<String> getProduces() {
+        List<String> result = new ArrayList<>();
+        for (Animal animal : animals) {
+            if (animal.isProductReady()) {
+                result.add(animal.getName() + ": " + animal.getAnimalType().getAnimalProducts());
+            }
+        }
+        return result;
     }
 
     public boolean isFull() {
-        return animals.size() >= getCapacity();
+        return animals.size() >= this.getFarmBuildingType().getCapacity();
     }
 
     public ArrayList<Animal> getAnimals() {
@@ -47,25 +88,5 @@ public class AnimalLivingSpace extends FarmBuilding {
 
     public boolean isCage() {
         return isCage;
-    }
-
-    public boolean isBarn() {
-        return !isCage;
-    }
-
-    public void resetDailyStates() {
-        for (Animal a : animals) {
-            a.resetDailyFlags();
-        }
-    }
-
-    public ArrayList<Animal> getAnimalsWithProduce() {
-        ArrayList<Animal> result = new ArrayList<>();
-        for (Animal a : animals) {
-            if (a.canProduce()) {
-                result.add(a);
-            }
-        }
-        return result;
     }
 }
