@@ -12,6 +12,7 @@ import models.enums.Types.ToolType;
 import models.farming.ForagingMineral;
 import models.farming.ForagingMineralTypes;
 import models.farming.Stone;
+import models.farming.Tree;
 
 public class Pickaxe extends Tool {
     public Pickaxe(ToolQuality quality) {
@@ -84,12 +85,15 @@ public class Pickaxe extends Tool {
             }
         }
 
-        if (content instanceof ItemType itemType && itemType != ItemType.RECIPE) {
+        if (content instanceof Tree tree && tree.isCollectibleCoal()) {
             tile.setContent(null);
+            player.gainXP(Skill.MINING, Skill.MINING.getIncreasePerAction());
+            player.getBackpack().addToInventory(new ForagingMineral(ForagingMineralTypes.COAL), 1);
             player.reduceEnergy(cost);
             player.addEnergyUsed(cost);
-            return new Result(true, "Destroyed item at " + target);
+            return new Result(true, "Collected coal from burnt tree at " + target);
         }
+
 
         int reduced = Math.max(1, cost - 1);
         player.reduceEnergy(reduced);
