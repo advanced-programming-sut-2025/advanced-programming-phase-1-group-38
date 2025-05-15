@@ -19,6 +19,7 @@ public class Game {
     private List<GameMap> gameMaps;
     private Map<Player, GameMap> playerGameMap;
     private Time time = new Time();
+    private List<Position> lastThorHits = new ArrayList<>();
 
     public Game(List<Shop> shops, List<Player> players, Weather startingWeather, Seasons currentSeason, List<GameMap> gameMaps) {
         this.shops = shops;
@@ -73,6 +74,56 @@ public class Game {
         return time;
     }
 
+    public List<Position> applyStormLightning() {
+        List<Position> thorHits = new ArrayList<>();
+
+        for (GameMap map : gameMaps) {
+            List<Position> allCandidates = new ArrayList<>();
+            List<Position> emptyGround = new ArrayList<>();
+
+            for (int y = 0; y < map.getHeight(); y++) {
+                for (int x = 0; x < map.getWidth(); x++) {
+                    Position pos = new Position(x, y);
+                    Tile tile = map.getTile(pos);
+                    Object content = tile.getContent();
+
+                    allCandidates.add(pos);
+
+                    if (content == null) {
+                        emptyGround.add(pos);
+                    }
+                }
+            }
+
+            Collections.shuffle(allCandidates);
+            List<Position> struck = allCandidates.subList(0, Math.min(3, allCandidates.size()));
+
+            for (Position pos : struck) {
+                Tile tile = map.getTile(pos);
+                Object content = tile.getContent();
+
+                if (content instanceof Crop crop) {
+                    crop.kill();
+                } else if (content instanceof Tree tree) {
+                    tree.burn();
+                }
+
+                thorHits.add(pos);
+            }
+
+            Collections.shuffle(emptyGround);
+            for (int i = 0; i < Math.min(10, emptyGround.size()); i++) {
+                Position branchPos = emptyGround.get(i);
+                Tile tile = map.getTile(branchPos);
+                if (!tile.isOccupied()) {
+                    tile.setContent(new Branch());
+                }
+            }
+        }
+
+        return thorHits;
+    }
+
     public void switchTurn() {
         if (players == null || players.isEmpty()) return;
 
@@ -85,51 +136,20 @@ public class Game {
 
             if (time.isBedTime()) {
                 handleEndOfDay();
-                time.skipToMorning(); // Skips to 9:00AM
+                if (currentWeather == Weather.STORM) {
+                    lastThorHits = applyStormLightning();
+                } else {
+                    lastThorHits.clear();
+                }
+                time.skipToMorning();
                 enterNextDay();
             }
         }
     }
 
-    public List<Position> applyStormLightning(GameMap map) {
-        List<Position> allPositions = new ArrayList<>();
-        List<Position> thorHits = new ArrayList<>();
-
-        for (int y = 0; y < map.getHeight(); y++) {
-            for (int x = 0; x < map.getWidth(); x++) {
-                allPositions.add(new Position(x, y));
-            }
-        }
-
-        Collections.shuffle(allPositions);
-        List<Position> struck = allPositions.subList(0, 3);
-
-        for (Position pos : struck) {
-            Tile tile = map.getTile(pos);
-            Object content = tile.getContent();
-
-            if (content instanceof Crop crop) {
-                crop.kill();
-                thorHits.add(pos);
-            } else if (content instanceof Tree tree) {
-                tree.burn();
-                thorHits.add(pos);
-            }
-        }
-
-        return thorHits;
-    }
-
     public void enterNextDay() {
-        Seasons currentSeason = time.getCurrentSeason();
-
+        this.currentSeason = time.getCurrentSeason();
         this.currentWeather = Weather.getRandom(currentSeason);
-
-        if (currentWeather == Weather.STORM) {
-            for (GameMap map : gameMaps) {
-                applyStormLightning(map);
-            }
-        }
 
         for (GameMap map : gameMaps) {
             Tile[][] tiles = map.getTiles();
@@ -155,6 +175,7 @@ public class Game {
         }
 
         for (Player player : players) {
+            player.resetEnergy();
             player.resetTurnEnergy();
         }
     }
@@ -163,7 +184,5 @@ public class Game {
         for (Player player : players) {
         //   player.goToBed();
         }
-
-        // Optional: clear flags, reset daily data
     }
 }
