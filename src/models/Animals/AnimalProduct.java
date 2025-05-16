@@ -19,7 +19,6 @@ public class AnimalProduct extends Item {
         this.basePrice = type.getBasePrice();
         calculatePrice();
     }
-//commit bog
 
     private void calculatePrice() {
         double rawPrice = basePrice * (0.3 + producerAnimal.getFriendshipLevel() / 1000.0);
@@ -41,6 +40,14 @@ public class AnimalProduct extends Item {
 
     public Animal getProducerAnimal() {
         return producerAnimal;
+    }
+
+    public boolean requiresTool() {
+        return type.requiresTool();
+    }
+
+    public String requiredToolName() {
+        return type.getRequiredToolName();
     }
 
     @Override

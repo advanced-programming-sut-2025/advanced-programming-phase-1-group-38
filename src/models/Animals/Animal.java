@@ -21,6 +21,7 @@ public class Animal {
     private boolean isOutside;
     private boolean wentOutside;
     private Position position;
+    private int daysSinceLastProduct;
 
     public Animal(String name, AnimalType animalType) {
         this.name = name;
@@ -33,6 +34,7 @@ public class Animal {
         this.isOutside = false;
         this.wentOutside = false;
         this.position = null;
+        this.daysSinceLastProduct = 0;
     }
 
     public String getName() { return name; }
@@ -69,7 +71,6 @@ public class Animal {
     public void feed() {
         if (!isFedToday) {
             isFedToday = true;
-            productReady = true;
             updateFriendshipLevel(2);
         }
     }
@@ -77,7 +78,6 @@ public class Animal {
     public void feedOutside() {
         if (!isFedToday) {
             isFedToday = true;
-            productReady = true;
             updateFriendshipLevel(8);
         }
     }
@@ -98,7 +98,6 @@ public class Animal {
         setPosition(newPosition);
         setWentOutside(true);
         feedOutside();
-        updateFriendshipLevel(8);
     }
 
     public AnimalProduct collectProduct() {
@@ -135,10 +134,19 @@ public class Animal {
         AnimalProduct product = new AnimalProduct(productType, this, quality);
         producedProducts.add(product);
         productReady = false;
+        daysSinceLastProduct = 0;
         return product;
     }
 
-    public void resetDailyStatus() {
+    public void endOfDayUpdate() {
+        if (isFedToday) {
+            daysSinceLastProduct++;
+        }
+
+        if (daysSinceLastProduct >= animalType.getDaysToProduce()) {
+            productReady = true;
+        }
+
         if (!isFedToday) friendshipLevel = Math.max(0, friendshipLevel - 20);
         if (!isPetToday) friendshipLevel = Math.max(0, friendshipLevel - 10);
         if (isOutside) friendshipLevel = Math.max(0, friendshipLevel - 20);

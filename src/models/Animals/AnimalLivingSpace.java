@@ -65,8 +65,7 @@ public class AnimalLivingSpace extends FarmBuilding {
 
     public void resetDailyStatusForAllAnimals() {
         for (Animal animal : animals) {
-            animal.resetDailyStatus();
-        }
+            animal.endOfDayUpdate();        }
     }
 
     public List<String> getProduces() {
