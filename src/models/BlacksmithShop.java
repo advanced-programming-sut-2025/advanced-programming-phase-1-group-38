@@ -9,11 +9,9 @@ import java.util.HashMap;
 
 public class BlacksmithShop extends Shop {
 
-    public BlacksmithShop(NPC owner) {
+    public BlacksmithShop() {
         super(ShopType.BLACKSMITH);
         this.name = "Blacksmith";
-        this.owner = owner;
-        this.balance = 10000; // Optional starting balance
 
         this.shopInventory = new HashMap<>();
     }

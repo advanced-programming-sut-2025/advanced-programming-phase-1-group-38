@@ -160,6 +160,10 @@ public class Game {
                     Object content = tile.getContent();
 
                     if (content instanceof Crop crop) {
+                        if (currentWeather == Weather.RAINY || currentWeather == Weather.STORM) {
+                            crop.setWatered(true);
+                        }
+
                         if (!crop.getCropType().growsIn(currentSeason)) {
                             crop.kill();
                         } else if (!crop.isDead()) {

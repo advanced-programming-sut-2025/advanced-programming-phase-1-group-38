@@ -18,6 +18,13 @@ public class GameRandom {
         return random.nextInt(bound);
     }
 
+    public static int randomInt(int minInclusive, int maxExclusive) {
+        if (minInclusive >= maxExclusive) {
+            throw new IllegalArgumentException("min must be less than max");
+        }
+        return random.nextInt(maxExclusive - minInclusive) + minInclusive;
+    }
+
     public static boolean rollChance(double chance) {
         return nextDouble() < chance;
     }

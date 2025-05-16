@@ -6,7 +6,6 @@ public class NPC {
     private final String name;
     private final List<String> favoriteItems;
     private final List<Quest> quests;
-    private final Shop shop;
     private int friendshipPoints;
     private List<String> dialog;
 
@@ -16,7 +15,6 @@ public class NPC {
         this.favoriteItems = favoriteItems;
         this.friendshipPoints = 0;
         this.quests = quests;
-        this.shop = shop;
         this.dialog = dialog;
 
     }
@@ -41,10 +39,6 @@ public class NPC {
         return quests;
     }
 
-    public Shop getShop() {
-        return shop;
-    }
-
     public void increaseFriendship(int points) {
     }
 
@@ -53,5 +47,4 @@ public class NPC {
 
     public void receiveGift(Item item) {
     }
-
 }

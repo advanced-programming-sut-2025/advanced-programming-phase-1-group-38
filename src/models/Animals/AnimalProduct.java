@@ -4,6 +4,7 @@ import models.Item;
 import models.enums.Types.AnimalProductType;
 import models.enums.ProductQuality;
 import models.enums.Types.ItemType;
+import models.enums.Types.ToolType;
 
 public class AnimalProduct extends Item {
     private final AnimalProductType type;
@@ -46,7 +47,7 @@ public class AnimalProduct extends Item {
         return type.requiresTool();
     }
 
-    public String requiredToolName() {
+    public ToolType requiredToolName() {
         return type.getRequiredToolName();
     }
 
