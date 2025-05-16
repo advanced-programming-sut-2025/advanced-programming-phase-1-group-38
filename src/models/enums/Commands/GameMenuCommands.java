@@ -1,17 +1,19 @@
-package models.enums;
+package models.enums.Commands;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public enum MainMenuCommands implements Command {
-    LOGOUT(""),
+public enum GameMenuCommands implements Command {
     MENU_ENTER(""),
     MENU_EXIT(""),
     SHOW_CURRENT_MENU(""),
+    NEW_GAME(""),
+    GAME_MAP(""),
+    LOAD_GAME("")
     ;
 
     private final String pattern;
-    MainMenuCommands(String pattern) {
+    GameMenuCommands(String pattern) {
         this.pattern = pattern;
     }
 
