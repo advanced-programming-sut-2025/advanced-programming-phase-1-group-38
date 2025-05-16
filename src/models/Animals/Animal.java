@@ -124,20 +124,6 @@ public class Animal {
         else return ProductQuality.NORMAL;
     }
 
-    public AnimalProduct useToolToCollect() {
-        if (!productReady) return null;
-        if (animalType == AnimalType.PIG && !isOutside) return null;
-
-        AnimalProductType productType = determineProductType();
-        ProductQuality quality = calculateProductQuality();
-
-        AnimalProduct product = new AnimalProduct(productType, this, quality);
-        producedProducts.add(product);
-        productReady = false;
-        daysSinceLastProduct = 0;
-        return product;
-    }
-
     public AnimalProduct collectProduct() {
         if (!productReady) return null;
         if (animalType == AnimalType.PIG && !isOutside) return null;

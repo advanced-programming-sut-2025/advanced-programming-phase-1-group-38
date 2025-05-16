@@ -1,6 +1,6 @@
 package models.Artisan;
 
-public enum ArtisanMachineTypes {
+public enum ArtisanMachineType {
     BEE_HOUSE,
     CHEESE_PRESS,
     KEG,

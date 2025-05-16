@@ -6,15 +6,13 @@ import java.util.HashMap;
 
 public class Shop {
     protected String name;
+    protected String owner;
     protected ShopType type;
     protected HashMap<Item, Integer> shopInventory;
-    protected int balance;
-    protected NPC owner;
 
     public Shop(ShopType type) {
         this.type = type;
         this.shopInventory = new HashMap<>();
-        this.balance = 0;
     }
 
     public String getName() {
@@ -25,11 +23,7 @@ public class Shop {
         return shopInventory;
     }
 
-    public int getBalance() {
-        return balance;
-    }
-
-    public NPC getOwner() {
+    public String getOwner() {
         return owner;
     }
 

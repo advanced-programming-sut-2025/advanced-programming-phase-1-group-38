@@ -1,6 +1,8 @@
 package models.farming;
 
+import models.GameRandom;
 import models.enums.Seasons;
+import java.util.ArrayList;
 import java.util.List;
 
 public class Tree {
@@ -98,10 +100,20 @@ public class Tree {
     public boolean isMature() { return isMature; }
     public boolean hasProductReady() { return hasProductReady; }
 
-    public TreeSeedType cutDown() {
-        if (type.isForage() && type.getSource() instanceof TreeSeedType seed) {
-            return seed;
+    public List<TreeSeedType> cutDown() {
+        List<TreeSeedType> seeds = new ArrayList<>();
+
+        if (type.getSource() instanceof TreeSeedType seedType) {
+            if (type.isForage()) {
+                seeds.add(seedType);
+            } else {
+                int count = GameRandom.randomInt(1, 3);
+                for (int i = 0; i < count; i++) {
+                    seeds.add(seedType);
+                }
+            }
         }
-        return null;
+
+        return seeds;
     }
 }

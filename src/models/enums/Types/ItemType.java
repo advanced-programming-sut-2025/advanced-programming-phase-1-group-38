@@ -8,13 +8,12 @@ public enum ItemType {
     SYRUP,
     ANIMAL_PRODUCT,
     BRANCH,
-    WEED,
     WOOD,
     RECIPE,
     MINERAL,
     STONE,
     FISH,
     FERTILIZER,
-    SEED
+    SEED,
     ;
 }

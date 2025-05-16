@@ -65,9 +65,9 @@ public class Scythe extends Tool {
             }
         }
 
-        if (content instanceof Item item && item.getType() == ItemType.WEED) {
+        if (content instanceof Crop crop && crop.isDead()) {
             tile.setContent(null);
-            return new Result(true, "Cleared weed at " + target);
+            return new Result(true, "Removed dead crop at " + target);
         }
 
         return new Result(false, "Nothing to harvest or cut.");

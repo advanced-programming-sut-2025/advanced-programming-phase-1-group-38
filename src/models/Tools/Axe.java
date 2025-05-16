@@ -12,6 +12,8 @@ import models.enums.Types.ToolType;
 import models.farming.*;
 import models.farming.Tree;
 
+import java.util.List;
+
 public class Axe extends Tool {
     public Axe(ToolQuality quality) {
         super(ToolType.AXE, quality, Skill.FORAGING);
@@ -61,30 +63,34 @@ public class Axe extends Tool {
         if (content instanceof Tree tree) {
             player.gainXP(Skill.FORAGING, Skill.FORAGING.getIncreasePerAction());
             tile.setContent(null);
-            boolean gaveSyrup = false;
 
+            String syrupName = null;
             if (tree.canHarvestSyrup()) {
                 SyrupType syrupType = tree.harvestSyrup();
                 if (syrupType != null) {
                     player.getBackpack().addToInventory(new Syrup(syrupType), 1);
-                    gaveSyrup = true;
+                    syrupName = syrupType.getName();
                 }
             }
 
             player.getBackpack().addToInventory(new Wood(), 1);
 
 
-            Seed collectedSeed = TreeSeedType.getRandomSeedItem();
-            player.getBackpack().addToInventory(collectedSeed, 1);
+            List<TreeSeedType> seedDrops = tree.cutDown();
+            for (TreeSeedType seedType : seedDrops) {
+                player.getBackpack().addToInventory(new Seed(seedType), 1);
+            }
 
             player.reduceEnergy(cost);
             player.addEnergyUsed(cost);
 
             StringBuilder message = new StringBuilder("Cut down tree at " + target);
-            if (gaveSyrup) {
-                message.insert(0, "Collected syrup. ");
+            if (syrupName != null) {
+                message.insert(0, "Collected " + syrupName);
             }
-            message.append("Collected seed: ").append(collectedSeed.getName());
+            message.append(" Collected seed")
+                .append(seedDrops.size() > 1 ? "s: " : ": ")
+                .append(seedDrops.size());
 
             return new Result(true, message.toString());
         }
