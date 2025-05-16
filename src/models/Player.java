@@ -117,4 +117,8 @@ public class Player {
     public void resetTurnEnergy() {
         energyUsedThisTurn = 0;
     }
+
+    public void resetEnergy() {
+        this.energy = 200;
+    }
 }

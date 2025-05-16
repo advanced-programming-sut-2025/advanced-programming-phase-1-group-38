@@ -89,7 +89,12 @@ public class Tree {
     public boolean isForageTree() { return type.isForage(); }
 
     public boolean isBurnt() { return isBurnt; }
-    public void burn() { isBurnt = true; }
+    public void burn() {
+        this.isBurnt = true;
+    }
+    public boolean isCollectibleCoal() {
+        return isBurnt;
+    }
     public boolean isMature() { return isMature; }
     public boolean hasProductReady() { return hasProductReady; }
 
