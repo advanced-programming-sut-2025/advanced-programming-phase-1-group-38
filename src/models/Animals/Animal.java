@@ -100,6 +100,44 @@ public class Animal {
         feedOutside();
     }
 
+    private AnimalProductType determineProductType() {
+        List<AnimalProductType> productList = animalType.getAnimalProducts();
+        if (productList.isEmpty()) return null;
+
+        Random rand = new Random();
+        if (productList.size() > 1 && friendshipLevel >= 100) {
+            double r = rand.nextDouble();
+            double chance = (friendshipLevel + 150 * r) / 1500.0;
+            return (chance >= 1.5) ? productList.get(1) : productList.get(0);
+        } else {
+            return productList.get(0);
+        }
+    }
+
+    private ProductQuality calculateProductQuality() {
+        double r2 = new Random().nextDouble();
+        double qualityValue = (friendshipLevel / 1000.0) * (0.5 + 0.5 * r2);
+
+        if (qualityValue >= 0.9) return ProductQuality.IRIDIUM;
+        else if (qualityValue >= 0.75) return ProductQuality.GOLD;
+        else if (qualityValue >= 0.5) return ProductQuality.SILVER;
+        else return ProductQuality.NORMAL;
+    }
+
+    public AnimalProduct useToolToCollect() {
+        if (!productReady) return null;
+        if (animalType == AnimalType.PIG && !isOutside) return null;
+
+        AnimalProductType productType = determineProductType();
+        ProductQuality quality = calculateProductQuality();
+
+        AnimalProduct product = new AnimalProduct(productType, this, quality);
+        producedProducts.add(product);
+        productReady = false;
+        daysSinceLastProduct = 0;
+        return product;
+    }
+
     public AnimalProduct collectProduct() {
         if (!productReady) return null;
         if (animalType == AnimalType.PIG && !isOutside) return null;
