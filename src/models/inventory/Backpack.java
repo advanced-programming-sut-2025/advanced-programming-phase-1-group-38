@@ -3,6 +3,7 @@ package models.inventory;
 import models.Item;
 import models.Tool;
 import models.enums.Types.BackpackType;
+import models.enums.Types.ItemType;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -79,5 +80,12 @@ public class Backpack extends Inventory {
 
     public Map<Tool, Integer> getTools() {
         return new LinkedHashMap<>(toolView);
+    }
+
+    public int getItemCountByType(ItemType type) {
+        return items.entrySet().stream()
+            .filter(entry -> entry.getKey().getType() == type)
+            .mapToInt(Map.Entry::getValue)
+            .sum();
     }
 }
