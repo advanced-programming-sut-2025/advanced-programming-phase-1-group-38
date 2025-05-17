@@ -362,9 +362,18 @@ public class GamePlayController {
     private boolean canItemBePlacedHere(Position position, Item item) {
         return false;
     }
+
     public Result cheatAddItem(Item item, int count) {
-        return null;
+        Player player = game.getCurrentPlayer();
+
+        if (count <= 0) {
+            return new Result(false, "You must add at least 1 item.");
+        }
+
+        player.getBackpack().CheatAddToInventory(item, count);
+        return new Result(true, "Added " + count + "x " + item.getName() + " to your inventory.");
     }
+
 
     public Result build(FarmBuildingType farmBuildingType, models.Position position) {
         return new Result(true, "");
@@ -777,8 +786,16 @@ public class GamePlayController {
         return null;
     }
     public Result cheatAddDollars(int amount) {
-        return null;
+        if (amount <= 0) {
+            return new Result(false, "You must add a positive amount of dollars.");
+        }
+
+        Player player = game.getCurrentPlayer();
+        player.addMoney(amount);
+
+        return new Result(true, "Added " + amount + " gold to your balance.");
     }
+
     public Result sell(String productName, Integer count) {
         return null;
     }

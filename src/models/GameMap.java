@@ -31,7 +31,24 @@ public class GameMap {
         this.height = height;
         markGreenhouseTiles();
         markHomeArea();
+        markLakeArea(new Position(12, 6), 4, 3);
+        markQuarryArea(new Position(20, 5), 4, 3);
     }
+
+    public void markQuarryArea(Position topLeft, int quarryWidth, int quarryHeight) {
+        for (int dx = 0; dx < quarryWidth; dx++) {
+            for (int dy = 0; dy < quarryHeight; dy++) {
+                Position pos = new Position(topLeft.getX() + dx, topLeft.getY() + dy);
+                Tile tile = getTile(pos);
+                if (tile != null) {
+                    tile.setTileType(TileType.QUARRY);
+                    tile.setWalkable(true);
+                    tile.setContent(null);
+                }
+            }
+        }
+    }
+
 
     public AnimalLivingSpace getAvailableLivingSpace(List<FarmBuildingType> allowedTypes) {
         for (AnimalLivingSpace space : animalBuildings.values()) {
@@ -86,6 +103,20 @@ public class GameMap {
                 if (tile != null) {
                     tile.setTileType(TileType.HOME);
                     tile.setWalkable(true);
+                }
+            }
+        }
+    }
+
+    public void markLakeArea(Position topLeft, int lakeWidth, int lakeHeight) {
+        for (int dx = 0; dx < lakeWidth; dx++) {
+            for (int dy = 0; dy < lakeHeight; dy++) {
+                Position pos = new Position(topLeft.getX() + dx, topLeft.getY() + dy);
+                Tile tile = getTile(pos);
+                if (tile != null) {
+                    tile.setTileType(TileType.WATER);
+                    tile.setWalkable(false);
+                    tile.setContent(null);
                 }
             }
         }
