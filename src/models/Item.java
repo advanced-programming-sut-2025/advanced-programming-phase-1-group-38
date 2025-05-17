@@ -6,15 +6,14 @@ public abstract class Item {
     private ItemType type;
     private int price;
     private String name;
-    private int basePrice;
 
     public Item(ItemType type) {
         this.type = type;
     }
-    public Item(String name, ItemType type, int basePrice) {
+    public Item(String name, ItemType type, int price) {
         this.name = name;
         this.type = type;
-        this.basePrice = basePrice;
+        this.price = price;
     }
 
     public ItemType getType() {
@@ -29,7 +28,16 @@ public abstract class Item {
         return this.price;
     }
 
+    public String getName() {
+        return name != null ? name : getClass().getSimpleName();
+    }
+
     public void setPrice(int price) {
         this.price = price;
+    }
+
+    @Override
+    public String toString() {
+        return getName();
     }
 }

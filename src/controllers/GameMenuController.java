@@ -48,7 +48,7 @@ public class GameMenuController {
             Tile[][] tiles = new Tile[width][height];
             for (int x = 0; x < width; x++) {
                 for (int y = 0; y < height; y++) {
-                    tiles[x][y] = new Tile(TileType.EMPTY, true);
+                    tiles[x][y] = new Tile(TileType.REGULAR_GROUND, true);
                 }
             }
 

@@ -1,13 +1,11 @@
 package models.Tools;
 
-import models.Game;
-import models.Player;
-import models.Result;
-import models.Tool;
+import models.*;
 import models.enums.*;
 import models.enums.Types.ToolType;
 
 public class TrashCan extends Tool {
+
     public TrashCan(TrashCanQuality quality) {
         super(ToolType.TRASH_CAN, quality, null);
     }
@@ -19,11 +17,11 @@ public class TrashCan extends Tool {
 
     @Override
     public Result useTool(Game game, Direction direction) {
-        return null;
+        return new Result(false, "Trash can is used from the inventory menu to discard items.");
     }
 
     @Override
     public String toString() {
-        return "";
+        return "Trash Can (" + formatEnumName(getTrashCanQuality()) + ")";
     }
 }

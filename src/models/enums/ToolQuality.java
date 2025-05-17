@@ -14,5 +14,11 @@ public enum ToolQuality {
     public int getEnergyCost() {
         return energyCost;
     }
-
+    public ToolQuality getNext() {
+        int nextOrdinal = this.ordinal() + 1;
+        if (nextOrdinal >= ToolQuality.values().length) {
+            return null;
+        }
+        return ToolQuality.values()[nextOrdinal];
+    }
 }
