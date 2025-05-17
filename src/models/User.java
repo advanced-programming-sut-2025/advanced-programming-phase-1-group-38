@@ -1,6 +1,6 @@
 package models;
 
-
+import models.enums.Gender;
 import models.inventory.Backpack;
 import models.inventory.Inventory;
 
@@ -9,18 +9,19 @@ public class User {
     private String password;
     private String nickname;
     private String email;
-    private String gender;
-    private String SecurityQuestion;
-    private String SecurityAnswer;
+    private Gender gender;
+    private SecurityQuestion securityQuestion;
     private Player player;
 
-    public User(String username, String password, String nickname, String email, String gender) {
+    public User(String username, String password, String nickname, String email, Gender gender) {
         this.username = username;
         this.password = password;
         this.nickname = nickname;
         this.email = email;
         this.gender = gender;
     }
+
+    // Getters & Setters
 
     public String getUsername() {
         return username;
@@ -28,46 +29,56 @@ public class User {
     public void setUsername(String username) {
         this.username = username;
     }
+
     public String getPassword() {
         return password;
     }
     public void setPassword(String password) {
         this.password = password;
     }
+
     public String getNickname() {
         return nickname;
     }
     public void setNickname(String nickname) {
         this.nickname = nickname;
     }
+
     public String getEmail() {
         return email;
     }
     public void setEmail(String email) {
         this.email = email;
     }
-    public String getGender() {
+
+    public Gender getGender() {
         return gender;
     }
-    public void setGender(String gender) {
+    public void setGender(Gender gender) {
         this.gender = gender;
     }
-    public String getSecurityQuestion() {
-        return SecurityQuestion;
+
+    public SecurityQuestion getSecurityQuestion() {
+        return securityQuestion;
     }
-    public void setSecurityQuestion(String securityQuestion) {
-        SecurityQuestion = securityQuestion;
+    public void setSecurityQuestion(String question, String answer) {
+        this.securityQuestion = new SecurityQuestion(question, answer);
     }
-    public String getSecurityAnswer() {
-        return SecurityAnswer;
-    }
-    public void setSecurityAnswer(String securityAnswer) {
-        SecurityAnswer = securityAnswer;
-    }
+
     public Player getPlayer() {
         return player;
     }
     public void setPlayer(Player player) {
         this.player = player;
+    }
+
+    @Override
+    public String toString() {
+        return "User{" +
+                "username='" + username + '\'' +
+                ", nickname='" + nickname + '\'' +
+                ", email='" + email + '\'' +
+                ", gender=" + gender +
+                '}';
     }
 }
