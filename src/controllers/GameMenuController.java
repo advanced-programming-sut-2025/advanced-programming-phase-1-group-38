@@ -3,6 +3,7 @@ package controllers;
 import models.*;
 import models.enums.Menu;
 import models.enums.Seasons;
+import models.enums.Types.TileType;
 import models.enums.Weather;
 
 import java.util.*;
@@ -11,6 +12,8 @@ public class GameMenuController {
 
     private final List<Player> players = new ArrayList<>();
     private Game currentGame;
+    private GamePlayController gameplay;
+
 
     public Result newGame(String usernamesInput) {
         String[] usernames = usernamesInput.trim().split("\\s+");
@@ -31,21 +34,36 @@ public class GameMenuController {
             }
 
             User user = App.getUserByUsername(username);
-            Player player = new Player(user); // فرض بر اینکه Constructor دارد
+            Player player = new Player(user);
             players.add(player);
         }
 
-        List<GameMap> maps = List.of(new GameMap(), new GameMap(), new GameMap());
-
         List<Shop> shops = new ArrayList<>();
+
+        int width = 40;
+        int height = 50;
+        List<GameMap> maps = new ArrayList<>();
+
+        for (Player player : players) {
+            Tile[][] tiles = new Tile[width][height];
+            for (int x = 0; x < width; x++) {
+                for (int y = 0; y < height; y++) {
+                    tiles[x][y] = new Tile(TileType.EMPTY, true);
+                }
+            }
+
+            GameMap map = new GameMap(tiles, width, height, shops, players, Weather.SUNNY);
+            maps.add(map);
+        }
 
         currentGame = new Game(shops, players, Weather.SUNNY, Seasons.SPRING, maps);
         App.addGame(currentGame);
         App.setCurrentGame(currentGame);
 
+        gameplay = new GamePlayController(currentGame);
+
         return new Result(true, "New game created. Players joined. Game started.");
     }
-
     public Result loadGame() {
         Game saved = App.getLatestSavedGame();
         if (saved == null) {

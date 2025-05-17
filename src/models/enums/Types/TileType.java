@@ -1,6 +1,7 @@
 package models.enums.Types;
 
 public enum TileType {
+    EMPTY,
     GRASS,
     DIRT,
     WATER,
