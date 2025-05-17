@@ -18,7 +18,7 @@ public class Tree {
         this.type = type;
     }
 
-    public void treeNextDay(Seasons currentSeason) {
+    public void treeNextDay(Seasons currentSeason, boolean ignoreSeason) {
         if (isBurnt) return;
 
         if (!isMature) {
@@ -32,12 +32,12 @@ public class Tree {
             return;
         }
 
-        if (!type.isForage() && !type.getSeasons().contains(currentSeason)) {
+        if (!type.isForage() && !ignoreSeason && !type.getSeasons().contains(currentSeason)) {
             daysSinceLastHarvest = 0;
             return;
         }
 
-        if (!type.isForage()) {
+            if (!type.isForage()) {
             daysSinceLastHarvest++;
             if (daysSinceLastHarvest >= type.getHarvestCycle()) {
                 hasProductReady = true;

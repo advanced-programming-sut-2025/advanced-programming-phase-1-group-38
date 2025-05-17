@@ -8,6 +8,7 @@ import models.enums.Seasons;
 import models.enums.Types.AnimalType;
 import models.enums.Direction;
 import models.enums.Types.FarmBuildingType;
+import models.enums.Types.ItemType;
 import models.enums.Types.TileType;
 import models.enums.Weather;
 import models.farming.*;
@@ -38,50 +39,115 @@ public class GamePlayController {
         return null;
     }
 
+    // Time and Date
+
     public Result showTime(){
-        return null;
+        Time time = game.getTime();
+        int hour = time.getHourOfDay();
+        String formatted = (hour == 0 ? 12 : hour % 12) + (hour < 12 ? " AM" : " PM");
+        return new Result(true, "Current time: " + formatted);
     }
-    public Result showDate(){
-        return null;
-    }
-    public Result showDateTime(){
-        return null;
-    }
-    public Result showDayOfTheWeek(){
-        return null;
-    }
-    public Result cheatAdvanceTime(int howManyHours) {
-        return null;
-    }
-    public Result cheatAdvanceDate(int howManyDays) {
-        return null;
+    public Result showDate() {
+        Time time = game.getTime();
+        int day = time.getDayOfSeason();
+        String season = time.getCurrentSeason().name().charAt(0) +
+            time.getCurrentSeason().name().substring(1).toLowerCase();
+        return new Result(true, "Day " + day + " in " + season);
     }
 
-    public Result showSeason(){
-        return null;
+    public Result showDateTime() {
+        Time time = game.getTime();
+
+        int hour = time.getHourOfDay();
+        String formattedTime = (hour == 0 ? 12 : hour % 12) + (hour < 12 ? " AM" : " PM");
+
+        int day = time.getDayOfSeason();
+        String season = time.getCurrentSeason().name().charAt(0) +
+            time.getCurrentSeason().name().substring(1).toLowerCase();
+
+        return new Result(true, "Day " + day + " in " + season + " - " + formattedTime);
     }
+
+    public Result showDayOfWeek() {
+        Time time = game.getTime();
+        return new Result(true, "Today is: " + time.getCurrentDayOfWeek());
+    }
+
+    public Result cheatAdvanceHours(int hours) {
+        game.getTime().advance(hours);
+        return new Result(true, "Time advanced by " + hours + " hours.");
+    }
+
+    public Result cheatAdvanceDays(int days) {
+        return cheatAdvanceHours(days * 24);
+    }
+
+    // Season
+
+    public Result showSeason() {
+        String season = game.getTime().getCurrentSeason().name();
+        season = season.charAt(0) + season.substring(1).toLowerCase();
+        return new Result(true, "Current season: " + season);
+    }
+
+    // Thor
+
     public Result cheatThor(Position position) {
-        return null;
+        GameMap map = game.getCurrentPlayerMap();
+        Tile tile = map.getTile(position);
+
+        Object content = tile.getContent();
+        if (content instanceof Crop crop) {
+            crop.kill();
+        } else if (content instanceof Tree tree) {
+            tree.burn();
+        }
+
+        return new Result(true, "Thor's lightning struck at " + position + "!");
     }
+
+    // Weather
+
     public Result showWeather() {
-        return null;
+        return new Result(true, "Today's weather: " + game.getCurrentWeather());
     }
     public Result showWeatherForecast() {
-        return null;
+        Weather forecast = game.getTomorrowWeather();
+        if (forecast == null) {
+            forecast = Weather.getRandom(game.getCurrentSeason());
+        }
+        return new Result(true, "Tomorrow's weather forecast: " + forecast);
     }
     public Result cheatWeatherSet(Weather newWeather) {
-        return null;
+        game.setTomorrowWeather(newWeather);
+        return new Result(true, "Tomorrow's weather has been set to: " + newWeather);
     }
+
+    // Greenhouse
 
     public Result buildGreenhouse() {
-        return null;
-    }
-    private boolean canBuildGreenhouse() {
-        return false;
-    }
+        Player player = game.getCurrentPlayer();
+        GameMap map = game.getCurrentPlayerMap();
 
-    public Result enterNextDay(){
-        return null;
+        if (map.isGreenhouseBuilt()) {
+            return new Result(false, "The greenhouse is already built.");
+        }
+
+        int requiredWood = 1000;
+        int requiredGold = 1000;
+
+        int woodCount = player.getBackpack().getItemCountByType(ItemType.WOOD);
+        int gold = player.getMoney();
+
+        if (woodCount < requiredWood || gold < requiredGold) {
+            return new Result(false, "You need 1000 wood and 1000 gold to build the greenhouse.");
+        }
+
+        player.getBackpack().removeFromInventory(new Wood(), requiredWood);
+        player.spendMoney(requiredGold);
+        map.setGreenhouseBuilt(true);
+
+        return new Result(true, "Greenhouse built successfully!");
     }
 
     public Result printMap(GameMap map) {
@@ -106,6 +172,8 @@ public class GamePlayController {
     public Result respondForWalkRequest(Position origin, Position destination) {
         return null;
     }
+
+    // Energy
 
     public Result showPlayerEnergy(Game game) {
         Player player = game.getCurrentPlayer();

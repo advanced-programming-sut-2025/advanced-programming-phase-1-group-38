@@ -6,7 +6,6 @@ import java.util.ArrayList;
 
 public class PlantsInfo {
     private String name;
-    private models.PlantSource source;
     private int numOfStages;
     private ArrayList<Integer> stages;
     private int totalHarvestTime;

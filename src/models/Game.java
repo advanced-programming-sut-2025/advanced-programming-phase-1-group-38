@@ -2,6 +2,7 @@ package models;
 
 import models.enums.Seasons;
 import models.enums.Types.ItemType;
+import models.enums.Types.TileType;
 import models.enums.Weather;
 import models.farming.Branch;
 import models.farming.Crop;
@@ -15,6 +16,7 @@ public class Game {
     private List<Shop> shops;
     private int currentPlayerIndex = 0;
     private Weather currentWeather;
+    private Weather tomorrowWeather;
     private Seasons currentSeason;
     private List<GameMap> gameMaps;
     private Map<Player, GameMap> playerGameMap;
@@ -62,6 +64,14 @@ public class Game {
         this.currentWeather = weather;
     }
 
+    public Weather getTomorrowWeather() {
+        return tomorrowWeather;
+    }
+
+    public void setTomorrowWeather(Weather weather) {
+        this.tomorrowWeather = weather;
+    }
+
     public Seasons getCurrentSeason() {
         return currentSeason;
     }
@@ -85,6 +95,9 @@ public class Game {
                 for (int x = 0; x < map.getWidth(); x++) {
                     Position pos = new Position(x, y);
                     Tile tile = map.getTile(pos);
+
+                    if (tile.getTileType() == TileType.GREENHOUSE) continue;
+
                     Object content = tile.getContent();
 
                     allCandidates.add(pos);
@@ -157,7 +170,13 @@ public class Game {
 
     public void enterNextDay() {
         this.currentSeason = time.getCurrentSeason();
-        this.currentWeather = Weather.getRandom(currentSeason);
+
+        if (tomorrowWeather != null) {
+            this.currentWeather = tomorrowWeather;
+            tomorrowWeather = null;
+        } else {
+            this.currentWeather = Weather.getRandom(currentSeason);
+        }
 
         for (GameMap map : gameMaps) {
             Tile[][] tiles = map.getTiles();
@@ -168,11 +187,15 @@ public class Game {
                     Object content = tile.getContent();
 
                     if (content instanceof Crop crop) {
-                        if (currentWeather == Weather.RAINY || currentWeather == Weather.STORM) {
+                        boolean isGreenhouse = tile.getTileType() == TileType.GREENHOUSE;
+                        boolean isRainyOrStorm = currentWeather == Weather.RAINY || currentWeather == Weather.STORM;
+
+                        if (!isGreenhouse && isRainyOrStorm) {
                             crop.setWatered(true);
                         }
 
-                        if (!crop.getCropType().growsIn(currentSeason)) {
+                        if (!crop.getCropType().growsIn(currentSeason) &&
+                            tile.getTileType() != TileType.GREENHOUSE) {
                             crop.kill();
                         } else if (!crop.isDead()) {
                             crop.cropNextDay();
@@ -180,7 +203,8 @@ public class Game {
                     }
 
                     if (content instanceof Tree tree) {
-                        tree.treeNextDay(currentSeason);
+                        boolean isGreenhouse = tile.getTileType() == TileType.GREENHOUSE;
+                        tree.treeNextDay(currentSeason, isGreenhouse);
                     }
                 }
             }

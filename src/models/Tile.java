@@ -35,6 +35,7 @@ public class Tile {
 
     public void setContent(Object content) {
         this.content = content;
+        this.walkable = (content == null);
     }
 
     public boolean isOccupied() {

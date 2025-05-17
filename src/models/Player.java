@@ -18,6 +18,7 @@ public class Player {
     private int energy;
     private boolean unlimitedEnergy = false;
     private int energyUsedThisTurn = 0;
+    private int money;
 
     public Player(User user) {
         this(user, new Position(0, 0), new Backpack(BackpackType.INITIAL));
@@ -33,6 +34,7 @@ public class Player {
             skillXP.put(skill, 0);
         }
         this.energy = 200;
+        this.money = 100;
     }
 
     public String getName() {
@@ -45,6 +47,26 @@ public class Player {
 
     public void setPosition(Position position) {
         this.position = position;
+    }
+
+    public int getMoney() {
+        return money;
+    }
+
+    public void setMoney(int money) {
+        this.money = money;
+    }
+
+    public boolean spendMoney(int amount) {
+        if (money >= amount) {
+            money -= amount;
+            return true;
+        }
+        return false;
+    }
+
+    public void addMoney(int amount) {
+        this.money += amount;
     }
 
     public Backpack getBackpack() {

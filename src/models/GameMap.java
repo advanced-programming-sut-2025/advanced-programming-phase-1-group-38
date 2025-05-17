@@ -2,6 +2,7 @@ package models;
 
 import models.Animals.AnimalLivingSpace;
 import models.enums.Seasons;
+import models.enums.Types.TileType;
 import models.enums.Weather;
 import models.enums.Types.FarmBuildingType;
 import models.farming.Crop;
@@ -13,6 +14,14 @@ public class GameMap {
     private Tile[][] tiles;
     private int width;
     private int height;
+    private final Position greenhouseTopLeft = new Position(6, 3);
+    private final int greenhouseWidth = 5;
+    private final int greenhouseHeight = 6;
+    private boolean greenhouseBuilt = false;
+    private final Position homeTopLeft = new Position(3, 15);
+    private final int homeWidth = 4;
+    private final int homeHeight = 4;
+
 
     private Map<Position, AnimalLivingSpace> animalBuildings = new HashMap<>();
 
@@ -20,6 +29,8 @@ public class GameMap {
         this.tiles = tiles;
         this.width = width;
         this.height = height;
+        markGreenhouseTiles();
+        markHomeArea();
     }
 
     public AnimalLivingSpace getAvailableLivingSpace(List<FarmBuildingType> allowedTypes) {
@@ -45,6 +56,39 @@ public class GameMap {
 
     public int getHeight() {
         return height;
+    }
+
+    public boolean isGreenhouseBuilt() {
+        return greenhouseBuilt;
+    }
+
+    public void setGreenhouseBuilt(boolean built) {
+        this.greenhouseBuilt = built;
+    }
+
+    public void markGreenhouseTiles() {
+        for (int dx = 0; dx < greenhouseWidth; dx++) {
+            for (int dy = 0; dy < greenhouseHeight; dy++) {
+                Position pos = new Position(greenhouseTopLeft.getX() + dx, greenhouseTopLeft.getY() + dy);
+                Tile tile = getTile(pos);
+                if (tile != null) {
+                    tile.setTileType(TileType.GREENHOUSE);
+                }
+            }
+        }
+    }
+
+    public void markHomeArea() {
+        for (int dx = 0; dx < homeWidth; dx++) {
+            for (int dy = 0; dy < homeHeight; dy++) {
+                Position pos = new Position(homeTopLeft.getX() + dx, homeTopLeft.getY() + dy);
+                Tile tile = getTile(pos);
+                if (tile != null) {
+                    tile.setTileType(TileType.HOME);
+                    tile.setWalkable(true);
+                }
+            }
+        }
     }
 
     public Tile getTile(Position pos) {

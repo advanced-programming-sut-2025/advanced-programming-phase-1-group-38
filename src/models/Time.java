@@ -33,6 +33,10 @@ public class Time {
         return hour % HOURS_IN_DAY;
     }
 
+    public void setHour(int hour) {
+        this.hour = hour;
+    }
+
     public int getDayOfYear() {
         return (hour / HOURS_IN_DAY) % DAYS_IN_YEAR + 1;
     }
