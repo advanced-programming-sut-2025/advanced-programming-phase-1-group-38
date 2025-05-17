@@ -41,6 +41,10 @@ public abstract class Tool extends Item {
         this.fixedEnergyCost = fixedEnergyCost;
     }
 
+    public ToolType getToolType() {
+        return type;
+    }
+
     public ToolQuality getToolQuality() {
         return toolQuality;
     }

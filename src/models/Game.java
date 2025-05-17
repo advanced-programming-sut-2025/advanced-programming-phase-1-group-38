@@ -140,25 +140,35 @@ public class Game {
     public void switchTurn() {
         if (players == null || players.isEmpty()) return;
 
-        currentPlayerIndex = (currentPlayerIndex + 1) % players.size();
-        currentPlayer = players.get(currentPlayerIndex);
-        currentPlayer.resetTurnEnergy();
+        int startingIndex = currentPlayerIndex;
+
+        do {
+            currentPlayerIndex = (currentPlayerIndex + 1) % players.size();
+            currentPlayer = players.get(currentPlayerIndex);
+        } while (currentPlayer.isFainted() && currentPlayerIndex != startingIndex);
+
+        if (!currentPlayer.isFainted()) {
+            currentPlayer.resetTurnEnergy();
+        }
 
         if (currentPlayerIndex == 0) {
             time.advance(1);
 
             if (time.isBedTime()) {
                 handleEndOfDay();
+
                 if (currentWeather == Weather.STORM) {
                     lastThorHits = applyStormLightning();
                 } else {
                     lastThorHits.clear();
                 }
+
                 time.skipToMorning();
                 enterNextDay();
             }
         }
     }
+
 
     public void assignMapToPlayer(Player player, GameMap map) {
         this.playerGameMap.put(player, map);
@@ -211,7 +221,12 @@ public class Game {
         }
 
         for (Player player : players) {
-            player.resetEnergy();
+            if (player.isFainted()) {
+                player.setEnergy(150);
+                player.setFainted(false);
+            } else {
+                player.resetEnergy();
+            }
             player.resetTurnEnergy();
         }
     }

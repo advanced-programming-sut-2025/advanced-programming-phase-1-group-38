@@ -88,4 +88,9 @@ public class Backpack extends Inventory {
             .mapToInt(Map.Entry::getValue)
             .sum();
     }
+
+    public Map<Item, Integer> getItems() {
+        return new LinkedHashMap<>(items);
+    }
+
 }

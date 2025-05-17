@@ -77,6 +77,13 @@ public class WateringCan extends Tool {
         return new Result(true, "Watered crop at " + target);
     }
 
+    public int getCurrentWaterAmount() {
+        return waterLeft;
+    }
+
+    public int getCapacity() {
+        return capacity;
+    }
 
     @Override
     public String toString() {

@@ -19,6 +19,7 @@ public class Player {
     private boolean unlimitedEnergy = false;
     private int energyUsedThisTurn = 0;
     private int money;
+    private boolean isFainted;
 
     public Player(User user) {
         this(user, new Position(0, 0), new Backpack(BackpackType.INITIAL));
@@ -34,7 +35,9 @@ public class Player {
             skillXP.put(skill, 0);
         }
         this.energy = 200;
+        this.energyUsedThisTurn = 0;
         this.money = 100;
+        this.isFainted = false;
     }
 
     public String getName() {
@@ -120,6 +123,9 @@ public class Player {
     public void reduceEnergy(int amount) {
         if (!unlimitedEnergy) {
             energy = Math.max(0, energy - amount);
+            if (energy == 0) {
+                isFainted = true;
+            }
         }
     }
 
@@ -132,7 +138,11 @@ public class Player {
     }
 
     public boolean isFainted() {
-        return energy <= 0;
+        return isFainted;
+    }
+
+    public void setFainted(boolean fainted) {
+        this.isFainted = fainted;
     }
 
     public int getEnergyUsedThisTurn() {
