@@ -39,8 +39,6 @@ public class GamePlayController {
         return null;
     }
 
-    // Time and Date
-
     public Result showTime(){
         Time time = game.getTime();
         int hour = time.getHourOfDay();
@@ -82,15 +80,11 @@ public class GamePlayController {
         return cheatAdvanceHours(days * 24);
     }
 
-    // Season
-
     public Result showSeason() {
         String season = game.getTime().getCurrentSeason().name();
         season = season.charAt(0) + season.substring(1).toLowerCase();
         return new Result(true, "Current season: " + season);
     }
-
-    // Thor
 
     public Result cheatThor(Position position) {
         GameMap map = game.getCurrentPlayerMap();
@@ -106,8 +100,6 @@ public class GamePlayController {
         return new Result(true, "Thor's lightning struck at " + position + "!");
     }
 
-    // Weather
-
     public Result showWeather() {
         return new Result(true, "Today's weather: " + game.getCurrentWeather());
     }
@@ -122,8 +114,6 @@ public class GamePlayController {
         game.setTomorrowWeather(newWeather);
         return new Result(true, "Tomorrow's weather has been set to: " + newWeather);
     }
-
-    // Greenhouse
 
     public Result buildGreenhouse() {
         Player player = game.getCurrentPlayer();
@@ -172,8 +162,6 @@ public class GamePlayController {
     public Result respondForWalkRequest(Position origin, Position destination) {
         return null;
     }
-
-    // Energy
 
     public Result showPlayerEnergy(Game game) {
         Player player = game.getCurrentPlayer();
@@ -239,8 +227,6 @@ public class GamePlayController {
         return new Result(true, "You threw away " + number + "x " + item.getName() +
             " and got back " + refund + " gold.");
     }
-
-    // Tools
 
     public Result equipTool(Tool tool, Player player) {
         if (!(player.getBackpack().containsItem(tool))) {
@@ -459,8 +445,6 @@ public class GamePlayController {
     public Result eat(Item food) {
         return null;
     }
-
-    // Farming
 
     public Result plant(Seed seed, Direction direction) {
         Player player = game.getCurrentPlayer();
