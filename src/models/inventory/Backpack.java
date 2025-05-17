@@ -4,6 +4,7 @@ import models.Item;
 import models.Tool;
 import models.enums.Types.BackpackType;
 import models.enums.Types.ItemType;
+import models.farming.Seed;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -87,6 +88,24 @@ public class Backpack extends Inventory {
             .filter(entry -> entry.getKey().getType() == type)
             .mapToInt(Map.Entry::getValue)
             .sum();
+    }
+
+    public Item getItemByName(String name) {
+        for (Item item : items.keySet()) {
+            if (item.getName().equalsIgnoreCase(name.trim())) {
+                return item;
+            }
+        }
+        return null;
+    }
+
+    public Seed getSeedByName(String name) {
+        for (Item item : items.keySet()) {
+            if (item instanceof Seed seed && seed.getName().equalsIgnoreCase(name.trim())) {
+                return seed;
+            }
+        }
+        return null;
     }
 
     public Map<Item, Integer> getItems() {

@@ -7,7 +7,6 @@ import java.util.ArrayList;
 public class App {
     private static final ArrayList<User> users = new ArrayList<>();
     private static final ArrayList<Game> games = new ArrayList<>();
-    private static Shop currentShop = null;
     private static User loggedInUser = null;
     private static Menu currentMenu = Menu.LOGIN_AND_REGISTER_MENU;
     private static Game currentGame = null;
