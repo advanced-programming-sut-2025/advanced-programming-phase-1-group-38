@@ -3,11 +3,13 @@ package models.enums.Commands;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public enum LoginAndRegisterCommands implements Command {
+public enum LoginCommands implements Command {
     REGISTER("^register\\s+-u\\s+(?<username>\\S+)\\s+-p\\s+(?<password>\\S+)\\s+(?<confirm>\\S+)\\s+" +
             "-n\\s+(?<nickname>\\S+)\\s+-e\\s+(?<email>\\S+)\\s+-g\\s+(?<gender>\\S+)$"),
-    PICK_QUESTION("^pick\\s+question\\s+-q\\s+(?<number>\\d+)\\s+-a\\s+(?<answer>\\S+)\\s+-c\\s+(?<confirm>\\S+)$"),    LOGIN("^login\\s+-u\\s+(?<username>\\S+)\\s+-p\\s+(?<password>\\S+)$"),
+    PICK_QUESTION("^pick\\s+question\\s+-q\\s+(?<number>\\d+)\\s+-a\\s+(?<answer>\\S+)\\s+-c\\s+(?<confirm>\\S+)$"),
+    LOGIN("^login\\s+-u\\s+(?<username>\\S+)\\s+-p\\s+(?<password>\\S+)(\\s+(?<stayLogged>--stay-logged-in))?$"),
     FORGET_PASSWORD("^forget\\s+password\\s+-u\\s+(?<username>\\S+)$"),
+    CHANGE_PASSWORD("^change\\s+password\\s+-p\\s+(?<password>\\S+)\\s+(?<confirm>\\S+)$"),
     ANSWER("^answer\\s+-a\\s+(?<answer>\\S+)$"),
     MENU_ENTER("^menu\\s+enter\\s+(?<menu>\\S+)$"),
     MENU_EXIT("^menu\\s+exit$"),
@@ -15,7 +17,7 @@ public enum LoginAndRegisterCommands implements Command {
     ;
 
     private final String pattern;
-    LoginAndRegisterCommands(String pattern) {
+    LoginCommands(String pattern) {
         this.pattern = pattern;
     }
 

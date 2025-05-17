@@ -12,6 +12,8 @@ public class User {
     private Gender gender;
     private SecurityQuestion securityQuestion;
     private Player player;
+    private int highestGold;
+    private int totalGamesPlayed;
 
     public User(String username, String password, String nickname, String email, Gender gender) {
         this.username = username;
@@ -70,6 +72,39 @@ public class User {
     }
     public void setPlayer(Player player) {
         this.player = player;
+    }
+
+    public int getHighestGold() {
+        return highestGold;
+    }
+
+    public void setHighestGold(int highestGold) {
+        this.highestGold = highestGold;
+    }
+
+    public int getTotalGamesPlayed() {
+        return totalGamesPlayed;
+    }
+
+    public void setTotalGamesPlayed(int totalGamesPlayed) {
+        this.totalGamesPlayed = totalGamesPlayed;
+    }
+
+    public String getFormattedInfo() {
+        return String.format(
+                "Username       : %s\n" +
+                        "Nickname       : %s\n" +
+                        "Email          : %s\n" +
+                        "Gender         : %s\n" +
+                        "Highest Score  : %d\n" +
+                        "Games Played   : %d",
+                username,
+                nickname,
+                email,
+                gender,
+                highestGold,
+                totalGamesPlayed
+        );
     }
 
     @Override

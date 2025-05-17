@@ -71,7 +71,7 @@ public class ProfileMenuController {
         if (user == null)
             return new Result(false, "No user is currently logged in.");
 
-        return new Result(true, user.toString());
+        return new Result(true, user.getFormattedInfo());
     }
 
     public Result enterMenu() {

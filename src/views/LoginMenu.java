@@ -1,19 +1,19 @@
 package views;
 
-import controllers.LoginAndRegisterController;
+import controllers.LoginController;
 import models.App;
 import models.Result;
 import models.User;
-import models.enums.Commands.LoginAndRegisterCommands;
+import models.enums.Commands.LoginCommands;
 import models.enums.Gender;
 import models.enums.Menu;
 
 import java.util.Scanner;
 import java.util.regex.Matcher;
 
-public class LoginAndRegisterMenu implements AppMenu {
+public class LoginMenu implements AppMenu {
 
-    private final LoginAndRegisterController controller = new LoginAndRegisterController();
+    private final LoginController controller = new LoginController();
 
     @Override
     public AppMenu checkCommand(Scanner scanner) {
@@ -22,7 +22,7 @@ public class LoginAndRegisterMenu implements AppMenu {
         String input = scanner.nextLine().trim();
         Matcher matcher;
 
-        if ((matcher = LoginAndRegisterCommands.REGISTER.getMatcher(input)) != null) {
+        if ((matcher = LoginCommands.REGISTER.getMatcher(input)) != null) {
             String username = matcher.group("username").trim();
             String password = matcher.group("password").trim();
             String confirm = matcher.group("confirm").trim();
@@ -57,7 +57,7 @@ public class LoginAndRegisterMenu implements AppMenu {
             return this;
         }
 
-        else if ((matcher = LoginAndRegisterCommands.LOGIN.getMatcher(input)) != null) {
+        else if ((matcher = LoginCommands.LOGIN.getMatcher(input)) != null) {
             String username = matcher.group("username").trim();
             String password = matcher.group("password").trim();
             boolean stayLogged = matcher.group("stayLogged") != null;
@@ -72,14 +72,27 @@ public class LoginAndRegisterMenu implements AppMenu {
             return this;
         }
 
-        else if ((matcher = LoginAndRegisterCommands.FORGET_PASSWORD.getMatcher(input)) != null) {
+        else if ((matcher = LoginCommands.FORGET_PASSWORD.getMatcher(input)) != null) {
             String username = matcher.group("username").trim();
             Result result = controller.forgotPassword(username);
             System.out.println(result.message());
             return this;
         }
+        else if ((matcher = LoginCommands.CHANGE_PASSWORD.getMatcher(input)) != null) {
+            String password = matcher.group("password").trim();
+            String confirm = matcher.group("confirm").trim();
 
-        else if ((matcher = LoginAndRegisterCommands.PICK_QUESTION.getMatcher(input)) != null) {
+            if (!password.equals(confirm)) {
+                System.out.println("Passwords do not match.");
+                return this;
+            }
+
+            Result result = controller.changePassword(password);
+            System.out.println(result.message());
+            return this;
+        }
+
+        else if ((matcher = LoginCommands.PICK_QUESTION.getMatcher(input)) != null) {
             int questionNumber = Integer.parseInt(matcher.group("number").trim());
             String answer = matcher.group("answer").trim();
             String confirm = matcher.group("confirm").trim();
@@ -95,31 +108,42 @@ public class LoginAndRegisterMenu implements AppMenu {
             return this;
         }
 
-        else if ((matcher = LoginAndRegisterCommands.ANSWER.getMatcher(input)) != null) {
+        else if ((matcher = LoginCommands.ANSWER.getMatcher(input)) != null) {
             String answer = matcher.group("answer").trim();
             Result result = controller.checkSecurityAnswer(answer);
             System.out.println(result.message());
             return this;
         }
 
-        else if (LoginAndRegisterCommands.SHOW_CURRENT_MENU.getMatcher(input) != null) {
+        else if (LoginCommands.SHOW_CURRENT_MENU.getMatcher(input) != null) {
             System.out.println(controller.showCurrentMenu().message());
             return this;
         }
 
-        else if (LoginAndRegisterCommands.MENU_EXIT.getMatcher(input) != null) {
+        else if (LoginCommands.MENU_EXIT.getMatcher(input) != null) {
             System.out.println(controller.exitMenu().message());
-            return null; // instead of System.exit
+            return null;
         }
 
-        else if ((matcher = LoginAndRegisterCommands.MENU_ENTER.getMatcher(input)) != null) {
+        else if ((matcher = LoginCommands.MENU_ENTER.getMatcher(input)) != null) {
             String menuName = matcher.group("menu").trim();
-            if (menuName.equalsIgnoreCase("main")) {
-                App.setCurrentMenu(Menu.MAIN_MENU);
-                return Menu.MAIN_MENU.getMenuInstance();
+
+            Menu matchedMenu = null;
+            for (Menu menu : Menu.values()) {
+                if (menu.name().equalsIgnoreCase(menuName) ||
+                        menu.getDisplayName().equalsIgnoreCase(menuName)) {
+                    matchedMenu = menu;
+                    break;
+                }
             }
-            System.out.println("Invalid menu name.");
-            return this;
+
+            if (matchedMenu != null) {
+                App.setCurrentMenu(matchedMenu);
+                return matchedMenu.getMenuInstance();
+            } else {
+                System.out.println("Invalid menu name.");
+                return this;
+            }
         }
 
         System.out.println("Invalid command.");
