@@ -10,7 +10,7 @@ import java.util.Random;
 
 import static models.enums.Commands.LoginValidationPatterns.*; // ✅ اینجا جای درستشه
 
-public class LoginAndRegisterController {
+public class LoginController {
 
     public Result registerUser(String username, String password, String nickname, String email, Gender gender) {
         if (!VALID_USERNAME.matches(username))
@@ -45,10 +45,22 @@ public class LoginAndRegisterController {
 
         App.setLoggedInUser(user);
         if (stayLogged) {
-            System.out.println("(Stay Logged In: ON) - Future persistence logic can go here.");
+            System.out.println("(Stay Logged In: ON)");
         }
 
         return new Result(true, "Login successful. Welcome, " + user.getUsername() + "!");
+    }
+
+    public Result changePassword(String newPassword) {
+        User user = App.getLoggedInUser();
+        if (user == null)
+            return new Result(false, "No user is currently logged in.");
+
+        if (!VALID_PASSWORD.matches(newPassword))
+            return new Result(false, "Invalid password format.");
+
+        user.setPassword(newPassword);
+        return new Result(true, "Password changed successfully!");
     }
 
     public Result randomPasswordGenerator() {
