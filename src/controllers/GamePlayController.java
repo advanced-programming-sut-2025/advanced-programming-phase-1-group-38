@@ -4,7 +4,6 @@ import models.*;
 import models.Animals.Animal;
 import models.Animals.AnimalLivingSpace;
 import models.Animals.AnimalProduct;
-import models.Artisan.ArtisanMachineType;
 import models.Tools.*;
 import models.enums.*;
 import models.enums.Types.*;
@@ -15,13 +14,13 @@ import models.recipe.CraftingRecipe;
 
 import models.Position;
 
-import java.util.List;
-import java.util.Map;
-
-import static models.enums.Types.ToolType.*;
+import java.util.*;
 
 public class GamePlayController {
     private final Game game;
+    private List<Position> pendingPath;
+    private float pendingEnergy;
+
     public GamePlayController(Game game) {
         this.game = game;
     }
@@ -38,6 +37,8 @@ public class GamePlayController {
     public Result nextTurn(){
         return null;
     }
+
+    // Time and Date
 
     public Result showTime(){
         Time time = game.getTime();
@@ -71,14 +72,36 @@ public class GamePlayController {
         return new Result(true, "Today is: " + time.getCurrentDayOfWeek());
     }
 
-    public Result cheatAdvanceHours(int hours) {
+    public Result cheatAdvanceHours(String hoursStr) {
+        int hours;
+        try {
+            hours = Integer.parseInt(hoursStr);
+            if (hours <= 0) {
+                return new Result(false, "Hours must be a positive number.");
+            }
+        } catch (NumberFormatException e) {
+            return new Result(false, "Invalid number format for hours.");
+        }
+
         game.getTime().advance(hours);
         return new Result(true, "Time advanced by " + hours + " hours.");
     }
 
-    public Result cheatAdvanceDays(int days) {
-        return cheatAdvanceHours(days * 24);
+    public Result cheatAdvanceDays(String daysStr) {
+        int days;
+        try {
+            days = Integer.parseInt(daysStr);
+            if (days <= 0) {
+                return new Result(false, "Days must be a positive number.");
+            }
+        } catch (NumberFormatException e) {
+            return new Result(false, "Invalid number format for days.");
+        }
+
+        return cheatAdvanceHours(String.valueOf(days * 24));
     }
+
+    // Season
 
     public Result showSeason() {
         String season = game.getTime().getCurrentSeason().name();
@@ -86,9 +109,33 @@ public class GamePlayController {
         return new Result(true, "Current season: " + season);
     }
 
-    public Result cheatThor(Position position) {
+    // Thor
+
+    public Result cheatThor(String positionStr) {
+        String[] parts = positionStr.split(",");
+        if (parts.length != 2) {
+            return new Result(false, "Invalid position format. Use: x,y");
+        }
+
+        int x, y;
+        try {
+            x = Integer.parseInt(parts[0].trim());
+            y = Integer.parseInt(parts[1].trim());
+        } catch (NumberFormatException e) {
+            return new Result(false, "Invalid numbers in position.");
+        }
+
+        Position position = new Position(x, y);
         GameMap map = game.getCurrentPlayerMap();
+
         Tile tile = map.getTile(position);
+        if (tile == null) {
+            return new Result(false, "Tile does not exist at " + position);
+        }
+
+        if (tile.getTileType() == TileType.GREENHOUSE) {
+            return new Result(false, "You can't strike the greenhouse with Thor.");
+        }
 
         Object content = tile.getContent();
         if (content instanceof Crop crop) {
@@ -100,9 +147,12 @@ public class GamePlayController {
         return new Result(true, "Thor's lightning struck at " + position + "!");
     }
 
+    // Weather
+
     public Result showWeather() {
         return new Result(true, "Today's weather: " + game.getCurrentWeather());
     }
+
     public Result showWeatherForecast() {
         Weather forecast = game.getTomorrowWeather();
         if (forecast == null) {
@@ -110,10 +160,23 @@ public class GamePlayController {
         }
         return new Result(true, "Tomorrow's weather forecast: " + forecast);
     }
-    public Result cheatWeatherSet(Weather newWeather) {
-        game.setTomorrowWeather(newWeather);
-        return new Result(true, "Tomorrow's weather has been set to: " + newWeather);
+
+    public Result cheatWeatherSet(String newWeatherStr) {
+        if (newWeatherStr == null) {
+            return new Result(false, "You must provide a weather type.");
+        }
+
+        try {
+            Weather weather = Weather.valueOf(newWeatherStr.trim().toUpperCase());
+            game.setTomorrowWeather(weather);
+            return new Result(true, "Tomorrow's weather has been set to: " + weather);
+        } catch (IllegalArgumentException e) {
+            return new Result(false, "Invalid weather type. Valid options: SUNNY, RAINY, STORM, SNOW.");
+        }
     }
+
+
+    // Greenhouse
 
     public Result buildGreenhouse() {
         Player player = game.getCurrentPlayer();
@@ -147,33 +210,129 @@ public class GamePlayController {
         return null;
     }
 
-    public Result walk(Path path, boolean playerConfirmed) {
-        return null;
+    // Walk
+
+    private int countTurns(List<Position> path) {
+        if (path.size() < 3) return 0;
+        int turns = 0;
+        int prevDx = normalize(path.get(1).getX() - path.get(0).getX());
+        int prevDy = normalize(path.get(1).getY() - path.get(0).getY());
+
+        for (int i = 2; i < path.size(); i++) {
+            Position prev = path.get(i - 1);
+            Position cur  = path.get(i);
+            int dx = normalize(cur.getX() - prev.getX());
+            int dy = normalize(cur.getY() - prev.getY());
+            if (dx != prevDx || dy != prevDy) turns++;
+            prevDx = dx; prevDy = dy;
+        }
+        return turns;
     }
 
-    private Path findValidPath(Position origin, Position destination) {
-        return new Path();
+    private int normalize(int delta) {
+        return delta > 0 ? 1 : (delta < 0 ? -1 : 0);
     }
 
-    private boolean isDestinationAllowed(Position destination) {
-        return false;
+    public Result respondForWalkRequest(String posStr) {
+        String[] parts = posStr.trim().split(",");
+        if (parts.length != 2) {
+            return new Result(false, "Invalid position format. Use: x,y");
+        }
+        int tx, ty;
+        try {
+            tx = Integer.parseInt(parts[0].trim());
+            ty = Integer.parseInt(parts[1].trim());
+        } catch (NumberFormatException e) {
+            return new Result(false, "Coordinates must be numbers.");
+        }
+
+        Player player = game.getCurrentPlayer();
+        GameMap map    = game.getCurrentPlayerMap();
+        Position origin = player.getPosition();
+        Position goal   = new Position(tx, ty);
+
+        if (!map.isInsideMap(goal) || !map.getTile(goal).isWalkable()) {
+            return new Result(false, "You can't walk to (" + tx + "," + ty + ").");
+        }
+
+        List<Position> path = new PathFinder(map).findPath(origin, goal);
+        if (path == null) {
+            return new Result(false, "No path found to (" + tx + "," + ty + ").");
+        }
+
+        int distance = path.size() - 1;
+        int turns    = countTurns(path);
+        float energy = (distance + 10 * turns) / 20f;
+
+        pendingPath   = path;
+        pendingEnergy = energy;
+        String msg = String.format(
+            "Distance: %d  Turns: %d  Energy needed: %.2f\n" +
+                "Type `walk confirm y` to go or `walk confirm n` to cancel",
+            distance, turns, energy);
+        return new Result(true, msg);
     }
 
-    public Result respondForWalkRequest(Position origin, Position destination) {
-        return null;
+    public Result confirmWalk(String answer) {
+        if (pendingPath == null) {
+            return new Result(false, "No pending walk. First do `walk x,y`.");
+        }
+        boolean go = answer.trim().equalsIgnoreCase("y");
+        if (!go) {
+            pendingPath = null;
+            return new Result(true, "Walk cancelled.");
+        }
+
+        Player player = game.getCurrentPlayer();
+        int distance = pendingPath.size() - 1;
+        float perStep = pendingEnergy / distance;
+
+        for (int i = 1; i < pendingPath.size(); i++) {
+            Position step = pendingPath.get(i);
+            int cost = (int)Math.ceil(perStep);
+            player.reduceEnergy(cost);
+            player.setPosition(step);
+
+            if (player.getEnergy() <= 0) {
+                player.setEnergy(0);
+                pendingPath = null;
+                return new Result(false, "You fainted at " + step + ".");
+            }
+        }
+
+        Position arrived = pendingPath.get(pendingPath.size() - 1);
+        pendingPath = null;
+        return new Result(true,
+            "You arrived at " + arrived +
+                ". Energy remaining: " + player.getEnergy());
     }
 
-    public Result showPlayerEnergy(Game game) {
+    // Energy
+
+    public Result showPlayerEnergy() {
         Player player = game.getCurrentPlayer();
         int energy = player.getEnergy();
         return new Result(true, "Current energy: " + energy);
     }
-    public Result setPlayerEnergy(Game game, int energyAmount) {
-        Player player = game.getCurrentPlayer();
-        player.setEnergy(energyAmount);
-        return new Result(true, "Energy set to " + energyAmount);
+
+    public Result setPlayerEnergy(String energyAmount) {
+        try {
+            int value = Integer.parseInt(energyAmount.trim());
+
+            if (value < 0 || value > 200) {
+                return new Result(false, "Energy must be between 0 and 200.");
+            }
+
+            Player player = game.getCurrentPlayer();
+            player.setEnergy(value);
+            return new Result(true, "Energy set to " + value);
+
+        } catch (NumberFormatException e) {
+            return new Result(false, "Invalid number format.");
+        }
     }
-    public Result setUnlimitedEnergy(Game game) {
+
+    public Result setUnlimitedEnergy() {
         Player player = game.getCurrentPlayer();
         player.enableUnlimitedEnergy();
         return new Result(true, "Unlimited energy mode enabled.");
@@ -198,14 +357,27 @@ public class GamePlayController {
         return new Result(true, sb.toString().trim());
     }
 
-    public Result throwItemToTrash(Item item, int number) {
-        Player player = game.getCurrentPlayer();
-
-        if (!player.getBackpack().hasItem(item, number)) {
-            return new Result(false, "You don’t have that many of this item.");
+    public Result throwItemToTrash(String itemName, String numberStr) {
+        int quantity;
+        try {
+            quantity = Integer.parseInt(numberStr);
+            if (quantity <= 0) {
+                return new Result(false, "The quantity must be a positive number.");
+            }
+        } catch (NumberFormatException e) {
+            return new Result(false, "Invalid number format: " + numberStr);
         }
 
-        player.getBackpack().removeFromInventory(item, number);
+        Player player = game.getCurrentPlayer();
+        Item item = player.getBackpack().getItemByName(itemName);
+
+        if (item == null) {
+            return new Result(false, "Item '" + itemName + "' not found in your inventory.");
+        }
+
+        if (!player.getBackpack().hasItem(item, quantity)) {
+            return new Result(false, "You don’t have that many of this item.");
+        }
 
         Tool trashCan = player.getCurrentTool();
         if (!(trashCan instanceof TrashCan)) {
@@ -213,7 +385,7 @@ public class GamePlayController {
         }
 
         TrashCanQuality quality = ((TrashCan) trashCan).getTrashCanQuality();
-        int percentage = switch (quality) {
+        int refundPercent = switch (quality) {
             case INITIAL -> 0;
             case COPPER -> 15;
             case IRON -> 30;
@@ -221,22 +393,31 @@ public class GamePlayController {
             case IRIDIUM -> 60;
         };
 
-        int refund = (item.getPrice() * percentage / 100) * number;
+        int refund = (item.getPrice() * refundPercent / 100) * quantity;
+        player.getBackpack().removeFromInventory(item, quantity);
         player.addMoney(refund);
 
-        return new Result(true, "You threw away " + number + "x " + item.getName() +
-            " and got back " + refund + " gold.");
+        return new Result(true, "You threw away " + quantity + "x " + item.getName()
+            + " and got back " + refund + " gold.");
     }
 
-    public Result equipTool(Tool tool, Player player) {
-        if (!(player.getBackpack().containsItem(tool))) {
-            return new Result(false, "Tool does not exist");
+    // Tools
+
+    public Result equipTool(String toolName) {
+        Player player = game.getCurrentPlayer();
+
+        // Find the tool by name
+        Item item = player.getBackpack().getItemByName(toolName);
+        if (item == null || !(item instanceof Tool tool)) {
+            return new Result(false, "Tool '" + toolName + "' not found or is not a valid tool.");
         }
+
         player.setCurrentTool(tool);
-        return new Result(true, "Tool has been equipped");
+        return new Result(true, "Tool '" + tool.toString() + "' has been equipped.");
     }
 
-    public Result showCurrentTool(Player player) {
+    public Result showCurrentTool() {
+        Player player = game.getCurrentPlayer();
         if (player.getCurrentTool() == null) {
             return new Result(false, "You have no current tool");
         }
@@ -244,7 +425,8 @@ public class GamePlayController {
         return new Result(true, "Your current tool is " + currentTool.toString());
     }
 
-    public Result showAvailableTool(Player player) {
+    public Result showAvailableTool() {
+        Player player = game.getCurrentPlayer();
         Map<Tool, Integer> tools = player.getBackpack().getTools();
 
         if (tools.isEmpty()) {
@@ -266,11 +448,12 @@ public class GamePlayController {
         return new Result(true, message.toString().trim());
     }
 
-    public Result toolUpgrade(Tool tool) {
+    public Result toolUpgrade(String toolName) {
         Player player = game.getCurrentPlayer();
 
-        if (!player.getBackpack().containsItem(tool)) {
-            return new Result(false, "You don't have this tool in your backpack.");
+        Item item = player.getBackpack().getItemByName(toolName);
+        if (item == null || !(item instanceof Tool tool)) {
+            return new Result(false, "Tool '" + toolName + "' not found or is not a valid tool.");
         }
 
         ToolType type = tool.getToolType();
@@ -295,8 +478,6 @@ public class GamePlayController {
 
         return new Result(true, "Tool upgraded to " + next.name() + " quality.");
     }
-
-
 
     private Tool createUpgradedTool(Tool oldTool, ToolQuality newQuality) {
         return switch (oldTool.getToolType()) {
@@ -349,20 +530,86 @@ public class GamePlayController {
         return false;
     }
 
-    public Result cheatAddItem(Item item, int count) {
-        Player player = game.getCurrentPlayer();
-
-        if (count <= 0) {
-            return new Result(false, "You must add at least 1 item.");
+    public Result cheatAddItem(String itemName, String countStr) {
+        int count;
+        try {
+            count = Integer.parseInt(countStr);
+            if (count <= 0) {
+                return new Result(false, "You must add at least 1 item.");
+            }
+        } catch (NumberFormatException e) {
+            return new Result(false, "Invalid number format for count.");
         }
 
+        Item item = findItemByName(itemName);
+        if (item == null) {
+            return new Result(false, "No item found with name '" + itemName + "'.");
+        }
+
+        Player player = game.getCurrentPlayer();
         player.getBackpack().CheatAddToInventory(item, count);
         return new Result(true, "Added " + count + "x " + item.getName() + " to your inventory.");
     }
 
+    private Item findItemByName(String name) {
+        name = name.trim().toLowerCase();
 
-    public Result build(FarmBuildingType farmBuildingType, models.Position position) {
-        return new Result(true, "");
+        return switch (name) {
+            case "axe" -> new Axe(ToolQuality.INITIAL);
+            case "pickaxe" -> new Pickaxe(ToolQuality.INITIAL);
+            case "watering can" -> new WateringCan(ToolQuality.INITIAL);
+            case "apple" -> new Fruit(FruitType.APPLE);
+            case "carrot" -> new Crop(CropType.CARROT);
+            case "wood" -> new Wood();
+            // Add more cases as needed
+            default -> null;
+        };
+    }
+
+    public Result build(String farmBuildingType, String positionTopLeft) {
+        FarmBuildingType type;
+        try {
+            type = FarmBuildingType.valueOf(farmBuildingType.trim().toUpperCase());
+        } catch (IllegalArgumentException e) {
+            return new Result(false, "Invalid building type: " + farmBuildingType);
+        }
+
+        Position topLeft;
+        try {
+            String[] parts = positionTopLeft.trim().split(",");
+            int x = Integer.parseInt(parts[0].trim());
+            int y = Integer.parseInt(parts[1].trim());
+            topLeft = new Position(x, y);
+        } catch (Exception e) {
+            return new Result(false, "Invalid position format. Use format like '3,4'.");
+        }
+
+        GameMap map = game.getCurrentPlayerMap();
+
+        if (!map.canPlaceBuilding(topLeft, type)) {
+            return new Result(false, "Cannot place building here. Area is either occupied or out of bounds.");
+        }
+
+        for (int dx = 0; dx < type.getWidth(); dx++) {
+            for (int dy = 0; dy < type.getLength(); dy++) {
+                Position pos = new Position(topLeft.getX() + dx, topLeft.getY() + dy);
+                Tile tile = map.getTile(pos);
+
+                if (tile == null || tile.isOccupied() || tile.getTileType() != TileType.REGULAR_GROUND) {
+                    return new Result(false, "You can only build on unoccupied regular ground.");
+                }
+            }
+        }
+
+        FarmBuilding building = new FarmBuilding(type, topLeft);
+        map.placeBuilding(topLeft, type, building);
+
+        if (type.getCapacity() > 0) {
+            AnimalLivingSpace space = new AnimalLivingSpace(type, topLeft);
+            map.addAnimalBuilding(space);
+        }
+
+        return new Result(true, "Built: " + type.name());
     }
 
     public Result buyAnimal(AnimalType animalType, String name) {
@@ -411,16 +658,23 @@ public class GamePlayController {
 
         return new Result(true, "You pet " + animal.getName() + ". Friendship level is now " + animal.getFriendshipLevel() + ".");
     }
-    public Result cheatSetFriendship(String animalName, int amount) {
+    public Result cheatSetFriendship(String animalName, String amount) {
         Animal animal = getAnimalByName(animalName);
         if (animal == null) {
             return new Result(false, "Animal not found.");
         }
 
-        amount = Math.max(0, Math.min(amount, 1000));
-        animal.setFriendshipLevel(amount);
+        int value;
+        try {
+            value = Integer.parseInt(amount);
+        } catch (NumberFormatException e) {
+            return new Result(false, "Invalid amount. Please enter a number.");
+        }
 
-        return new Result(true, "Friendship level of " + animal.getName() + " set to " + amount + ".");
+        value = Math.max(0, Math.min(value, 1000)); // Clamp between 0 and 1000
+        animal.setFriendshipLevel(value);
+
+        return new Result(true, "Friendship level of " + animal.getName() + " set to " + value + ".");
     }
 
     private Animal getAnimalByName(String name) {
@@ -446,8 +700,20 @@ public class GamePlayController {
         return null;
     }
 
-    public Result plant(Seed seed, Direction direction) {
+    // Farming
+
+    public Result plant(String seedName, String directionStr) {
         Player player = game.getCurrentPlayer();
+        Direction direction = Direction.getDirectionByDisplayName(directionStr);
+        if (direction == null) {
+            return new Result(false, "Invalid direction.");
+        }
+
+        Seed seed = player.getBackpack().getSeedByName(seedName);
+        if (seed == null) {
+            return new Result(false, "Seed '" + seedName + "' not found in your backpack.");
+        }
+
         Position target = player.getPosition().shift(direction);
         Tile tile = game.getCurrentPlayerMap().getTile(target);
 
@@ -675,8 +941,23 @@ public class GamePlayController {
         return new Result(true, message.toString());
     }
 
-    public Result shepherdAnimal(String animalName, Position position) {
+    public Result shepherdAnimal(String animalName, String positionStr) {
+        String[] parts = positionStr.split(",");
+        if (parts.length != 2) {
+            return new Result(false, "Invalid position format. Use x,y.");
+        }
+
+        int x, y;
+        try {
+            x = Integer.parseInt(parts[0].trim());
+            y = Integer.parseInt(parts[1].trim());
+        } catch (NumberFormatException e) {
+            return new Result(false, "Invalid numbers in position.");
+        }
+
+        Position position = new Position(x, y);
         GameMap map = game.getCurrentPlayerMap();
+
         for (AnimalLivingSpace space : map.getAnimalBuildings()) {
             Animal animal = space.getAnimalByName(animalName);
             if (animal != null) {
@@ -685,6 +966,7 @@ public class GamePlayController {
                 return new Result(true, animalName + " was taken outside to " + position);
             }
         }
+
         return new Result(false, "Animal not found.");
     }
 
@@ -716,17 +998,28 @@ public class GamePlayController {
     public Result collectProducts(String animalName) {
         GameMap map = game.getCurrentPlayerMap();
         Player player = game.getCurrentPlayer();
+
         for (AnimalLivingSpace space : map.getAnimalBuildings()) {
             Animal animal = space.getAnimalByName(animalName);
             if (animal != null) {
                 AnimalProduct product = animal.collectProduct();
                 if (product == null) {
-                    return new Result(false, "No product ready for " + animalName);
+                    return new Result(false, "No product ready for " + animalName + ".");
                 }
+
+                if (!player.getBackpack().hasSpaceFor(product, 1)) {
+                    return new Result(false, "Not enough space in your backpack to collect the product.");
+                }
+
                 player.getBackpack().addToInventory(product, 1);
-                return new Result(true, "Collected product from " + animalName);
+
+                return new Result(true,
+                    "Collected " + product.getQuality().name().toLowerCase() + " "
+                        + product.getProductType().name().toLowerCase().replace("_", " ")
+                        + " from " + animalName + ".");
             }
         }
+
         return new Result(false, "Animal not found.");
     }
 
@@ -769,9 +1062,16 @@ public class GamePlayController {
     public Result purchase(String productName, Integer count) {
         return null;
     }
-    public Result cheatAddDollars(int amount) {
-        if (amount <= 0) {
-            return new Result(false, "You must add a positive amount of dollars.");
+
+    public Result cheatAddDollars(String amountStr) {
+        int amount;
+        try {
+            amount = Integer.parseInt(amountStr);
+            if (amount <= 0) {
+                return new Result(false, "You must add a positive amount of dollars.");
+            }
+        } catch (NumberFormatException e) {
+            return new Result(false, "Invalid number: " + amountStr);
         }
 
         Player player = game.getCurrentPlayer();
@@ -784,8 +1084,21 @@ public class GamePlayController {
         return null;
     }
 
-    public Result movePlayer(Position newPos) {
-        Player player = game.getCurrentPlayer();
+    public Result movePlayer(String newPosStr) {
+        String[] parts = newPosStr.split(",");
+        if (parts.length != 2) {
+            return new Result(false, "Invalid position format. Use: x,y");
+        }
+
+        int x, y;
+        try {
+            x = Integer.parseInt(parts[0].trim());
+            y = Integer.parseInt(parts[1].trim());
+        } catch (NumberFormatException e) {
+            return new Result(false, "Invalid number in position.");
+        }
+
+        Position newPos = new Position(x, y);
         GameMap map = game.getCurrentPlayerMap();
 
         if (!map.isInsideMap(newPos)) {
@@ -797,6 +1110,7 @@ public class GamePlayController {
             return new Result(false, "You can't walk there.");
         }
 
+        Player player = game.getCurrentPlayer();
         player.setPosition(newPos);
         return new Result(true, "Player moved to " + newPos);
     }

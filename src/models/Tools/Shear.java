@@ -32,40 +32,30 @@ public class Shear extends Tool {
         }
 
         Position target = player.getPosition().shift(direction);
-        GameMap currentGameMap = game.getCurrentPlayerMap();
-        Tile[][] tiles = currentGameMap.getTiles();
+        Tile tile = game.getCurrentPlayerMap().getTile(target);
 
-        if (target.getX() < 0 || target.getY() < 0 ||
-            target.getX() >= currentGameMap.getWidth() ||
-            target.getY() >= currentGameMap.getHeight()) {
-            return new Result(false, "Target tile is out of bounds.");
+        if (tile == null || tile.getContent() == null || !(tile.getContent() instanceof Animal animal)) {
+            return new Result(false, "There's no animal to shear on this tile.");
         }
 
-        Tile tile = tiles[target.getY()][target.getX()];
-        Object content = tile.getContent();
+        if (animal.getAnimalType() != AnimalType.SHEEP) {
+            return new Result(false, "You can only use Shear on sheep.");
+        }
+
+        AnimalProduct product = animal.collectProduct();
+        if (product == null || product.getProductType() != AnimalProductType.WOOL) {
+            return new Result(false, "The sheep is not ready to be sheared.");
+        }
 
         player.reduceEnergy(cost);
         player.addEnergyUsed(cost);
+        player.getBackpack().addToInventory(product, 1);
 
-        if (content instanceof Animal animal) {
-            if (animal.getAnimalType() == AnimalType.SHEEP) {
-                AnimalProduct product = animal.collectProduct();
-                if (product != null && product.getProductType() == AnimalProductType.WOOL) {
-                    player.getBackpack().addToInventory(product, 1);
-                    return new Result(true, "You sheared " + animal.getName() + " and collected " +
-                        product.getQuality().name().toLowerCase() + " wool.");
-                } else {
-                    return new Result(false, "The sheep is not ready to be sheared.");
-                }
-            } else {
-                return new Result(false, "You can only use Shear on sheep.");
-            }
-        }
-
-        return new Result(false, "There's no sheep to shear on this tile.");
+        return new Result(true, "You sheared " + animal.getName() + " and collected " +
+            product.getQuality().name().toLowerCase() + " wool.");
     }
 
-        @Override
+    @Override
     public String toString() {
         return formatEnumName(type) + " (" + formatEnumName(getToolQuality()) + ")";
     }

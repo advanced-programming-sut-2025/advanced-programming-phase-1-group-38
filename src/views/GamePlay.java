@@ -1,18 +1,38 @@
 package views;
 
 import controllers.GamePlayController;
-import models.Game;
-
+import models.App;
+import models.enums.Commands.GamePlayCommands;
+import models.enums.Menu;
 import java.util.Scanner;
+import java.util.regex.Matcher;
 
 public class GamePlay implements AppMenu {
-    private final GamePlayController gamePlayController;
-    public GamePlay(Game game) {
-        this.gamePlayController = new GamePlayController(game);
+    private final GamePlayController controller;
+
+    public GamePlay() {
+        this.controller = new GamePlayController(App.getCurrentGame());
     }
 
     @Override
     public AppMenu checkCommand(Scanner scanner) {
-        return this;
+        if (!scanner.hasNextLine()) return this;
+        String input = scanner.nextLine().trim();
+        Matcher m;
+
+        if ((m = GamePlayCommands.WALK.getMatcher(input)) != null) {
+            String pos = m.group("position");
+            System.out.println(controller.respondForWalkRequest(pos));
+            return this;
+        }
+        else if ((m = GamePlayCommands.WALK_CONFIRM.getMatcher(input)) != null) {
+            String ans = m.group("answer");
+            System.out.println(controller.confirmWalk(ans));
+            return this;
+        }
+        else {
+            System.out.println("Invalid command.");
+            return this;
+        }
     }
 }
