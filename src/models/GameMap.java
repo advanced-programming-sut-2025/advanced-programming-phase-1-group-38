@@ -31,8 +31,6 @@ public class GameMap {
         this.height = height;
         markGreenhouseTiles();
         markHomeArea();
-        markLakeArea(new Position(12, 6), 4, 3);
-        markQuarryArea(new Position(20, 5), 4, 3);
     }
 
     public void markQuarryArea(Position topLeft, int quarryWidth, int quarryHeight) {

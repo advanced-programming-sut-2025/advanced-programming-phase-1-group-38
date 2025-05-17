@@ -19,35 +19,43 @@ public class GameMenuController {
         if (usernames.length < 1 || usernames.length > 3) {
             return new Result(false, "You must provide 1 to 3 usernames.");
         }
-
-        Set<String> seen = new HashSet<>();
         players.clear();
-        for (String username : usernames) {
-            if (!App.usernameExists(username)) {
-                return new Result(false, "Username '" + username + "' does not exist.");
+        Set<String> seen = new HashSet<>();
+        for (String u : usernames) {
+            if (!App.usernameExists(u)) {
+                return new Result(false, "Username '" + u + "' does not exist.");
             }
-            if (!seen.add(username)) {
-                return new Result(false, "Duplicate username: " + username);
+            if (!seen.add(u)) {
+                return new Result(false, "Duplicate username: " + u);
             }
-            User user = App.getUserByUsername(username);
-            players.add(new Player(user));
+            players.add(new Player(App.getUserByUsername(u)));
         }
 
         List<Shop> shops = new ArrayList<>();
-        int width  = 40, height = 50;
+
+        final int W = 40, H = 50;
+        Tile[][] tiles1 = buildBaseTiles(W, H);
+        Tile[][] tiles2 = buildBaseTiles(W, H);
+
         List<GameMap> maps = new ArrayList<>();
 
-        for (Player p : players) {
-            Tile[][] tiles = new Tile[width][height];
-            for (int x = 0; x < width; x++) {
-                for (int y = 0; y < height; y++) {
-                    tiles[x][y] = new Tile(TileType.REGULAR_GROUND, true, new Position(x, y));
-                }
-            }
-            maps.add(new GameMap(tiles, width, height, shops, players, Weather.SUNNY));
-        }
+        // big lake, small quarry
+        GameMap lakeHeavy = new GameMap(tiles1, W, H, shops, players, Weather.SUNNY);
+        lakeHeavy.markLakeArea   (new Position(12,  6), 8, 6);
+        lakeHeavy.markQuarryArea (new Position(20, 10), 4, 3);
+        maps.add(lakeHeavy);
 
-        currentGame = new Game(shops, players, Weather.SUNNY, Seasons.SPRING, maps);
+        // small lake, big quarry
+        GameMap quarryHeavy = new GameMap(tiles2, W, H, shops, players, Weather.SUNNY);
+        quarryHeavy.markLakeArea   (new Position(12,  6), 4, 3);
+        quarryHeavy.markQuarryArea (new Position(20, 10), 8, 6);
+        maps.add(quarryHeavy);
+
+        currentGame = new Game(shops,
+            players,
+            Weather.SUNNY,
+            Seasons.SPRING,
+            maps);
         currentGame.getTime().setHour(9);
 
         App.addGame(currentGame);
@@ -55,7 +63,35 @@ public class GameMenuController {
 
         gameplay = new GamePlayController(currentGame);
 
-        return new Result(true, "New game created! It's 9:00 AM on Spring Day 1. Let’s play!");
+        return new Result(true,
+            "New game created! Please choose your farm map:\n" +
+                "  1) Lake-heavy layout\n" +
+                "  2) Quarry-heavy layout\n" +
+                "Use ‘map 1’ or ‘map 2’ to select.");
+    }
+
+    private Tile[][] buildBaseTiles(int w, int h) {
+        Tile[][] t = new Tile[w][h];
+        for (int x = 0; x < w; x++) {
+            for (int y = 0; y < h; y++) {
+                t[x][y] = new Tile(TileType.REGULAR_GROUND, true, new Position(x, y));
+            }
+        }
+        return t;
+    }
+
+    public Result chooseMap(int mapNumber) {
+        if (currentGame == null) {
+            return new Result(false, "No active game. Please start a new game first.");
+        }
+        List<GameMap> gm = currentGame.getGameMaps();
+        if (mapNumber < 1 || mapNumber > gm.size()) {
+            return new Result(false, "Invalid map number. Choose 1 or " + gm.size());
+        }
+        GameMap chosen = gm.get(mapNumber - 1);
+        Player p = currentGame.getCurrentPlayer();
+        currentGame.assignMapToPlayer(p, chosen);
+        return new Result(true, "Map " + mapNumber + " assigned to player " + p.getName());
     }
 
     public Result loadGame() {
@@ -65,23 +101,6 @@ public class GameMenuController {
         }
         App.setCurrentGame(saved);
         return new Result(true, "Game loaded successfully.");
-    }
-
-    public Result chooseMap(int mapNumber) {
-        if (currentGame == null) {
-            return new Result(false, "No active game. Please start a new game first.");
-        }
-
-        List<GameMap> availableMaps = currentGame.getGameMaps();
-        if (mapNumber < 1 || mapNumber > availableMaps.size()) {
-            return new Result(false, "Invalid map number. Please choose between 1 and " + availableMaps.size() + ".");
-        }
-
-        GameMap selectedMap = availableMaps.get(mapNumber - 1);
-        Player currentPlayer = currentGame.getCurrentPlayer();
-
-        currentGame.assignMapToPlayer(currentPlayer, selectedMap);
-        return new Result(true, "Map " + mapNumber + " assigned to player " + currentPlayer.getName());
     }
 
     public Result enterMenu() {
