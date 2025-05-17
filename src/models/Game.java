@@ -160,6 +160,14 @@ public class Game {
         }
     }
 
+    public void assignMapToPlayer(Player player, GameMap map) {
+        this.playerGameMap.put(player, map);
+    }
+
+    public List<GameMap> getGameMaps() {
+        return gameMaps;
+    }
+
     public void enterNextDay() {
         this.currentSeason = time.getCurrentSeason();
 

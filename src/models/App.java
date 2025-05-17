@@ -10,13 +10,14 @@ public class App {
 
     private static User loggedInUser = null;
     private static Menu currentMenu = Menu.LOGIN_AND_REGISTER_MENU;
+    private static Game currentGame = null;
 
     public static User getLoggedInUser() {
         return loggedInUser;
     }
 
-    public static void setLoggedInUser(User loggedInUser) {
-        App.loggedInUser = loggedInUser;
+    public static void setLoggedInUser(User user) {
+        loggedInUser = user;
     }
 
     public static boolean isLoggedIn() {
@@ -31,8 +32,8 @@ public class App {
         return currentMenu;
     }
 
-    public static void setCurrentMenu(Menu currentMenu) {
-        App.currentMenu = currentMenu;
+    public static void setCurrentMenu(Menu menu) {
+        currentMenu = menu;
     }
 
     public static ArrayList<User> getUsers() {
@@ -67,5 +68,18 @@ public class App {
 
     public static void addGame(Game game) {
         games.add(game);
+    }
+
+    public static Game getLatestSavedGame() {
+        if (games.isEmpty()) return null;
+        return games.get(games.size() - 1);
+    }
+
+    public static Game getCurrentGame() {
+        return currentGame;
+    }
+
+    public static void setCurrentGame(Game game) {
+        currentGame = game;
     }
 }
