@@ -2,6 +2,7 @@ package controllers;
 
 import models.*;
 import models.Animals.Animal;
+import models.Animals.AnimalLivingSpace;
 import models.Artisan.ArtisanMachineType;
 import models.enums.Seasons;
 import models.enums.Types.AnimalType;
@@ -210,19 +211,63 @@ public class GamePlayController {
     }
 
     public Result buyAnimal(AnimalType animalType, String name) {
-        Animal animal = new Animal(name, animalType);
-        return null;
+        Player player = game.getCurrentPlayer();
+        AnimalLivingSpace space = game.getCurrentPlayerMap().getAvailableLivingSpace(animalType.getLivingSpaceTypes());
+
+        if (space == null) {
+            return new Result(false, "No valid living space available for " + animalType.getName() + ".");
+        }
+
+        if (space.getAnimalByName(name) != null) {
+            return new Result(false, "You already have an animal with the name " + name + ".");
+        }
+
+        if (!player.getBackpack().hasEnoughCoins(animalType.getPrice())) {
+            return new Result(false, "Not enough money to buy a " + animalType.getName() + ".");
+        }
+
+        Animal animal = new Animal(name, animalType, space);
+        space.addAnimal(animal);
+        player.getBackpack().deductCoins(animalType.getPrice());
+
+        return new Result(true, "You bought a " + animalType.getName() + " named " + name + ".");
     }
 
     public Result pet(String animalName) {
         Animal animal = getAnimalByName(animalName);
-        return null;
+        if (animal == null) {
+            return new Result(false, "Animal not found.");
+        }
+
+        animal.changeFriendship(10);
+        animal.setLastPettingTime(game.getTime());
+
+        return new Result(true, "You pet " + animal.getName() + ". Friendship is now " + animal.getFriendshipLevel() + ".");
     }
 
     public Result cheatSetFriendship(String animalName, int amount) {
         Animal animal = getAnimalByName(animalName);
+        if (animal == null) {
+            return new Result(false, "Animal not found.");
+        }
+
+        amount = Math.max(0, Math.min(amount, 1000));
+        animal.setFriendshipLevel(amount);
+
+        return new Result(true, "Friendship level of " + animal.getName() + " set to " + amount + ".");
+    }
+
+    private Animal getAnimalByName(String name) {
+        for (AnimalLivingSpace space : game.getCurrentPlayerMap().getAnimalBuildings()) {
+            for (Animal animal : space.getAnimals()) {
+                if (animal.getName().equalsIgnoreCase(name)) {
+                    return animal;
+                }
+            }
+        }
         return null;
     }
+
 
     public Result cookingShowRecipes() { return null; }
     public Result cookingPrepare(Item cookingRecipe) {
@@ -428,9 +473,7 @@ public class GamePlayController {
     public Result sellAnimal(String animalName) {
         return null;
     }
-    private Animal getAnimalByName(String name) {
-        return null;
-    }
+
     public Result fishing(String fishingPoleName) {
         return null;
     }

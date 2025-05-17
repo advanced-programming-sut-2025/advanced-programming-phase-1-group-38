@@ -16,13 +16,13 @@ public enum AnimalType {
 
     private final List<AnimalProductType> animalProducts;
     private final boolean livesInCage;
-    private final int animalPrice;
+    private final int price;
     private final int daysToProduce;
 
-    AnimalType(List<AnimalProductType> animalProducts, boolean livesInCage, int animalPrice, int daysToProduce) {
+    AnimalType(List<AnimalProductType> animalProducts, boolean livesInCage, int price, int daysToProduce) {
         this.animalProducts = animalProducts;
         this.livesInCage = livesInCage;
-        this.animalPrice = animalPrice;
+        this.price = price;
         this.daysToProduce = daysToProduce;
     }
 
@@ -34,11 +34,30 @@ public enum AnimalType {
         return livesInCage;
     }
 
-    public int getAnimalPrice() {
-        return animalPrice;
+    public int getPrice() {
+        return price;
     }
 
     public int getDaysToProduce() {
         return daysToProduce;
+    }
+
+    public List<FarmBuildingType> getLivingSpaceTypes() {
+        return livesInCage
+                ? List.of(FarmBuildingType.COOP, FarmBuildingType.BIG_COOP, FarmBuildingType.DELUXE_COOP)
+                : List.of(FarmBuildingType.BARN, FarmBuildingType.BIG_BARN, FarmBuildingType.DELUXE_BARN);
+    }
+
+    public String getName() {
+        return name();
+    }
+
+    public static AnimalType getAnimalTypeByName(String name) {
+        for (AnimalType type : AnimalType.values()) {
+            if (type.name().equalsIgnoreCase(name)) {
+                return type;
+            }
+        }
+        return null;
     }
 }

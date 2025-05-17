@@ -75,6 +75,15 @@ public class App {
         return games.get(games.size() - 1);
     }
 
+    public static Shop getCurrentShop() {
+        return currentShop;
+    }
+
+    public static void setCurrentShop(Shop currentShop) {
+        App.currentShop = currentShop;
+    }
+
+
     public static Game getCurrentGame() {
         return currentGame;
     }
