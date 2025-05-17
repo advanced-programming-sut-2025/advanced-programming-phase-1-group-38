@@ -9,24 +9,34 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class Player {
+    private final User user;
     private Position position;
     private Backpack backpack;
     private Tool currentTool;
-    private Map<Skill, SkillLevel> skillLevels = new HashMap<>();
-    private Map<Skill, Integer> skillXP = new HashMap<>();
+    private final Map<Skill, SkillLevel> skillLevels = new HashMap<>();
+    private final Map<Skill, Integer> skillXP = new HashMap<>();
     private int energy;
     private boolean unlimitedEnergy = false;
     private int energyUsedThisTurn = 0;
 
-    public Player(Position position, Backpack backpack) {
+    public Player(User user) {
+        this(user, new Position(0, 0), new Backpack(BackpackType.INITIAL));
+    }
+
+    public Player(User user, Position position, Backpack backpack) {
+        this.user = user;
         this.position = position;
-        this.backpack = new Backpack(BackpackType.INITIAL);
+        this.backpack = backpack;
         this.currentTool = null;
         for (Skill skill : Skill.values()) {
             skillLevels.put(skill, SkillLevel.LEVEL_ZERO);
             skillXP.put(skill, 0);
         }
         this.energy = 200;
+    }
+
+    public String getName() {
+        return user.getUsername();
     }
 
     public Position getPosition() {
@@ -48,6 +58,7 @@ public class Player {
     public Tool getCurrentTool() {
         return currentTool;
     }
+
     public void setCurrentTool(Tool currentTool) {
         this.currentTool = currentTool;
     }
@@ -58,8 +69,7 @@ public class Player {
 
     private int getRequiredXPForNextLevel(Skill skill) {
         SkillLevel currentLevel = getSkillLevel(skill);
-        int i = currentLevel.ordinal();
-        return 50 + 100 * i;
+        return 50 + 100 * currentLevel.ordinal();
     }
 
     private void increaseSkill(Skill skill) {
@@ -69,11 +79,10 @@ public class Player {
     }
 
     public void gainXP(Skill skill, int amount) {
-        int currentXP = skillXP.getOrDefault(skill, 0);
-        currentXP += amount;
+        int currentXP = skillXP.getOrDefault(skill, 0) + amount;
         skillXP.put(skill, currentXP);
 
-        SkillLevel currentLevel = skillLevels.get(skill);
+        SkillLevel currentLevel = getSkillLevel(skill);
         int required = getRequiredXPForNextLevel(skill);
 
         if (currentXP >= required && currentLevel != SkillLevel.LEVEL_FOUR) {
