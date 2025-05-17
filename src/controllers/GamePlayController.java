@@ -13,10 +13,14 @@ import models.recipe.CookingRecipe;
 import models.recipe.CraftingRecipe;
 
 import models.Position;
-import java.util.Map;
+
+import java.util.*;
 
 public class GamePlayController {
     private final Game game;
+    private List<Position> pendingPath;
+    private float pendingEnergy;
+
     public GamePlayController(Game game) {
         this.game = game;
     }
@@ -206,20 +210,101 @@ public class GamePlayController {
         return null;
     }
 
-    public Result walk(Path path, boolean playerConfirmed) {
-        return null;
+    // Walk
+
+    private int countTurns(List<Position> path) {
+        if (path.size() < 3) return 0;
+        int turns = 0;
+        int prevDx = normalize(path.get(1).getX() - path.get(0).getX());
+        int prevDy = normalize(path.get(1).getY() - path.get(0).getY());
+
+        for (int i = 2; i < path.size(); i++) {
+            Position prev = path.get(i - 1);
+            Position cur  = path.get(i);
+            int dx = normalize(cur.getX() - prev.getX());
+            int dy = normalize(cur.getY() - prev.getY());
+            if (dx != prevDx || dy != prevDy) turns++;
+            prevDx = dx; prevDy = dy;
+        }
+        return turns;
     }
 
-    private Path findValidPath(Position origin, Position destination) {
-        return new Path();
+    private int normalize(int delta) {
+        return delta > 0 ? 1 : (delta < 0 ? -1 : 0);
     }
 
-    private boolean isDestinationAllowed(Position destination) {
-        return false;
+    public Result respondForWalkRequest(String posStr) {
+        String[] parts = posStr.trim().split(",");
+        if (parts.length != 2) {
+            return new Result(false, "Invalid position format. Use: x,y");
+        }
+        int tx, ty;
+        try {
+            tx = Integer.parseInt(parts[0].trim());
+            ty = Integer.parseInt(parts[1].trim());
+        } catch (NumberFormatException e) {
+            return new Result(false, "Coordinates must be numbers.");
+        }
+
+        Player player = game.getCurrentPlayer();
+        GameMap map    = game.getCurrentPlayerMap();
+        Position origin = player.getPosition();
+        Position goal   = new Position(tx, ty);
+
+        if (!map.isInsideMap(goal) || !map.getTile(goal).isWalkable()) {
+            return new Result(false, "You can't walk to (" + tx + "," + ty + ").");
+        }
+
+        List<Position> path = new PathFinder(map).findPath(origin, goal);
+        if (path == null) {
+            return new Result(false, "No path found to (" + tx + "," + ty + ").");
+        }
+
+        int distance = path.size() - 1;
+        int turns    = countTurns(path);
+        float energy = (distance + 10 * turns) / 20f;
+
+        pendingPath   = path;
+        pendingEnergy = energy;
+        String msg = String.format(
+            "Distance: %d  Turns: %d  Energy needed: %.2f\n" +
+                "Type `walk confirm y` to go or `walk confirm n` to cancel",
+            distance, turns, energy);
+        return new Result(true, msg);
     }
 
-    public Result respondForWalkRequest(Position origin, Position destination) {
-        return null;
+    public Result confirmWalk(String answer) {
+        if (pendingPath == null) {
+            return new Result(false, "No pending walk. First do `walk x,y`.");
+        }
+        boolean go = answer.trim().equalsIgnoreCase("y");
+        if (!go) {
+            pendingPath = null;
+            return new Result(true, "Walk cancelled.");
+        }
+
+        Player player = game.getCurrentPlayer();
+        int distance = pendingPath.size() - 1;
+        float perStep = pendingEnergy / distance;
+
+        for (int i = 1; i < pendingPath.size(); i++) {
+            Position step = pendingPath.get(i);
+            int cost = (int)Math.ceil(perStep);
+            player.reduceEnergy(cost);
+            player.setPosition(step);
+
+            if (player.getEnergy() <= 0) {
+                player.setEnergy(0);
+                pendingPath = null;
+                return new Result(false, "You fainted at " + step + ".");
+            }
+        }
+
+        Position arrived = pendingPath.get(pendingPath.size() - 1);
+        pendingPath = null;
+        return new Result(true,
+            "You arrived at " + arrived +
+                ". Energy remaining: " + player.getEnergy());
     }
 
     // Energy

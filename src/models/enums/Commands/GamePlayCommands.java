@@ -7,6 +7,8 @@ public enum GamePlayCommands implements Command {
     EXIT_GAME(""),
     FORCE_TERMINATE(""),
     NEXT_TURN(""),
+    WALK("^\\s*walk\\s+-l\\s+(?<position>\\d+\\s*,\\s*\\d+)\\s*$"),
+    WALK_CONFIRM("^\\s*walk\\s+confirm\\s+(?<answer>[yn])\\s*$"),
 
     // added
 
