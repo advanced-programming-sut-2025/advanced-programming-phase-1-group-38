@@ -14,17 +14,14 @@ public class GameMenuController {
     private Game currentGame;
     private GamePlayController gameplay;
 
-
     public Result newGame(String usernamesInput) {
         String[] usernames = usernamesInput.trim().split("\\s+");
-
         if (usernames.length < 1 || usernames.length > 3) {
             return new Result(false, "You must provide 1 to 3 usernames.");
         }
 
         Set<String> seen = new HashSet<>();
         players.clear();
-
         for (String username : usernames) {
             if (!App.usernameExists(username)) {
                 return new Result(false, "Username '" + username + "' does not exist.");
@@ -32,38 +29,35 @@ public class GameMenuController {
             if (!seen.add(username)) {
                 return new Result(false, "Duplicate username: " + username);
             }
-
             User user = App.getUserByUsername(username);
-            Player player = new Player(user);
-            players.add(player);
+            players.add(new Player(user));
         }
 
         List<Shop> shops = new ArrayList<>();
-
-        int width = 40;
-        int height = 50;
+        int width  = 40, height = 50;
         List<GameMap> maps = new ArrayList<>();
 
-        for (Player player : players) {
+        for (Player p : players) {
             Tile[][] tiles = new Tile[width][height];
             for (int x = 0; x < width; x++) {
                 for (int y = 0; y < height; y++) {
-                    tiles[x][y] = new Tile(TileType.REGULAR_GROUND, true);
+                    tiles[x][y] = new Tile(TileType.REGULAR_GROUND, true, new Position(x, y));
                 }
             }
-
-            GameMap map = new GameMap(tiles, width, height, shops, players, Weather.SUNNY);
-            maps.add(map);
+            maps.add(new GameMap(tiles, width, height, shops, players, Weather.SUNNY));
         }
 
         currentGame = new Game(shops, players, Weather.SUNNY, Seasons.SPRING, maps);
+        currentGame.getTime().setHour(9);
+
         App.addGame(currentGame);
         App.setCurrentGame(currentGame);
 
         gameplay = new GamePlayController(currentGame);
 
-        return new Result(true, "New game created. Players joined. Game started.");
+        return new Result(true, "New game created! It's 9:00 AM on Spring Day 1. Let’s play!");
     }
+
     public Result loadGame() {
         Game saved = App.getLatestSavedGame();
         if (saved == null) {
