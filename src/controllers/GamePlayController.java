@@ -172,6 +172,8 @@ public class GamePlayController {
         return null;
     }
 
+    // Energy
+
     public Result showPlayerEnergy(Game game) {
         Player player = game.getCurrentPlayer();
         int energy = player.getEnergy();
