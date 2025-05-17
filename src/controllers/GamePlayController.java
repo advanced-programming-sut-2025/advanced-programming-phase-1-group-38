@@ -2,6 +2,8 @@ package controllers;
 
 import models.*;
 import models.Animals.Animal;
+import models.Animals.AnimalLivingSpace;
+import models.Animals.AnimalProduct;
 import models.Artisan.ArtisanMachineType;
 import models.Tools.*;
 import models.enums.*;
@@ -369,19 +371,74 @@ public class GamePlayController {
     }
 
     public Result buyAnimal(AnimalType animalType, String name) {
+        Player player = game.getCurrentPlayer();
+        GameMap map = game.getCurrentPlayerMap();
+
+        AnimalLivingSpace space = map.getAvailableLivingSpace(animalType.getLivingSpaceTypes());
+        if (space == null) {
+            return new Result(false, "No valid living space available for " + animalType.name() + ".");
+        }
+
+        if (space.getAnimalByName(name) != null) {
+            return new Result(false, "You already have an animal named " + name + ".");
+        }
+
+        if (player.getMoney() < animalType.getPrice()) {
+            return new Result(false, "You don't have enough money to buy a " + animalType.name() + ".");
+        }
+
         Animal animal = new Animal(name, animalType);
-        return null;
+        space.addAnimal(animal);
+        player.spendMoney(animalType.getPrice());
+
+        return new Result(true, "You bought a " + animalType.name() + " named " + name + ".");
     }
 
     public Result pet(String animalName) {
+        Player player = game.getCurrentPlayer();
+        GameMap map = game.getCurrentPlayerMap();
+
+        Animal animal = null;
+        for (AnimalLivingSpace space : map.getAnimalBuildings()) {
+            animal = space.getAnimalByName(animalName);
+            if (animal != null) break;
+        }
+
+        if (animal == null) {
+            return new Result(false, "No animal named " + animalName + " found.");
+        }
+
+        if (animal.isPetToday()) {
+            return new Result(false, animal.getName() + " has already been pet today.");
+        }
+
+        animal.pet();
+
+        return new Result(true, "You pet " + animal.getName() + ". Friendship level is now " + animal.getFriendshipLevel() + ".");
+    }
+    public Result cheatSetFriendship(String animalName, int amount) {
         Animal animal = getAnimalByName(animalName);
+        if (animal == null) {
+            return new Result(false, "Animal not found.");
+        }
+
+        amount = Math.max(0, Math.min(amount, 1000));
+        animal.setFriendshipLevel(amount);
+
+        return new Result(true, "Friendship level of " + animal.getName() + " set to " + amount + ".");
+    }
+
+    private Animal getAnimalByName(String name) {
+        for (AnimalLivingSpace space : game.getCurrentPlayerMap().getAnimalBuildings()) {
+            for (Animal animal : space.getAnimals()) {
+                if (animal.getName().equalsIgnoreCase(name)) {
+                    return animal;
+                }
+            }
+        }
         return null;
     }
 
-    public Result cheatSetFriendship(String animalName, int amount) {
-        Animal animal = getAnimalByName(animalName);
-        return null;
-    }
 
     public Result cookingShowRecipes() { return null; }
     public Result cookingPrepare(Item cookingRecipe) {
@@ -610,30 +667,92 @@ public class GamePlayController {
     }
 
     public Result showMyAnimalsInfo() {
-        return null;
+        GameMap map = game.getCurrentPlayerMap();
+        StringBuilder message = new StringBuilder("Your animals:\n");
+
+        for (AnimalLivingSpace space : map.getAnimalBuildings()) {
+            for (Animal animal : space.getAnimals()) {
+                message.append("- ").append(animal.getName()).append(" (")
+                        .append(animal.getAnimalType().name()).append(") | ")
+                        .append("Friendship: ").append(animal.getFriendshipLevel()).append(" | ")
+                        .append("Fed: ").append(animal.isFedToday() ? "Yes" : "No").append(" | ")
+                        .append("Pet: ").append(animal.isPetToday() ? "Yes" : "No").append("\n");
+            }
+        }
+        return new Result(true, message.toString());
     }
 
-    public Result shepherdAnimal(String animalName, models.Position position) {
-        return null;
+    public Result shepherdAnimal(String animalName, Position position) {
+        GameMap map = game.getCurrentPlayerMap();
+        for (AnimalLivingSpace space : map.getAnimalBuildings()) {
+            Animal animal = space.getAnimalByName(animalName);
+            if (animal != null) {
+                animal.setPosition(position);
+                animal.setOutside(true);
+                return new Result(true, animalName + " was taken outside to " + position);
+            }
+        }
+        return new Result(false, "Animal not found.");
     }
 
     public Result feedHayToAnimal(String animalName) {
-        return null;
+        GameMap map = game.getCurrentPlayerMap();
+        for (AnimalLivingSpace space : map.getAnimalBuildings()) {
+            Animal animal = space.getAnimalByName(animalName);
+            if (animal != null) {
+                animal.feed();
+                return new Result(true, animalName + " has been fed with hay.");
+            }
+        }
+        return new Result(false, "Animal not found.");
     }
 
     public Result showProducedProducts() {
-        return null;
+        GameMap map = game.getCurrentPlayerMap();
+        StringBuilder message = new StringBuilder("Produced Products:\n");
+        for (AnimalLivingSpace space : map.getAnimalBuildings()) {
+            for (Animal animal : space.getAnimals()) {
+                if (animal.isProductReady()) {
+                    message.append("- ").append(animal.getName()).append(" has a product ready!\n");
+                }
+            }
+        }
+        return new Result(true, message.toString());
     }
+
     public Result collectProducts(String animalName) {
-        return null;
+        GameMap map = game.getCurrentPlayerMap();
+        Player player = game.getCurrentPlayer();
+        for (AnimalLivingSpace space : map.getAnimalBuildings()) {
+            Animal animal = space.getAnimalByName(animalName);
+            if (animal != null) {
+                AnimalProduct product = animal.collectProduct();
+                if (product == null) {
+                    return new Result(false, "No product ready for " + animalName);
+                }
+                player.getBackpack().addToInventory(product, 1);
+                return new Result(true, "Collected product from " + animalName);
+            }
+        }
+        return new Result(false, "Animal not found.");
     }
 
     public Result sellAnimal(String animalName) {
-        return null;
+        GameMap map = game.getCurrentPlayerMap();
+        Player player = game.getCurrentPlayer();
+        for (AnimalLivingSpace space : map.getAnimalBuildings()) {
+            Animal animal = space.getAnimalByName(animalName);
+            if (animal != null) {
+                int price = animal.getSellPrice();
+                player.addMoney(price);
+                space.removeAnimal(animal);
+                return new Result(true, animalName + " sold for " + price + " coins.");
+            }
+        }
+        return new Result(false, "Animal not found.");
     }
-    private Animal getAnimalByName(String name) {
-        return null;
-    }
+
+
     public Result fishing(String fishingPoleName) {
         return null;
     }

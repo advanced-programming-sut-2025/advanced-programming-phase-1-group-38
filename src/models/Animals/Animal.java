@@ -185,7 +185,7 @@ public class Animal {
     }
 
     public int getSellPrice() {
-        return (int) (animalType.getAnimalPrice() * (0.3 + friendshipLevel / 1000.0));
+        return (int) (animalType.getPrice() * (0.3 + friendshipLevel / 1000.0));
     }
 
     public void setFriendshipLevel(int friendshipLevel) {

@@ -33,6 +33,15 @@ public class GameMap {
         markHomeArea();
     }
 
+    public AnimalLivingSpace getAvailableLivingSpace(List<FarmBuildingType> allowedTypes) {
+        for (AnimalLivingSpace space : animalBuildings.values()) {
+            if (allowedTypes.contains(space.getFarmBuildingType()) && !space.isFull()) {
+                return space;
+            }
+        }
+        return null;
+    }
+
     public Tile[][] getTiles() {
         return tiles;
     }

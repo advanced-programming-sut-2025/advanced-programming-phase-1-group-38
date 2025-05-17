@@ -24,6 +24,10 @@ public class AnimalLivingSpace extends FarmBuilding {
         return true;
     }
 
+    public boolean removeAnimal(Animal animal) {
+        return animals.remove(animal);
+    }
+
     public boolean removeAnimalByName(String name) {
         return animals.removeIf(a -> a.getName().equalsIgnoreCase(name));
     }
