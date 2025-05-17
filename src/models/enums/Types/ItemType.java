@@ -15,5 +15,6 @@ public enum ItemType {
     FISH,
     FERTILIZER,
     SEED,
+    ARTISAN_PRODUCT
     ;
 }

@@ -6,6 +6,8 @@ import models.enums.ProductQuality;
 import models.enums.Types.ItemType;
 import models.enums.Types.ToolType;
 
+import java.util.Objects;
+
 public class AnimalProduct extends Item {
     private final AnimalProductType type;
     private final ProductQuality quality;
@@ -49,6 +51,17 @@ public class AnimalProduct extends Item {
 
     public ToolType requiredToolName() {
         return type.getRequiredToolName();
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (!(obj instanceof AnimalProduct other)) return false;
+        return this.type == other.type && this.quality == other.quality;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(type, quality);
     }
 
     @Override

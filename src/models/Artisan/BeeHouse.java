@@ -1,23 +1,21 @@
 package models.Artisan;
 
-import models.recipe.Ingredient;
+import models.Item;
+import models.Time;
 
 import java.util.List;
 
-public class BeeHouse {
+public class BeeHouse implements ArtisanMachine {
+    private ArtisanProcessingSlot slot;
+
     private final List<ArtisanRecipe> recipes = List.of(
-            new ArtisanRecipe(
-                    "Honey",
-                    "It's a sweet syrup produced by bees.",
-                    75,
-                    "4 Days",
-                    List.of(
-                        new RecipeOption(
-                            new Ingredient("",0),
-                            350
-                        )
-                    )
-            )
+        new ArtisanRecipe(
+            ArtisanProductType.HONEY.getName(),
+            ArtisanProductType.HONEY.getDescription(),
+            "4 Days",
+            List.of(),
+            ArtisanProductType.HONEY
+        )
     );
 
     public List<ArtisanRecipe> getRecipes() {
@@ -26,8 +24,51 @@ public class BeeHouse {
 
     public ArtisanRecipe getRecipeByName(String name) {
         return recipes.stream()
-                .filter(recipe -> recipe.getName().equalsIgnoreCase(name))
-                .findFirst()
-                .orElse(null);
+            .filter(recipe -> recipe.getName().equalsIgnoreCase(name))
+            .findFirst()
+            .orElse(null);
+    }
+
+    @Override
+    public boolean startProcessing(List<models.Item> inputItems, Time time) {
+        if (slot != null) return false;
+        slot = new ArtisanProcessingSlot(recipes.get(0), List.of(), time);
+        return true;
+    }
+
+    @Override
+    public boolean isBusy() {
+        return slot != null;
+    }
+
+    @Override
+    public boolean isReady(Time time) {
+        return slot != null && slot.isReady(time);
+    }
+
+    @Override
+    public ArtisanProduct collectProduct(Time time) {
+        if (isReady(time)) {
+            ArtisanProduct product = slot.collectProduct();
+            slot = null;
+            return product;
+        }
+        return null;
+    }
+
+    @Override
+    public ArtisanRecipe findMatchingRecipe(List<Item> inputItems) {
+        return recipes.get(0);
+    }
+
+    @Override
+    public int getTimeRemaining(Time time) {
+        return slot == null ? -1 : slot.getHoursRemaining(time);
+    }
+
+    public String getStatus(Time time) {
+        if (slot == null) return "Idle";
+        if (slot.isReady(time)) return "Honey ready!";
+        return "Processing... " + slot.getHoursRemaining(time) + "h remaining";
     }
 }

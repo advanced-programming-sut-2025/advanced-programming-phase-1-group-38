@@ -79,6 +79,11 @@ public class Crop extends Item {
         return type;
     }
 
+    public int getEnergy() {
+        return type.getEnergy();
+    }
+
+
     public boolean isWatered() {
         return isWatered;
     }

@@ -1,41 +1,102 @@
 package models.Artisan;
 
+import models.Item;
+import models.Time;
+import models.enums.Types.AnimalProductType;
+import models.enums.Types.ItemType;
 import models.recipe.Ingredient;
 
 import java.util.List;
 
-public class CheesePress {
+public class CheesePress implements ArtisanMachine {
+    private ArtisanProcessingSlot slot = null;
+
     private final List<ArtisanRecipe> recipes = List.of(
-            new ArtisanRecipe(
-                    "Cheese",
-                    "It's your basic cheese.",
-                    100,
-                    "3 Hours",
-                    List.of(
-                            new RecipeOption(new Ingredient("Milk", 1), 230),
-                            new RecipeOption(new Ingredient("Large Milk", 1), 345)
-                    )
+        new ArtisanRecipe(
+            ArtisanProductType.CHEESE.getName(),
+            ArtisanProductType.CHEESE.getDescription(),
+            "3 Hours",
+            List.of(
+                new RecipeOption(
+                    new ArtisanIngredient(List.of(), AnimalProductType.COW_MILK, null, 1, 230),
+                    230,
+                    ArtisanProductType.CHEESE
+                ),
+                new RecipeOption(
+                    new ArtisanIngredient(List.of(), AnimalProductType.LARGE_COW_MILK, null, 1, 345),
+                    345,
+                    ArtisanProductType.LARGE_CHEESE
+                )
             ),
-            new ArtisanRecipe(
-                    "Goat Cheese",
-                    "Soft cheese made from goat's milk.",
-                    100,
-                    "3 Hours",
-                    List.of(
-                            new RecipeOption(new Ingredient("Goat Milk", 1), 400),
-                            new RecipeOption(new Ingredient("Large Goat Milk", 1), 600)
-                    )
-            )
+            null
+        ),
+        new ArtisanRecipe(
+            ArtisanProductType.GOAT_CHEESE.getName(),
+            ArtisanProductType.GOAT_CHEESE.getDescription(),
+            "3 Hours",
+            List.of(
+                new RecipeOption(
+                    new ArtisanIngredient(List.of(), AnimalProductType.GOAT_MILK, null, 1, 400),
+                    400,
+                    ArtisanProductType.GOAT_CHEESE
+                ),
+                new RecipeOption(
+                    new ArtisanIngredient(List.of(), AnimalProductType.LARGE_GOAT_MILK, null, 1, 600),
+                    600,
+                    ArtisanProductType.LARGE_GOAT_CHEESE
+                )
+            ),
+            null
+        )
     );
 
     public List<ArtisanRecipe> getRecipes() {
         return recipes;
     }
 
-    public ArtisanRecipe getRecipeByName(String name) {
-        return recipes.stream()
-                .filter(r -> r.getName().equalsIgnoreCase(name))
-                .findFirst()
-                .orElse(null);
+    @Override
+    public boolean startProcessing(List<Item> inputItems, Time time) {
+        if (slot != null) return false;
+
+        ArtisanRecipe recipe = findMatchingRecipe(inputItems);
+        if (recipe == null) return false;
+
+        slot = new ArtisanProcessingSlot(recipe, inputItems, time);
+        return true;
+    }
+
+    @Override
+    public ArtisanProduct collectProduct(Time time) {
+        if (slot != null && slot.isReady(time)) {
+            ArtisanProduct product = slot.collectProduct();
+            slot = null;
+            return product;
+        }
+        return null;
+    }
+
+    @Override
+    public boolean isBusy() {
+        return slot != null;
+    }
+
+    @Override
+    public boolean isReady(Time time) {
+        return slot != null && slot.isReady(time);
+    }
+
+    @Override
+    public int getTimeRemaining(Time time) {
+        return slot == null ? -1 : slot.getHoursRemaining(time);
+    }
+
+    @Override
+    public ArtisanRecipe findMatchingRecipe(List<Item> inputItems) {
+        for (ArtisanRecipe recipe : recipes) {
+            if (recipe.getMatchingOption(inputItems) != null) {
+                return recipe;
+            }
+        }
+        return null;
     }
 }
