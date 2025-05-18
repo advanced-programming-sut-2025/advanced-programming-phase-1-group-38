@@ -1,6 +1,7 @@
 package models.inventory;
 
 import models.Item;
+import models.enums.Types.MaterialTypes;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -22,6 +23,8 @@ public abstract class Inventory {
     public abstract boolean hasSpaceFor(Item item, int quantity);
 
     public abstract void addToInventory(Item item, int n);
+
+    public abstract void addToInventoryyyy(MaterialTypes item, int n);
 
     public abstract void CheatAddToInventory(Item item, int n);
 

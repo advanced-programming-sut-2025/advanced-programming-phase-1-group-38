@@ -8,6 +8,7 @@ import models.Artisan.*;
 import models.Relationship.Friendship;
 import models.Tools.*;
 import models.enums.*;
+import models.enums.Shop.ShopEntry;
 import models.enums.Types.*;
 import models.farming.*;
 import models.inventory.Backpack;
@@ -23,6 +24,7 @@ public class GamePlayController {
     private final Game game;
     private List<Position> pendingPath;
     private float pendingEnergy;
+    private Shop currentShop;
 
     public GamePlayController(Game game) {
         this.game = game;
@@ -1289,14 +1291,6 @@ public class GamePlayController {
         return tool.useTool(game, fishingDirection);
     }
 
-    public Result showAllProducts() {
-        return null;
-    }
-
-    public Result showAvailableProducts() {
-        return null;
-    }
-
     public Result purchase(String productName, Integer count) {
         return null;
     }
@@ -1315,7 +1309,7 @@ public class GamePlayController {
         Player player = game.getCurrentPlayer();
         player.addMoney(amount);
 
-        return new Result(true, "Added " + amount + " gold to your balance.");
+        return new Result(true, "Added " + amount + " money to your balance.");
     }
 
     public Result sell(String productName, Integer count) {
@@ -1381,6 +1375,81 @@ public class GamePlayController {
 
     private NPC geNPCByName(String NPCName) {
         return null;
+    }
+
+    public String showAllProducts() {
+        if (currentShop == null)
+            return "You must enter a shop first.";
+        StringBuilder sb = new StringBuilder("All products in shop:\n");
+        for (ShopEntry e : currentShop.getEntries()) {
+            sb.append("- ").append(e.getDisplayName())
+                    .append(" | Price: ").append(e.getPrice())
+                    .append(" | Available: ").append(currentShop.getAvailableStock(e.getDisplayName()))
+                    .append("\n");
+        }
+        return sb.toString();
+    }
+
+    public String showAvailableProducts() {
+        if (currentShop == null)
+            return "You must enter a shop first.";
+        StringBuilder sb = new StringBuilder("Available products:\n");
+        for (ShopEntry e : currentShop.getEntries()) {
+            int available = currentShop.getAvailableStock(e.getDisplayName());
+            if (available > 0) {
+                sb.append("- ").append(e.getDisplayName())
+                        .append(" | Price: ").append(e.getPrice())
+                        .append(" | Available: ").append(available)
+                        .append("\n");
+            }
+        }
+        return sb.toString();
+    }
+
+    public String purchase(String input) {
+        if (currentShop == null)
+            return "You must enter a shop first.";
+
+        String[] parts = input.trim().split("\\s+");
+        if (parts.length < 2)
+            return "Invalid command format. Use: purchase <item> [-n <count>]";
+
+        String name = parts[1];
+        int count = 1;
+
+        if (parts.length == 4 && parts[2].equals("-n")) {
+            try {
+                count = Integer.parseInt(parts[3]);
+                if (count <= 0)
+                    return "Count must be a positive number.";
+            } catch (NumberFormatException e) {
+                return "Invalid number format for count.";
+            }
+        } else if (parts.length > 2) {
+            return "Invalid format. Did you mean: purchase <item> -n <count>?";
+        }
+
+        if (!currentShop.hasEntry(name))
+            return "This item is not sold in this shop.";
+
+        ShopEntry entry = currentShop.findEntry(name);
+        int available = currentShop.getAvailableStock(name);
+        if (available < count)
+            return "Not enough stock available.";
+
+        Player player = game.getCurrentPlayer();
+        int totalPrice = entry.getPrice() * count;
+
+        if (player.getMoney() < totalPrice)
+            return "You do not have enough gold.";
+
+        currentShop.purchase(name, count);
+        player.spendMoney(totalPrice);
+
+        MaterialTypes itemType = entry.getItemType();
+        player.getBackpack().addToInventoryyyy(itemType, count);
+
+        return "Successfully purchased " + count + " × " + name;
     }
 }
 //    public NPC getNearbyNPC(Player player, GameMap map) {
@@ -1485,3 +1554,4 @@ public class GamePlayController {
 //    }
 //
 //}
+

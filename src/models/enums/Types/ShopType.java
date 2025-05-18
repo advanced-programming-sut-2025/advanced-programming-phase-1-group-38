@@ -7,7 +7,7 @@ public enum ShopType {
     CARPENTER_SHOP("Robin", 9, 20),
     FISH_SHOP("Willy", 9, 17),
     MARNIE_RANCH("Marnie", 9, 16),
-    STAR_DROP_SALOON("Gus", 12, 24);
+    THE_STAR_DROP_SALOON("Gus", 12, 24);
 
     private final String owner;
     private final int openHour;
