@@ -535,7 +535,6 @@ public class GamePlayController {
     public Result equipTool(String toolName) {
         Player player = game.getCurrentPlayer();
 
-        // Find the tool by name
         Item item = player.getBackpack().getItemByName(toolName);
         if (item == null || !(item instanceof Tool tool)) {
             return new Result(false, "Tool '" + toolName + "' not found or is not a valid tool.");
@@ -1133,16 +1132,28 @@ public class GamePlayController {
     public Result talk(String user, String msg) {
         Player me   = game.getCurrentPlayer();
         Player them = findPlayer(user);
-        if (them == null)       return fail("No such player: " + user);
-        if (!areAdjacent(me, them)) return fail("You’re too far apart.");
+        if (them == null) {
+            return fail("No such player: " + user);
+        }
+        if (!areAdjacent(me, them)) {
+            return fail("You’re too far apart.");
+        }
 
         int gained = me.interactWith(them, 20, game.getTime());
+
         me.getFriendship(them).recordMessage(me.getName(), msg);
         them.getFriendship(me).recordMessage(me.getName(), msg);
 
+        them.receiveNotification(
+            me.getName() + " said to you: \"" + msg + "\""
+        );
+
         String out = String.format(
             "You said “%s” to %s and gained %d XP! Friendship level is now %d.",
-            msg, them.getName(), gained, me.getFriendship(them).getLevel()
+            msg,
+            them.getName(),
+            gained,
+            me.getFriendship(them).getLevel()
         );
         return success(out);
     }
@@ -1150,7 +1161,9 @@ public class GamePlayController {
     public Result talkHistory(String user) {
         Player me   = game.getCurrentPlayer();
         Player them = findPlayer(user);
-        if (them == null) return fail("No such player: " + user);
+        if (them == null) {
+            return fail("No such player: " + user);
+        }
 
         List<String> msgs = me.getFriendship(them).getMessages();
         if (msgs.isEmpty()) {
@@ -1272,7 +1285,7 @@ public class GamePlayController {
     }
 
     public Result hug(String user) {
-        Player me = game.getCurrentPlayer();
+        Player me   = game.getCurrentPlayer();
         Player them = findPlayer(user);
         if (them == null) {
             return new Result(false, "No such player: " + user);
@@ -1282,7 +1295,6 @@ public class GamePlayController {
         }
 
         Friendship f = me.getFriendship(them);
-
         if (f.getLevel() < 2) {
             return new Result(false,
                 "You need friendship level 2 to hug. " +
@@ -1292,11 +1304,13 @@ public class GamePlayController {
         int gained = me.interactWith(them, 60, game.getTime());
         them.interactWith(me, gained, game.getTime());
 
+        int newLevel = f.getLevel();
+
         String out = String.format(
-            "You hugged %s and gained %d XP. Level=%d.",
+            "You hugged %s and gained %d XP. Friendship level is now %d.",
             them.getName(),
             gained,
-            f.getLevel()
+            newLevel
         );
         return new Result(true, out);
     }
