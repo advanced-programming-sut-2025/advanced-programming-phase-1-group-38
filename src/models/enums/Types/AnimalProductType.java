@@ -2,7 +2,7 @@ package models.enums.Types;
 
 import models.Tool;
 
-public enum AnimalProductType {
+public enum AnimalProductType implements MaterialTypes {
     CHICKEN_EGG(50, false, null),
     LARGE_CHICKEN_EGG(95, false, null),
     DUCK_EGG(125, false, null),
@@ -38,5 +38,15 @@ public enum AnimalProductType {
 
     public ToolType getRequiredToolName() {
         return requiredToolName;
+    }
+
+    @Override
+    public boolean isTool() {
+        return false;
+    }
+
+    @Override
+    public String getName() {
+        return "";
     }
 }

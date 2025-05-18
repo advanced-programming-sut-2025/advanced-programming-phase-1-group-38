@@ -1,12 +1,13 @@
 package models.farming;
 
 import models.enums.Seasons;
+import models.enums.Types.MaterialTypes;
 
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public enum CropType {
+public enum CropType implements MaterialTypes {
     // REGULAR CROPS
     BLUE_JAZZ("Blue Jazz", CropSeedType.JAZZ_SEEDS, "1-2-2-2", true, 0, 50, true, 45, List.of(Seasons.SPRING), false, false),
     CARROT("Carrot", CropSeedType.CARROT_SEEDS, "1-1-1", true, 0, 35, true, 75, List.of(Seasons.SPRING), false, false),
@@ -102,6 +103,11 @@ public enum CropType {
         this.seasons = seasons;
         this.canBecomeGiant = canBecomeGiant;
         this.isForage = isForage;
+    }
+
+    @Override
+    public boolean isTool() {
+        return false;
     }
 
     public String getName() {

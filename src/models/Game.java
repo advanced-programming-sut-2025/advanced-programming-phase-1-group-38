@@ -1,6 +1,7 @@
 package models;
 
 import models.enums.Seasons;
+import models.enums.Types.NPCType;
 import models.enums.Types.TileType;
 import models.enums.Weather;
 import models.farming.Branch;
@@ -10,7 +11,7 @@ import models.farming.Tree;
 import java.util.*;
 
 public class Game {
-    private List<Player> players;
+    private ArrayList<Player> players;
     private Player currentPlayer;
     private List<Shop> shops;
     private int currentPlayerIndex = 0;
@@ -24,9 +25,12 @@ public class Game {
     private final Random rng = new Random();
     private final List<TradeRequest> pendingTrades = new ArrayList<>();
     private final List<TradeRequest> completedTrades = new ArrayList<>();
-    private final List<Item> shippingBin = new ArrayList<>();
+    private final ArrayList<NPC> npcs;
+    private final ArrayList<NPCHome> npcsHome;
+    private final ArrayList<NPCFriendship> npcFriendships;
 
-    public Game(List<Shop> shops, List<Player> players, Weather startingWeather, Seasons currentSeason, List<GameMap> gameMaps) {
+
+    public Game(List<Shop> shops, ArrayList<Player> players, Weather startingWeather, Seasons currentSeason, List<GameMap> gameMaps) {
         this.shops = shops;
         this.players = players;
         if (!players.isEmpty()) {
@@ -38,6 +42,22 @@ public class Game {
         this.playerGameMap = new HashMap<>();
         for (int i = 0; i < players.size(); i++) {
             playerGameMap.put(players.get(i), gameMaps.get(i % gameMaps.size()));
+        }
+        this.npcs = new ArrayList<>();
+        this.npcs.add(new NPC(NPCType.Abigail, players));
+        this.npcs.add(new NPC(NPCType.Harvey, players));
+        this.npcs.add(new NPC(NPCType.Lia, players));
+        this.npcs.add(new NPC(NPCType.Robin, players));
+        this.npcs.add(new NPC(NPCType.Sebastian, players));
+        this.npcsHome = new ArrayList<>();
+        for (NPCType type : NPCType.values()) {
+            npcsHome.add(new NPCHome(type));
+        }
+        this.npcFriendships = new ArrayList<>();
+        for (NPC npc : this.npcs) {
+            for (Player p : this.players) {
+                npcFriendships.add(new NPCFriendship(npc, p));
+            }
         }
     }
 
@@ -100,6 +120,15 @@ public class Game {
 
     public void recordCompletedTrade(TradeRequest t) {
         completedTrades.add(t);
+    }
+
+    public List<NPC> getNpcs() { return Collections.unmodifiableList(npcs); }
+    public List<NPCHome> getNpcHomes() {
+        return Collections.unmodifiableList(npcsHome);
+    }
+
+    public List<NPCFriendship> getNpcFriendships() {
+        return Collections.unmodifiableList(npcFriendships);
     }
 
     public Time getTime() {
@@ -301,16 +330,5 @@ public class Game {
             }
             player.resetTurnEnergy();
         }
-    }
-
-    public boolean isNearShippingBin(Position position) {
-        // TODO: ShippingBin class and fix position
-        Position binPosition = new Position(0, 0);
-        int dx = Math.abs(position.getX() - binPosition.getX());
-        int dy = Math.abs(position.getY() - binPosition.getY());
-        return dx <= 1 && dy <= 1;
-    }
-    public List<Item> getShippingBin() {
-        return shippingBin;
     }
 }

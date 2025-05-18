@@ -1,51 +1,56 @@
 package models;
 
-import java.util.List;
+import models.enums.Types.NPCType;
+import models.enums.Types.MaterialTypes;
+
 
 public class Quest {
-    private String description;
-    private List<String> requirements;
-    private List<String> rewards;
-    private boolean isActive;
-    private boolean isCompleted;
-    private int unlockFriendshipLevel;
-    private int unlockDay;
+    public static int questCounter = 1;
+    private final NPCType questGiver;
+    private final MaterialTypes demandingItem;
+    private final int demandingAmount;
+    private final MaterialTypes rewardItem;
+    private final int rewardAmount;
+    private final int id;
 
-
-
-    public Quest(String description, List<String> requirements, List<String> rewards,
-                 boolean isActive, int unlockFriendshipLevel, int unlockDay) {
-        this.description = description;
-        this.requirements = requirements;
-        this.rewards = rewards;
-        this.isActive = isActive;
-        this.isCompleted = false;
-        this.unlockFriendshipLevel = unlockFriendshipLevel;
-        this.unlockDay = unlockDay;
+    public Quest(NPCType questGiver, MaterialTypes demand, int demandAmount, MaterialTypes reward, Integer rewardAmount) {
+        this.questGiver = questGiver;
+        this.demandingItem = demand;
+        this.demandingAmount = demandAmount;
+        this.rewardItem = reward;
+        this.rewardAmount = rewardAmount;
+        this.id = questCounter++;
     }
 
-
-    public String getDescription() { return description; }
-    public void setDescription(String description) { this.description = description; }
-
-    public List<String> getRequirements() { return requirements; }
-    public void setRequirements(List<String> requirements) { this.requirements = requirements; }
-
-    public List<String> getRewards() { return rewards; }
-    public void setRewards(List<String> rewards) { this.rewards = rewards; }
-
-    public boolean isActive() { return isActive; }
-    public void setActive(boolean active) { isActive = active; }
-
-    public boolean isCompleted() { return isCompleted; }
-    public void setCompleted(boolean completed) { isCompleted = completed; }
-
-    public int getUnlockFriendshipLevel() { return unlockFriendshipLevel; }
-    public void setUnlockFriendshipLevel(int unlockFriendshipLevel) {
-        this.unlockFriendshipLevel = unlockFriendshipLevel;
+    public NPCType getQuestGiver() {
+        return this.questGiver;
     }
 
-    public int getUnlockDay() { return unlockDay; }
-    public void setUnlockDay(int unlockDay) { this.unlockDay = unlockDay; }
+    public int getId() {
+        return this.id;
+    }
 
+    public MaterialTypes getDemand() {
+        return this.demandingItem;
+    }
+
+    public int getDemandAmount() {
+        return this.demandingAmount;
+    }
+
+    public MaterialTypes getReward() {
+        return this.rewardItem;
+    }
+
+    public int getRewardAmount() {
+        return this.rewardAmount;
+    }
+
+    @Override
+    public String toString() {
+        return this.questGiver.name() + "\'s quest: " +
+            this.demandingItem.toString() + " x" + this.demandingAmount +
+            " for " + this.rewardItem.toString() + " x" + this.rewardAmount +
+            "\nId: " + this.id + "\n---------------------------\n";
+    }
 }

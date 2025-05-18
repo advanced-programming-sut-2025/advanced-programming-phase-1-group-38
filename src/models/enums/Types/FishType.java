@@ -2,7 +2,7 @@ package models.enums.Types;
 
 import models.enums.Seasons;
 
-public enum FishType {
+public enum FishType implements MaterialTypes{
     SALMON("Salmon", 75, Seasons.FALL, false),
     SARDINE ("Sardine", 40, Seasons.FALL, false),
     SHAD ("Shad", 60, Seasons.FALL, false),
@@ -34,6 +34,11 @@ public enum FishType {
         this.basePrice = basePrice;
         this.season = season;
         this.isLegendary = isLegendary;
+    }
+
+    @Override
+    public boolean isTool() {
+        return false;
     }
 
     public String getName() {

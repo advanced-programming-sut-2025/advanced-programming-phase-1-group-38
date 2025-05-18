@@ -1,6 +1,8 @@
 package models.farming;
 
-public enum ForagingMineralTypes {
+import models.enums.Types.MaterialTypes;
+
+public enum ForagingMineralTypes implements MaterialTypes {
     QUARTZ("Quartz", 25),
     EARTH_CRYSTAL("Earth Crystal", 50),
     FROZEN_TEAR("Frozen Tear", 75),
@@ -36,7 +38,12 @@ public enum ForagingMineralTypes {
     }
 
     @Override
-    public String toString() {
+    public boolean isTool() {
+        return false;
+    }
+
+    @Override
+    public String getName() {
         return displayName;
     }
 }

@@ -1,6 +1,8 @@
 package models.Artisan;
 
-public enum ArtisanProductType {
+import models.enums.Types.MaterialTypes;
+
+public enum ArtisanProductType implements MaterialTypes {
     HONEY("Honey", "Sweet syrup produced by bees.", 350, 75, true),
     CHEESE("Cheese", "Aged dairy product.", 230, 100, true),
     LARGE_CHEESE("Cheese", "Aged dairy product.", 345, 100, true),
@@ -17,6 +19,8 @@ public enum ArtisanProductType {
     DRIED_FRUIT("Dried Fruit", "Chewy pieces of dried fruit.", -1, 75, true),
     RAISINS("Raisins", "It's said to be the Junimos' favorite food.", 600, 125, true),
     COAL("Coal", "Turns 10 pieces of wood into one piece of coal.", 50, 0, false),
+    GRAPE_WINE("Grap Wine", "Drink in moderation.", 300, 100, true),
+    PICKLES("Pickles", "Drink in moderation.", 300, 50, true),
     ;
 
     private final String name;
@@ -31,6 +35,11 @@ public enum ArtisanProductType {
         this.sellPrice = sellPrice;
         this.energy = energy;
         this.edible = edible;
+    }
+
+    @Override
+    public boolean isTool() {
+        return false;
     }
 
     public String getName() { return name; }
