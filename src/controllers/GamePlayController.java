@@ -248,7 +248,9 @@ public class GamePlayController {
          🟥  Home
          🌳  Tree
          🌲  Forage tree
+         🔥  Burned tree
          🌾  Crop
+         🥀  Dead crop
          💎  Mineral
          🪨  Stone
          🪵  Branch
@@ -296,11 +298,15 @@ public class GamePlayController {
             };
         }
 
-        if (c instanceof Crop)            return "🌾";
+        if (c instanceof Crop crop) {
+            return crop.isDead() ? "🥀" : "🌾";
+        }
+
         if (c instanceof Branch)          return "🪵";
         if (c instanceof ForagingMineral) return "💎";
         if (c instanceof Stone)           return "🪨";
         if (c instanceof Tree t) {
+            if (t.isBurnt()) return "🔥";
             return t.isForageTree() ? "🌲" : "🌳";
         }
 
