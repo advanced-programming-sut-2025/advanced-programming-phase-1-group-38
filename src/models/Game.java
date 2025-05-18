@@ -1,7 +1,6 @@
 package models;
 
 import models.enums.Seasons;
-import models.enums.Types.ItemType;
 import models.enums.Types.TileType;
 import models.enums.Weather;
 import models.farming.Branch;
@@ -221,7 +220,7 @@ public class Game {
         int today = time.getDayOfYear();
 
         for (Player p : players) {
-            for (Friendship f : p.getAllFriendships()) {
+            for (PeopleFriendship f : p.getAllFriendships()) {
                 f.dailyDecay(today);
             }
         }
