@@ -19,15 +19,15 @@ public class GameMenu implements AppMenu {
         String input = scanner.nextLine().trim();
         Matcher matcher;
 
-        if ((matcher = GameMenuCommands.NEW_GAME.getMatcher(input)) != null) {
+        if ((matcher = GameMenuCommands.GAME_NEW.getMatcher(input)) != null) {
             String usernames = matcher.group("usernames");
             Result result = controller.newGame(usernames);
             System.out.println(result.message());
             return this;
         }
 
-        else if ((matcher = GameMenuCommands.GAME_MAP.getMatcher(input)) != null) {
-            int mapNumber = Integer.parseInt(matcher.group("number"));
+        else if ((matcher = GameMenuCommands.GAME_CHOOSE_MAP.getMatcher(input)) != null) {
+            int mapNumber = Integer.parseInt(matcher.group("mapNumber"));
             Result result = controller.chooseMap(mapNumber);
             System.out.println(result.message());
             return this;
