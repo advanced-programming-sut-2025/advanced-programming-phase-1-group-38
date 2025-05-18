@@ -944,7 +944,117 @@ public class GamePlayController {
             (capacity > 0 ? " / " + capacity + " max." : ""));
     }
 
-    public Result artisanGet(String artisanName) {
+    public Result tryStartArtisan(String machineName, String itemName) {
+        Player player = game.getCurrentPlayer();
+        GameMap map   = game.getCurrentPlayerMap();
+        Time time = game.getTime();
+
+        ArtisanMachine machine = findMachine(machineName);
+        if (machine == null) {
+            return new Result(false, "No machine named \"" + machineName + "\" found.");
+        }
+        if (machine.isBusy()) {
+            return new Result(false, "That machine is busy right now.");
+        }
+
+        Item prototype;
+        int  required;
+        if (machine instanceof CharcoalKiln) {
+            if (!itemName.equalsIgnoreCase("Wood")) {
+                return new Result(false, "Charcoal Kiln only accepts Wood.");
+            }
+            prototype = new Wood();
+            required  = 10;
+        }
+        else if (machine instanceof Keg) {
+            if (!itemName.equalsIgnoreCase("Coffee Bean"))
+                return new Result(false, "Keg only accepts Coffee Bean.");
+            prototype = new HarvestedCrop(CropType.COFFEE_BEAN);
+            required  = 5;
+            }
+        else if (machine instanceof BeeHouse) {
+            prototype = null;
+            required  = 0;
+        }
+        else {
+            return new Result(false, "This machine does not accept any items.");
+        }
+
+        List<Item> inputs;
+        if (required > 0) {
+            int have = player.getBackpack().getQuantity(prototype);
+            if (have < required) {
+                return new Result(false,
+                    "You need " + required + "× " + prototype.getName() +
+                        " but only have " + have + ".");
+            }
+            player.getBackpack().removeFromInventory(prototype, required);
+            inputs = List.of(prototype);
+        } else {
+            inputs = List.of();
+        }
+
+        boolean started = machine.startProcessing(inputs, time);
+        if (!started) {
+            if (required > 0) {
+                player.getBackpack().addToInventory(prototype, required);
+            }
+            return new Result(false, "Failed to start processing.");
+        }
+
+        return new Result(true,
+            "Processing started on your " + machineName +
+                (required > 0
+                    ? " using " + required + "× " + prototype.getName()
+                    : "") + "!");
+    }
+
+    public Result tryCollectArtisan(String machineName) {
+        Player player = game.getCurrentPlayer();
+        GameMap map   = game.getCurrentPlayerMap();
+        Time time = game.getTime();
+
+        ArtisanMachine machine = findMachine(machineName);
+        if (machine == null) {
+            return new Result(false, "No machine named \"" + machineName + "\" found.");
+        }
+
+        if (!machine.isReady(time)) {
+            return new Result(false,
+                "Your " + machineName + " is still working (" +
+                    machine.getTimeRemaining(time) + "h left).");
+        }
+
+        machine.collectProduct(time);
+
+        ArtisanProductType outType;
+        if (machine instanceof CharcoalKiln) {
+            outType = ArtisanProductType.COAL;
+        } else if (machine instanceof Keg) {
+            outType = ArtisanProductType.COFFEE;
+        } else if (machine instanceof BeeHouse) {
+            outType = ArtisanProductType.HONEY;
+        } else {
+            return new Result(false, "No known product for " + machineName + ".");
+        }
+        ArtisanProduct output = new ArtisanProduct(outType);
+
+        if (!player.getBackpack().hasSpaceFor(output, 1)) {
+            return new Result(false,
+                "Your inventory is full—cannot collect " + output.getName() + ".");
+        }
+        player.getBackpack().addToInventory(output, 1);
+
+        return new Result(true,
+            "Collected \"" + output.getName() + "\" from your " + machineName + "!");
+    }
+
+    private ArtisanMachine findMachine(String machineName) {
+        for (ArtisanMachine m : game.getCurrentPlayerMap().getArtisanMachines()) {
+            if (m.getClass().getSimpleName().equalsIgnoreCase(machineName)) {
+                return m;
+            }
+        }
         return null;
     }
 

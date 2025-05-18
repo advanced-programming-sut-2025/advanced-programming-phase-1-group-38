@@ -57,6 +57,7 @@ public class BeeHouse implements ArtisanMachine {
         if (isReady(time)) {
             ArtisanProduct product = slot.collectProduct();
             slot = null;
+            startProcessing(List.of(), time);
             return product;
         }
         return null;
