@@ -22,6 +22,7 @@ public class Game {
     private Map<Player, GameMap> playerGameMap;
     private Time time = new Time();
     private List<Position> lastThorHits = new ArrayList<>();
+    private final Random rng = new Random();
 
 
     public Game(List<Shop> shops, List<Player> players, Weather startingWeather, Seasons currentSeason, List<GameMap> gameMaps) {
@@ -204,6 +205,31 @@ public class Game {
             tomorrowWeather = null;
         } else {
             this.currentWeather = Weather.getRandom(currentSeason);
+        }
+
+        List<Position> cropPositions = new ArrayList<>();
+        for (GameMap map : gameMaps) {
+            for (int y = 0; y < map.getHeight(); y++) {
+                for (int x = 0; x < map.getWidth(); x++) {
+                    Tile tile = map.getTile(new Position(x, y));
+                    Object content = tile.getContent();
+                    if (content instanceof Crop crop) {
+                        cropPositions.add(new Position(x, y));
+                    }
+                }
+            }
+        }
+        if (cropPositions.size() >= 16 && rng.nextDouble() < 0.25) {
+            int toDestroy = Math.max(1, cropPositions.size() / 4);
+            Collections.shuffle(cropPositions, rng);
+
+            for (int i = 0; i < toDestroy; i++) {
+                Position p = cropPositions.get(i);
+                GameMap map = getCurrentPlayerMap();
+                Tile tile  = map.getTile(p);
+                Crop crop  = (Crop) tile.getContent();
+                crop.kill();
+            }
         }
 
         for (GameMap map : gameMaps) {
