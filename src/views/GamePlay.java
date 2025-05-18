@@ -2,6 +2,7 @@ package views;
 
 import controllers.GamePlayController;
 import models.App;
+import models.Result;
 import models.enums.Commands.GamePlayCommands;
 import models.enums.Menu;
 import java.util.Scanner;
@@ -28,6 +29,13 @@ public class GamePlay implements AppMenu {
         else if ((m = GamePlayCommands.WALK_CONFIRM.getMatcher(input)) != null) {
             String ans = m.group("answer");
             System.out.println(controller.confirmWalk(ans));
+            return this;
+        }
+        else if ((m = GamePlayCommands.PRINT_MAP.getMatcher(input)) != null) {
+            String pos  = m.group("position");
+            String size = m.group("size");
+            Result res = controller.printMap(pos, size);
+            System.out.println(res.message());
             return this;
         }
         else {

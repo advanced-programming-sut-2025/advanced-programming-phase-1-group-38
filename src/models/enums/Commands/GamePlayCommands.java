@@ -9,6 +9,7 @@ public enum GamePlayCommands implements Command {
     NEXT_TURN(""),
     WALK("^\\s*walk\\s+-l\\s+(?<position>\\d+\\s*,\\s*\\d+)\\s*$"),
     WALK_CONFIRM("^\\s*walk\\s+confirm\\s+(?<answer>[yn])\\s*$"),
+    PRINT_MAP("^\\s*print\\s+map\\s+-l\\s+(?<position>\\d+,\\d+)\\s+-s\\s+(?<size>\\d+)\\s*$"),
 
     // added
 

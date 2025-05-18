@@ -45,6 +45,10 @@ public class Tree {
         }
     }
 
+    public TreeType getTreeType() {
+        return type;
+    }
+
     public boolean canHarvestSyrup() {
         return type.getProduct() instanceof SyrupType && isMature && hasProductReady && !isBurnt;
     }
@@ -116,4 +120,22 @@ public class Tree {
 
         return seeds;
     }
+
+    public List<TreeSeedType> peekSeedDrop() {
+        List<TreeSeedType> seeds = new ArrayList<>();
+
+        if (type.getSource() instanceof TreeSeedType seedType) {
+            if (type.isForage()) {
+                seeds.add(seedType);
+            } else {
+                int count = GameRandom.randomInt(1, 3);
+                for (int i = 0; i < count; i++) {
+                    seeds.add(seedType);
+                }
+            }
+        }
+
+        return seeds;
+    }
+
 }

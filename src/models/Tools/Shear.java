@@ -2,6 +2,7 @@ package models.Tools;
 
 import models.*;
 import models.Animals.Animal;
+import models.Animals.AnimalLivingSpace;
 import models.Animals.AnimalProduct;
 import models.enums.Direction;
 import models.enums.Types.AnimalProductType;
@@ -26,33 +27,47 @@ public class Shear extends Tool {
         if (player.getEnergy() < cost) {
             return new Result(false, "You don't have enough energy.");
         }
-
         if (player.getEnergyUsedThisTurn() + cost > 50) {
             return new Result(false, "Not enough energy for this turn.");
         }
 
         Position target = player.getPosition().shift(direction);
-        Tile tile = game.getCurrentPlayerMap().getTile(target);
+        GameMap map = game.getCurrentPlayerMap();
 
-        if (tile == null || tile.getContent() == null || !(tile.getContent() instanceof Animal animal)) {
-            return new Result(false, "There's no animal to shear on this tile.");
+        Animal sheep = null;
+        for (AnimalLivingSpace space : map.getAnimalBuildings()) {
+            for (Animal a : space.getAnimals()) {
+                if (a.getPosition().equals(target)) {
+                    sheep = a;
+                    break;
+                }
+            }
+            if (sheep != null) break;
         }
 
-        if (animal.getAnimalType() != AnimalType.SHEEP) {
-            return new Result(false, "You can only use Shear on sheep.");
+        if (sheep == null) {
+            return new Result(false, "There's no animal here to use that tool on.");
+        }
+        if (sheep.getAnimalType() != AnimalType.SHEEP) {
+            return new Result(false, "You can only use the Shear on sheep.");
         }
 
-        AnimalProduct product = animal.collectProduct();
+        AnimalProduct product = sheep.collectProduct();
         if (product == null || product.getProductType() != AnimalProductType.WOOL) {
-            return new Result(false, "The sheep is not ready to be sheared.");
+            return new Result(false, "This sheep isn't ready to be sheared yet.");
         }
 
         player.reduceEnergy(cost);
         player.addEnergyUsed(cost);
+        if (!player.getBackpack().hasSpaceFor(product, 1)) {
+            return new Result(false, "Your inventory is full.");
+        }
         player.getBackpack().addToInventory(product, 1);
 
-        return new Result(true, "You sheared " + animal.getName() + " and collected " +
-            product.getQuality().name().toLowerCase() + " wool.");
+        return new Result(true, "You sheared " + sheep.getName() +
+            " and collected " +
+            product.getQuality().name().toLowerCase() +
+            " wool.");
     }
 
     @Override
