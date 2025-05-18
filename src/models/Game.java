@@ -23,6 +23,7 @@ public class Game {
     private Time time = new Time();
     private List<Position> lastThorHits = new ArrayList<>();
 
+
     public Game(List<Shop> shops, List<Player> players, Weather startingWeather, Seasons currentSeason, List<GameMap> gameMaps) {
         this.shops = shops;
         this.players = players;
@@ -136,6 +137,12 @@ public class Game {
 
         return thorHits;
     }
+
+    public void nextTurn() {
+        currentPlayerIndex = (currentPlayerIndex + 1) % players.size();
+    }
+
+
 
     public void switchTurn() {
         if (players == null || players.isEmpty()) return;

@@ -13,6 +13,8 @@ public class GameMenuController {
     private final List<Player> players = new ArrayList<>();
     private Game currentGame;
     private GamePlayController gameplay;
+    private int mapSelectionIndex = 0;
+    private boolean waitingForMapSelection = false;
 
     public Result newGame(String usernamesInput) {
         String[] usernames = usernamesInput.trim().split("\\s+");
@@ -41,33 +43,35 @@ public class GameMenuController {
 
         // big lake, small quarry
         GameMap lakeHeavy = new GameMap(tiles1, W, H, shops, players, Weather.SUNNY);
-        lakeHeavy.markLakeArea   (new Position(12,  6), 8, 6);
-        lakeHeavy.markQuarryArea (new Position(20, 10), 4, 3);
+        lakeHeavy.markLakeArea(new Position(12, 6), 8, 6);
+        lakeHeavy.markQuarryArea(new Position(20, 10), 4, 3);
         maps.add(lakeHeavy);
 
         // small lake, big quarry
         GameMap quarryHeavy = new GameMap(tiles2, W, H, shops, players, Weather.SUNNY);
-        quarryHeavy.markLakeArea   (new Position(12,  6), 4, 3);
-        quarryHeavy.markQuarryArea (new Position(20, 10), 8, 6);
+        quarryHeavy.markLakeArea(new Position(12, 6), 4, 3);
+        quarryHeavy.markQuarryArea(new Position(20, 10), 8, 6);
         maps.add(quarryHeavy);
 
         currentGame = new Game(shops,
-            players,
-            Weather.SUNNY,
-            Seasons.SPRING,
-            maps);
+                players,
+                Weather.SUNNY,
+                Seasons.SPRING,
+                maps);
         currentGame.getTime().setHour(9);
 
         App.addGame(currentGame);
         App.setCurrentGame(currentGame);
 
         gameplay = new GamePlayController(currentGame);
+        mapSelectionIndex = 0;
+        waitingForMapSelection = true;
 
         return new Result(true,
-            "New game created! Please choose your farm map:\n" +
-                "  1) Lake-heavy layout\n" +
-                "  2) Quarry-heavy layout\n" +
-                "Use ‘map 1’ or ‘map 2’ to select.");
+                "New game created! Please choose your farm map:\n" +
+                        "  1) Lake-heavy layout\n" +
+                        "  2) Quarry-heavy layout\n" +
+                        "Use ‘map 1’ or ‘map 2’ to select.");
     }
 
     private Tile[][] buildBaseTiles(int w, int h) {
@@ -81,19 +85,33 @@ public class GameMenuController {
     }
 
     public Result chooseMap(int mapNumber) {
-        if (currentGame == null) {
-            return new Result(false, "No active game. Please start a new game first.");
+        if (currentGame == null || !waitingForMapSelection) {
+            return new Result(false, "No active map selection.");
         }
+
         List<GameMap> gm = currentGame.getGameMaps();
         if (mapNumber < 1 || mapNumber > gm.size()) {
             return new Result(false, "Invalid map number. Choose 1 or " + gm.size());
         }
-        GameMap chosen = gm.get(mapNumber - 1);
-        Player p = currentGame.getCurrentPlayer();
-        currentGame.assignMapToPlayer(p, chosen);
-        return new Result(true, "Map " + mapNumber + " assigned to player " + p.getName());
-    }
 
+        GameMap chosen = gm.get(mapNumber - 1);
+
+        if (mapSelectionIndex >= players.size()) {
+            return new Result(false, "All players have already selected maps.");
+        }
+
+        Player p = players.get(mapSelectionIndex);
+        currentGame.assignMapToPlayer(p, chosen);
+        String result = "Map " + mapNumber + " assigned to player " + p.getName();
+        mapSelectionIndex++;
+
+        if (mapSelectionIndex == players.size()) {
+            waitingForMapSelection = false;
+            result += "\nAll maps selected. Game is ready to play!";
+        }
+
+        return new Result(true, result);
+    }
     public Result loadGame() {
         Game saved = App.getLatestSavedGame();
         if (saved == null) {
