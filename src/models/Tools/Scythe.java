@@ -46,7 +46,11 @@ public class Scythe extends Tool {
         player.addEnergyUsed(cost);
 
         if (content instanceof Crop crop && crop.isReadyToHarvest()) {
-            player.getBackpack().addToInventory(new HarvestedCrop(crop.getCropType()), 1);
+            HarvestedCrop harvested = new HarvestedCrop(crop.getCropType());
+            if (!player.getBackpack().hasSpaceFor(harvested, 1)) {
+                return new Result(false, "Your inventory is full.");
+            }
+            player.getBackpack().addToInventory(harvested, 1);
 
             if (crop.shouldRemoveAfterHarvest()) {
                 tile.setContent(null);
@@ -60,7 +64,11 @@ public class Scythe extends Tool {
         if (content instanceof Tree tree && tree.canHarvestFruit()) {
             FruitType fruitType = tree.harvestFruit();
             if (fruitType != null) {
-                player.getBackpack().addToInventory(new Fruit(fruitType), 1);
+                Fruit fruit = new Fruit(fruitType);
+                if (!player.getBackpack().hasSpaceFor(fruit, 1)) {
+                    return new Result(false, "Your inventory is full.");
+                }
+                player.getBackpack().addToInventory(fruit, 1);
                 return new Result(true, "Harvested " + fruitType.getName() + " from tree at " + target);
             }
         }

@@ -203,11 +203,116 @@ public class GamePlayController {
         return new Result(true, "Greenhouse built successfully!");
     }
 
-    public Result printMap(GameMap map) {
-        return null;
+    // Print Map
+
+    public Result printMap(String posStr, String sizeStr) {
+        String[] p = posStr.split(",");
+        int cx, cy, size;
+        try {
+            cx   = Integer.parseInt(p[0].trim());
+            cy   = Integer.parseInt(p[1].trim());
+            size = Integer.parseInt(sizeStr.trim());
+            if (size < 1 || size % 2 == 0)
+                return new Result(false, "Size must be an odd positive number.");
+        } catch (Exception e) {
+            return new Result(false, "Invalid – must be `print map -l x,y -s size`");
+        }
+
+        GameMap map = game.getCurrentPlayerMap();
+        int half = size/2;
+        StringBuilder sb = new StringBuilder();
+
+        for (int dy = -half; dy <= half; dy++) {
+            for (int dx = -half; dx <= half; dx++) {
+                Position pt = new Position(cx+dx, cy+dy);
+                if (!map.isInsideMap(pt)) {
+                    sb.append("  ");
+                } else {
+                    sb.append(getSymbol(map.getTile(pt))).append(" ");
+                }
+            }
+            sb.append("\n");
+        }
+
+        return new Result(true, sb.toString());
     }
+
     public Result showHelpReadingMap() {
-        return null;
+        return new Result(true, """
+         👤  Player
+         🟩  Grass (Regular ground)
+         🟫  Plowed ground
+         🟦  Water
+         ⬛️  Quarry
+         🟨  Greenhouse
+         🟥  Home
+         🌳  Tree
+         🌲  Forage tree
+         🌾  Crop
+         💎  Mineral
+         🪨  Stone
+         🪵  Branch
+         🏠 Barn / Big Barn / Deluxe Barn
+         🐔 Coop / Big Coop / Deluxe Coop
+         ⛲ Well
+         📦 Shipping Bin
+         🐄  Cow     🐐  Goat    🐑  Sheep    🐖  Pig
+         🐇  Rabbit  🦆  Duck    🐓  Chicken  🦖  Dinosaur
+        """);
+    }
+
+    private String getSymbol(Tile tile) {
+        Position p = tile.getPosition();
+        Player current = game.getCurrentPlayer();
+
+        if (p.equals(current.getPosition())) {
+            return "👤";
+        }
+
+        for (AnimalLivingSpace space : game.getCurrentPlayerMap().getAnimalBuildings()) {
+            for (Animal a : space.getAnimals()) {
+                if (a.getPosition().equals(p)) {
+                    return switch(a.getAnimalType()) {
+                        case COW      -> "🐄";
+                        case GOAT     -> "🐐";
+                        case SHEEP    -> "🐑";
+                        case PIG      -> "🐖";
+                        case RABBIT   -> "🐇";
+                        case DUCK     -> "🦆";
+                        case CHICKEN  -> "🐓";
+                        case DINOSAUR -> "🦖";
+                    };
+                }
+            }
+        }
+
+        Object c = tile.getContent();
+        if (c instanceof FarmBuilding fb) {
+            return switch(fb.getFarmBuildingType()) {
+                case BARN, BIG_BARN, DELUXE_BARN -> "🏠";
+                case COOP, BIG_COOP, DELUXE_COOP -> "🐔";
+                case WELL                         -> "⛲";
+                case SHIPPING_BIN                 -> "📦";
+            };
+        }
+
+        if (c instanceof Crop)            return "🌾";
+        if (c instanceof Branch)          return "🪵";
+        if (c instanceof ForagingMineral) return "💎";
+        if (c instanceof Stone)           return "🪨";
+        if (c instanceof Tree t) {
+            return t.isForageTree() ? "🌲" : "🌳";
+        }
+
+        return switch(tile.getTileType()) {
+            case REGULAR_GROUND -> "🟩";
+            case PLOWED_GROUND  -> "🟫";
+            case WATER          -> "🟦";
+            case QUARRY         -> "⬛️";
+            case GREENHOUSE     -> "🟨";
+            case HOME           -> "🟥";
+            default             -> "❓";
+        };
     }
 
     // Walk
@@ -497,9 +602,9 @@ public class GamePlayController {
             return new Result(false, "You have no tool equipped.");
         }
 
-        Direction direction = Direction.getDirectionByDisplayName(directionString);
+        Direction direction = Direction.getDirectionByDisplayName(directionString.trim().toLowerCase());
         if (direction == null) {
-            return new Result(false, "Invalid direction. Try up, down, left, right, or diagonals.");
+            return new Result(false, "Invalid direction. Valid options: up, down, left, right, up-left, up-right, down-left, down-right.");
         }
 
         return tool.useTool(game, direction);
@@ -1084,42 +1189,42 @@ public class GamePlayController {
         return null;
     }
 
-    public Result movePlayer(String newPosStr) {
-        String[] parts = newPosStr.split(",");
-        if (parts.length != 2) {
-            return new Result(false, "Invalid position format. Use: x,y");
-        }
+//    public Result movePlayer(String newPosStr) {
+//        String[] parts = newPosStr.split(",");
+//        if (parts.length != 2) {
+//            return new Result(false, "Invalid position format. Use: x,y");
+//        }
+//
+//        int x, y;
+//        try {
+//            x = Integer.parseInt(parts[0].trim());
+//            y = Integer.parseInt(parts[1].trim());
+//        } catch (NumberFormatException e) {
+//            return new Result(false, "Invalid number in position.");
+//        }
+//
+//        Position newPos = new Position(x, y);
+//        GameMap map = game.getCurrentPlayerMap();
+//
+//        if (!map.isInsideMap(newPos)) {
+//            return new Result(false, "Target position is out of bounds.");
+//        }
+//
+//        Tile tile = map.getTile(newPos);
+//        if (tile == null || !tile.isWalkable()) {
+//            return new Result(false, "You can't walk there.");
+//        }
+//
+//        Player player = game.getCurrentPlayer();
+//        player.setPosition(newPos);
+//        return new Result(true, "Player moved to " + newPos);
+//    }
 
-        int x, y;
-        try {
-            x = Integer.parseInt(parts[0].trim());
-            y = Integer.parseInt(parts[1].trim());
-        } catch (NumberFormatException e) {
-            return new Result(false, "Invalid number in position.");
-        }
-
-        Position newPos = new Position(x, y);
-        GameMap map = game.getCurrentPlayerMap();
-
-        if (!map.isInsideMap(newPos)) {
-            return new Result(false, "Target position is out of bounds.");
-        }
-
-        Tile tile = map.getTile(newPos);
-        if (tile == null || !tile.isWalkable()) {
-            return new Result(false, "You can't walk there.");
-        }
-
-        Player player = game.getCurrentPlayer();
-        player.setPosition(newPos);
-        return new Result(true, "Player moved to " + newPos);
-    }
-
-    public boolean canMove(Position position) {
-        GameMap map = game.getCurrentPlayerMap();
-        Tile tile = map.getTile(position);
-        return tile != null && tile.isWalkable();
-    }
+//    public boolean canMove(Position position) {
+//        GameMap map = game.getCurrentPlayerMap();
+//        Tile tile = map.getTile(position);
+//        return tile != null && tile.isWalkable();
+//    }
 
     public Result meetNPC(String NCPName) {
         return null;

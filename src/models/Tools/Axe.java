@@ -5,13 +5,10 @@ import models.enums.Direction;
 import models.enums.Skill;
 import models.enums.SkillLevel;
 import models.enums.ToolQuality;
-import models.enums.Types.ItemType;
-import models.enums.Types.StoneType;
-import models.enums.Types.TileType;
 import models.enums.Types.ToolType;
 import models.farming.*;
-import models.farming.Tree;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class Axe extends Tool {
@@ -61,24 +58,51 @@ public class Axe extends Tool {
         }
 
         if (content instanceof Tree tree) {
-            player.gainXP(Skill.FORAGING, Skill.FORAGING.getIncreasePerAction());
-            tile.setContent(null);
-
+            // Prepare syrup if available
+            Syrup syrup = null;
             String syrupName = null;
             if (tree.canHarvestSyrup()) {
                 SyrupType syrupType = tree.harvestSyrup();
                 if (syrupType != null) {
-                    player.getBackpack().addToInventory(new Syrup(syrupType), 1);
+                    syrup = new Syrup(syrupType);
                     syrupName = syrupType.getName();
                 }
             }
 
-            player.getBackpack().addToInventory(new Wood(), 1);
+            // Prepare wood
+            Wood wood = new Wood();
 
+            // Prepare seed drops
+            List<TreeSeedType> seedTypes = tree.peekSeedDrop();
+            List<Seed> seeds = new ArrayList<>();
+            for (TreeSeedType type : seedTypes) {
+                seeds.add(new Seed(type));
+            }
 
-            List<TreeSeedType> seedDrops = tree.cutDown();
-            for (TreeSeedType seedType : seedDrops) {
-                player.getBackpack().addToInventory(new Seed(seedType), 1);
+            // Check inventory space
+            if (syrup != null && !player.getBackpack().hasSpaceFor(syrup, 1)) {
+                return new Result(false, "Your inventory is full.");
+            }
+
+            if (!player.getBackpack().hasSpaceFor(wood, 1)) {
+                return new Result(false, "Your inventory is full.");
+            }
+
+            for (Seed seed : seeds) {
+                if (!player.getBackpack().hasSpaceFor(seed, 1)) {
+                    return new Result(false, "Your inventory is full.");
+                }
+            }
+
+            // All checks passed – apply changes
+            tile.setContent(null);
+            player.gainXP(Skill.FORAGING, Skill.FORAGING.getIncreasePerAction());
+            if (syrup != null) {
+                player.getBackpack().addToInventory(syrup, 1);
+            }
+            player.getBackpack().addToInventory(wood, 1);
+            for (TreeSeedType type : tree.cutDown()) {
+                player.getBackpack().addToInventory(new Seed(type), 1);
             }
 
             player.reduceEnergy(cost);
@@ -86,11 +110,11 @@ public class Axe extends Tool {
 
             StringBuilder message = new StringBuilder("Cut down tree at " + target);
             if (syrupName != null) {
-                message.insert(0, "Collected " + syrupName);
+                message.insert(0, "Collected " + syrupName + ". ");
             }
-            message.append(" Collected seed")
-                .append(seedDrops.size() > 1 ? "s: " : ": ")
-                .append(seedDrops.size());
+            message.append("Collected seed")
+                .append(seedTypes.size() > 1 ? "s: " : ": ")
+                .append(seedTypes.size());
 
             return new Result(true, message.toString());
         }

@@ -36,7 +36,7 @@ public class FishingPole extends Tool {
         int cost = getModifiedEnergyCost(player, game.getCurrentWeather());
 
         if (player.getEnergy() < cost) {
-            return new Result(false, "You don't have enough energy to use watering can.");
+            return new Result(false, "You don't have enough energy to use fishing pole.");
         }
 
         if (player.getEnergyUsedThisTurn() + cost > 50) {
@@ -48,7 +48,7 @@ public class FishingPole extends Tool {
             return new Result(false, "Target tile is out of bounds.");
         }
 
-        Tile tile = currentGameMap.getTiles()[target.getY()][target.getX()];
+        Tile tile = tiles[target.getY()][target.getX()];
         boolean isWaterTile = tile.getTileType() == TileType.WATER;
 
         player.reduceEnergy(cost);
@@ -70,16 +70,31 @@ public class FishingPole extends Tool {
                 return new Result(false, "No fish bit the hook.");
             }
 
+            int addedCount = 0;
             for (Fish fish : fishCaught) {
-                player.getBackpack().addToInventory(fish, 1);
+                if (player.getBackpack().hasSpaceFor(fish, 1)) {
+                    player.getBackpack().addToInventory(fish, 1);
+                    addedCount++;
+                } else {
+                    break;
+                }
+            }
+
+            if (addedCount == 0) {
+                return new Result(false, "Your inventory is full. You couldn't keep any fish.");
             }
 
             player.gainXP(Skill.FISHING, Skill.FISHING.getIncreasePerAction());
-            return new Result(true, "You caught " + fishCaught.size() + " fish!");
+
+            if (addedCount < fishCaught.size()) {
+                return new Result(true, "You caught " + fishCaught.size() +
+                    " fish, but only had room for " + addedCount + ".");
+            }
+
+            return new Result(true, "You caught " + addedCount + " fish!");
         }
 
         player.gainXP(Skill.FARMING, Skill.FARMING.getIncreasePerAction());
-
         return new Result(true, "Watered crop at " + target);
     }
 
@@ -134,7 +149,6 @@ public class FishingPole extends Tool {
             .filter(f -> {
                 if (!f.isLegendary()) return true;
                 if (skill.toInt() < 4) return false;
-
                 return GameRandom.rollChance(0.1);
             })
             .collect(Collectors.toList());

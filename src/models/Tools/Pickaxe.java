@@ -76,7 +76,13 @@ public class Pickaxe extends Tool {
                 tile.setContent(null);
                 player.gainXP(Skill.MINING, Skill.MINING.getIncreasePerAction());
                 ForagingMineral mineralItem = new ForagingMineral(mineral);
+                if (!player.getBackpack().hasSpaceFor(mineralItem, 1)) {
+                    return new Result(false, "Your inventory is full.");
+                }
                 player.getBackpack().addToInventory(mineralItem, 1);
+                if (player.getSkillLevel(Skill.MINING).ordinal() >= SkillLevel.LEVEL_TWO.ordinal()) {
+                    player.getBackpack().addToInventory(mineralItem, 1);
+                }
                 player.reduceEnergy(cost);
                 player.addEnergyUsed(cost);
                 return new Result(true, "Collected " + mineral.getDisplayName() + " at " + target);
