@@ -1,5 +1,15 @@
 package models.enums.Types;
 
-public enum StoneType {
-    REGULAR_STONE
+public enum StoneType implements MaterialTypes {
+    REGULAR_STONE;
+
+    @Override
+    public boolean isTool() {
+        return false;
+    }
+
+    @Override
+    public String getName() {
+        return "Stone";
+    }
 }
