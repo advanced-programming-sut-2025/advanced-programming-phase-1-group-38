@@ -187,7 +187,7 @@ public class GamePlay implements AppMenu {
             System.out.println(controller.hug(m.group("username")).message());
             return this;
         } else if ((m = GamePlayCommands.FLOWER.getMatcher(input)) != null) {
-            System.out.println(controller.giveFlowerToUser(m.group("username")).message());
+            System.out.println(controller.flower(m.group("username")).message());
             return this;
         }
 
@@ -197,7 +197,6 @@ public class GamePlay implements AppMenu {
 //        }
 
         else if ((m = GamePlayCommands.RESPONSE_MARRIAGE.getMatcher(input)) != null) {
-            System.out.println(controller.respondToMarriageRequest(m.group("response"), m.group("username")).message());
             return this;
         } else if ((m = GamePlayCommands.ANIMALS.getMatcher(input)) != null) {
             System.out.println(controller.showMyAnimalsInfo().message());
@@ -226,10 +225,10 @@ public class GamePlay implements AppMenu {
             System.out.println(controller.sellAnimal(m.group("name")).message());
             return this;
         } else if ((m = GamePlayCommands.SHOW_ALL_PRODUCTS.getMatcher(input)) != null) {
-            System.out.println(controller.showAllProducts().message());
+            System.out.println(controller.showAllProducts());
             return this;
         } else if ((m = GamePlayCommands.SHOW_ALL_AVAILABLE_PRODUCTS.getMatcher(input)) != null) {
-            System.out.println(controller.showAvailableProducts().message());
+            System.out.println(controller.showAvailableProducts());
             return this;
         }
 

@@ -1,6 +1,8 @@
 package models.farming;
 
-public enum FruitType implements TreeProductType {
+import models.enums.Types.MaterialTypes;
+
+public enum FruitType implements TreeProductType, MaterialTypes {
     APRICOT("Apricot", 59, true, 38),
     CHERRY("Cherry", 80, true, 38),
     BANANA("Banana", 150, true, 75),
@@ -21,6 +23,11 @@ public enum FruitType implements TreeProductType {
         this.baseSellPrice = baseSellPrice;
         this.isEdible = isEdible;
         this.energy = energy;
+    }
+
+    @Override
+    public boolean isTool() {
+        return false;
     }
 
     @Override

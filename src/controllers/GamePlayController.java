@@ -1822,28 +1822,234 @@ public class GamePlayController {
 //        return tile != null && tile.isWalkable();
 //    }
 
-    public Result meetNPC(String NCPName) {
+    private NPC getNpcByName(String name) {
+        for (NPC npc : game.getNpcs()) {
+            if (npc.getType().name().equalsIgnoreCase(name)) {
+                return npc;
+            }
+        }
         return null;
     }
 
-    public Result giftNPC(String NCPName, String itemName) {
-        return null;
+    public Result meetNPC(String npcName) {
+        Player me  = game.getCurrentPlayer();
+        NPC npc = getNpcByName(npcName);
+        if (npc == null) {
+            return fail("No NPC named “" + npcName + "” found.");
+        }
+
+        NPCHome home = game.getNpcHomes().stream()
+            .filter(h -> h.getOwner() == npc.getType())
+            .findFirst().orElse(null);
+        Position npcPos = new Position(
+            home.getCornerX() + 1,
+            home.getCornerY() + 1
+        );
+
+        if (!npcAreAdjacent(me.getPosition(), npcPos)) {
+            return fail("You must stand next to " + npcName + " to meet them.");
+        }
+
+        NPCFriendship f = npc.getFriendShipWith(me);
+        f.addFriendshipPoints(20);
+
+        int pts   = f.getFriendshipPoints();
+        int lvl   = f.getFriendshipLevel();
+
+        me.receiveNotification(
+            "You met " + npcName +
+                " and gained 20 friendship points (" + pts + " XP)."
+        );
+
+        return success(
+            "You met " + npcName +
+                ". Friendship is now level " + lvl +
+                " (" + pts + " XP)."
+        );
+    }
+
+    private boolean npcAreAdjacent(Position p1, Position p2) {
+        return Math.abs(p1.getX() - p2.getX()) <= 1
+            && Math.abs(p1.getY() - p2.getY()) <= 1;
+    }
+
+
+    public Result giftNPC(String npcName, String itemName) {
+        Player me = game.getCurrentPlayer();
+        NPC npc = getNpcByName(npcName);
+        if (npc == null) {
+            return fail("No NPC named “" + npcName + "” found.");
+        }
+
+        NPCHome home = game.getNpcHomes().stream()
+            .filter(h -> h.getOwner() == npc.getType())
+            .findFirst().orElse(null);
+        Position npcPos = new Position(home.getCornerX() + 1, home.getCornerY() + 1);
+        if (!npcAreAdjacent(me.getPosition(), npcPos)) {
+            return fail("You must stand next to " + npcName + " to give a gift.");
+        }
+
+        Item proto = me.getBackpack().getItemByName(itemName);
+        int have = proto == null
+            ? 0
+            : me.getBackpack().getItems().getOrDefault(proto, 0);
+        if (proto == null || have < 1) {
+            return fail("You have no “" + itemName + "” to give.");
+        }
+
+        List<MaterialTypes> favs = npc.getType().getFavorites();
+        if (!favs.contains(proto.getType())) {
+            return fail(npcName + " doesn’t like “" + itemName + "”.");
+        }
+
+        me.getBackpack().removeFromInventory(proto, 1);
+        NPCFriendship f = npc.getFriendShipWith(me);
+        f.addFriendshipPoints(100);
+
+        int pts = f.getFriendshipPoints();
+        int lvl = f.getFriendshipLevel();
+
+        me.receiveNotification(
+            "You gave " + itemName + " to " + npcName + "."
+        );
+        return success(
+            "Gifted “" + itemName + "” to " + npcName +
+                ". Friendship is now level " + lvl +
+                " (" + pts + " XP)."
+        );
     }
 
     public Result showFriendshipNPCList() {
-        return null;
+        Player me = game.getCurrentPlayer();
+        StringBuilder sb = new StringBuilder();
+        for (NPCFriendship nf : game.getNpcFriendships()) {
+            if (!nf.getPlayer().equals(me)) continue;
+            NPCType type = nf.getNpc().getType();
+            sb.append(String.format(
+                "%s: Level %d (%d XP)\n",
+                type.name(),
+                nf.getFriendshipLevel(),
+                nf.getFriendshipPoints()
+            ));
+        }
+        if (sb.length() == 0) {
+            return success("You have no NPC friendships yet.");
+        }
+        return success(sb.toString().trim());
     }
 
     public Result showQuestsList() {
-        return null;
+        StringBuilder sb = new StringBuilder();
+        for (NPC npc : game.getNpcs()) {
+            sb.append(npc.getType().name()).append("’s quests:\n");
+            for (var entry : npc.getQuests().entrySet()) {
+                Quest q    = entry.getKey();
+                boolean ok = entry.getValue();
+                sb.append("  [")
+                    .append(ok ? "X" : " ")
+                    .append("] ")
+                    .append(q)
+                    .append("\n");
+            }
+            sb.append("\n");
+        }
+        return success(sb.toString().trim());
     }
 
-    public Result finishQuest(int index) {
-        return null;
-    }
+    public Result finishQuest(String idString) {
+        Player me = game.getCurrentPlayer();
 
-    private NPC geNPCByName(String NPCName) {
-        return null;
+        // 1) Parse the quest ID
+        int questId;
+        try {
+            questId = Integer.parseInt(idString);
+        } catch (NumberFormatException e) {
+            return new Result(false, "Invalid quest ID format.");
+        }
+
+        NPC   owner = null;
+        Quest quest = null;
+        for (NPC n : game.getNpcs()) {
+            for (Map.Entry<Quest, Boolean> entry : n.getQuests().entrySet()) {
+                if (entry.getKey().getId() == questId) {
+                    owner = n;
+                    quest = entry.getKey();
+                    break;
+                }
+            }
+            if (owner != null) break;
+        }
+        if (quest == null) {
+            return new Result(false, "No quest found with ID " + questId);
+        }
+        if (owner.getQuests().get(quest)) {
+            return new Result(false, "Quest #" + questId + " already completed.");
+        }
+
+        NPCHome home = null;
+        for (NPCHome h : game.getNpcHomes()) {
+            if (h.getOwner() == owner.getType()) {
+                home = h;
+                break;
+            }
+        }
+        Position npcPos = new Position(home.getCornerX() + 1, home.getCornerY() + 1);
+        if (!npcAreAdjacent(me.getPosition(), npcPos)) {
+            return new Result(false,
+                "You must stand next to " + owner.getType().name() +
+                    " to finish their quest.");
+        }
+
+        String demandName   = quest.getDemand().getName();
+        int    demandAmount = quest.getDemandAmount();
+        Item   proto        = me.getBackpack().getItemByName(demandName);
+        int    have         = proto == null
+            ? 0
+            : me.getBackpack().getItems().getOrDefault(proto, 0);
+        if (have < demandAmount) {
+            return new Result(false,
+                "You need " + demandAmount + "× " + demandName +
+                    " but only have " + have + ".");
+        }
+
+        me.getBackpack().removeFromInventory(proto, demandAmount);
+
+        Item rewardItem;
+        String rewardName = quest.getReward().getName();
+        int    rewardAmt  = quest.getRewardAmount();
+        switch (quest.getReward()) {
+            case CropType ct:
+                rewardItem = new HarvestedCrop(ct);
+                break;
+            case FruitType ft:
+                rewardItem = new Fruit(ft);
+                break;
+            case StoneType st:
+                rewardItem = new Stone(st);
+                break;
+            case ForagingMineralTypes mt:
+                rewardItem = new ForagingMineral(mt);
+                break;
+            case ArtisanProductType ap:
+                rewardItem = new ArtisanProduct(ap);
+                break;
+            default:
+                return new Result(false, "Cannot create reward item “" + rewardName + "”.");
+        }
+        me.getBackpack().addToInventory(rewardItem, rewardAmt);
+
+        owner.finishQuest(quest);
+        NPCFriendship nf = owner.getFriendShipWith(me);
+        nf.addFriendshipPoints(200);
+
+        return new Result(true,
+            "Quest #" + questId + " completed! You received " +
+                rewardAmt + "× " + rewardName +
+                " and your friendship with " +
+                owner.getType().name() +
+                " is now level " + nf.getFriendshipLevel() +
+                " (" + nf.getFriendshipPoints() + " XP)."
+        );
     }
 
     public String showAllProducts() {
