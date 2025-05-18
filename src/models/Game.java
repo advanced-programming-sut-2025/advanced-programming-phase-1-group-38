@@ -162,7 +162,17 @@ public class Game {
             time.advance(1);
 
             if (time.isBedTime()) {
-                handleEndOfDay();
+
+                for (Player p : players) {
+                    GameMap map = playerGameMap.get(p);
+                    Position homeTL = map.getHomeTopLeft();
+                    int hw = map.getHomeWidth(), hh = map.getHomeHeight();
+                    Position homePos = new Position(
+                        homeTL.getX() + hw/2,
+                        homeTL.getY() + hh/2
+                    );
+                    p.setPosition(homePos);
+                }
 
                 if (currentWeather == Weather.STORM) {
                     lastThorHits = applyStormLightning();
@@ -175,6 +185,7 @@ public class Game {
             }
         }
     }
+
 
 
     public void assignMapToPlayer(Player player, GameMap map) {
@@ -235,12 +246,6 @@ public class Game {
                 player.resetEnergy();
             }
             player.resetTurnEnergy();
-        }
-    }
-
-    public void handleEndOfDay() {
-        for (Player player : players) {
-        //   player.goToBed();
         }
     }
 }

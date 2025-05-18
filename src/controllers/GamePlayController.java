@@ -36,8 +36,24 @@ public class GamePlayController {
         return null;
     }
 
-    public Result nextTurn(){
-        return null;
+    public Result nextTurn() {
+        Player before = game.getCurrentPlayer();
+        int beforeIndex = game.getPlayers().indexOf(before);
+
+        game.switchTurn();
+
+        Player after = game.getCurrentPlayer();
+        int afterIndex = game.getPlayers().indexOf(after);
+
+        boolean newDay = (afterIndex <= beforeIndex);
+        StringBuilder msg = new StringBuilder();
+
+        if (newDay) {
+            msg.append("A new day dawns. ");
+        }
+        msg.append("Now it's ").append(after.getName()).append("'s turn.");
+
+        return new Result(true, msg.toString());
     }
 
     // Time and Date
