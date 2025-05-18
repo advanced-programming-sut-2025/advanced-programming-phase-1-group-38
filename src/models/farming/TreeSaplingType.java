@@ -1,6 +1,8 @@
 package models.farming;
 
-public enum TreeSaplingType implements TreeSourceType {
+import models.enums.Types.MaterialTypes;
+
+public enum TreeSaplingType implements TreeSourceType, MaterialTypes {
     APRICOT_SAPLING("Apricot Sapling", TreeType.APRICOT),
     CHERRY_SAPLING("Cherry Sapling", TreeType.CHERRY),
     BANANA_SAPLING("Banana Sapling", TreeType.BANANA),
@@ -31,5 +33,10 @@ public enum TreeSaplingType implements TreeSourceType {
     @Override
     public String toString() {
         return name;
+    }
+
+    @Override
+    public boolean isTool() {
+        return false;
     }
 }

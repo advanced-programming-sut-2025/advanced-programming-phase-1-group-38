@@ -1,6 +1,6 @@
 package models.enums.Types;
 
-public enum BackpackType {
+public enum BackpackType implements MaterialTypes {
     INITIAL(12, false),
     LARGE(24, false),
     DELUXE(Integer.MAX_VALUE, true);
@@ -19,5 +19,15 @@ public enum BackpackType {
 
     public boolean isUnlimited() {
         return isUnlimited;
+    }
+
+    @Override
+    public boolean isTool() {
+        return false;
+    }
+
+    @Override
+    public String getName() {
+        return this.name();
     }
 }

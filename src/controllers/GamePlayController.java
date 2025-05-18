@@ -41,37 +41,54 @@ public class GamePlayController {
     }
 
     public Result nextTurn() {
-        return null;
+        Player before = game.getCurrentPlayer();
+        int beforeIndex = game.getPlayers().indexOf(before);
+
+        game.switchTurn();
+
+        Player after = game.getCurrentPlayer();
+        int afterIndex = game.getPlayers().indexOf(after);
+
+        boolean newDay = (afterIndex <= beforeIndex);
+        StringBuilder msg = new StringBuilder();
+
+        if (newDay) {
+            msg.append("A new day dawns. ");
+        }
+        msg.append("Now it's ").append(after.getName()).append("'s turn.");
+
+        return new Result(true, msg.toString());
     }
+
 
     // Time and Date
 
     public Result showTime() {
         Time time = game.getTime();
         int hour = time.getHourOfDay();
-        String formatted = (hour == 0 ? 12 : hour % 12) + (hour < 12 ? " AM" : " PM");
+
+        String formatted;
+        if (hour == 0) formatted = "12 AM";
+        else if (hour == 12) formatted = "12 PM";
+        else if (hour < 12) formatted = hour + " AM";
+        else formatted = (hour - 12) + " PM";
+
         return new Result(true, "Current time: " + formatted);
     }
 
     public Result showDate() {
         Time time = game.getTime();
         int day = time.getDayOfSeason();
-        String season = time.getCurrentSeason().name().charAt(0) +
-                time.getCurrentSeason().name().substring(1).toLowerCase();
+        String season = time.getCurrentSeason().name();
+        season = season.charAt(0) + season.substring(1).toLowerCase();
         return new Result(true, "Day " + day + " in " + season);
     }
 
     public Result showDateTime() {
-        Time time = game.getTime();
-
-        int hour = time.getHourOfDay();
-        String formattedTime = (hour == 0 ? 12 : hour % 12) + (hour < 12 ? " AM" : " PM");
-
-        int day = time.getDayOfSeason();
-        String season = time.getCurrentSeason().name().charAt(0) +
-                time.getCurrentSeason().name().substring(1).toLowerCase();
-
-        return new Result(true, "Day " + day + " in " + season + " - " + formattedTime);
+        return new Result(true,
+                showDate().message() + " - " +
+                        showTime().message().replace("Current time: ", "")
+        );
     }
 
     public Result showDayOfWeek() {

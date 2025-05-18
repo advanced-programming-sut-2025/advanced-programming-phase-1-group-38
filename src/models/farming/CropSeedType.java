@@ -2,8 +2,9 @@ package models.farming;
 
 
 import models.enums.Seasons;
+import models.enums.Types.MaterialTypes;
 
-public enum CropSeedType implements SeedType {
+public enum CropSeedType implements SeedType, MaterialTypes {
     JAZZ_SEEDS("Jazz Seeds", CropType.BLUE_JAZZ, Seasons.SPRING),
     CARROT_SEEDS("Carrot Seeds", CropType.CARROT, Seasons.SPRING),
     CAULIFLOWER_SEEDS("Cauliflower Seeds", CropType.CAULIFLOWER, Seasons.SPRING),
@@ -77,6 +78,11 @@ public enum CropSeedType implements SeedType {
 
     public Seasons getSeason() {
         return season;
+    }
+
+    @Override
+    public boolean isTool() {
+        return false;
     }
 
     @Override

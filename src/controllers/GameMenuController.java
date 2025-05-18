@@ -5,6 +5,7 @@ import models.enums.Menu;
 import models.enums.Seasons;
 import models.enums.Types.TileType;
 import models.enums.Weather;
+import views.GamePlay;
 
 import java.util.*;
 
@@ -107,11 +108,12 @@ public class GameMenuController {
 
         if (mapSelectionIndex == players.size()) {
             waitingForMapSelection = false;
+            App.setCurrentGame(currentGame);
             App.setCurrentMenu(Menu.GAMEPLAY_MENU);
+            Menu.GAMEPLAY_MENU.setMenuInstance(new GamePlay());
             currentGame.setCurrentPlayer(players.get(0));
             result += "\nAll maps selected. Game is ready to play!";
         }
-
         return new Result(true, result);
     }
     public Result loadGame() {
