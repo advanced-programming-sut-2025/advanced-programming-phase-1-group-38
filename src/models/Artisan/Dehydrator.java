@@ -94,6 +94,11 @@ public class Dehydrator implements ArtisanMachine {
         return null;
     }
 
+    @Override
+    public ArtisanMachineType getMachineType() {
+        return ArtisanMachineType.DEHYDRATOR;
+    }
+
     @Override public boolean isBusy() { return slot != null; }
 
     @Override public boolean isReady(Time time) { return slot != null && slot.isReady(time); }

@@ -6,6 +6,7 @@ import models.Time;
 import java.util.List;
 
 public interface ArtisanMachine {
+    ArtisanMachineType getMachineType();
     boolean isBusy();
     boolean isReady(Time time);
     boolean startProcessing(List<Item> inputItems, Time time);

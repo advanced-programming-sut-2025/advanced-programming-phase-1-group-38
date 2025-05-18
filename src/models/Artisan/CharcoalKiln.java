@@ -43,6 +43,12 @@ public class CharcoalKiln implements ArtisanMachine {
     }
 
     @Override
+    public ArtisanMachineType getMachineType() {
+        return ArtisanMachineType.CHARCOAL_KILN;
+    }
+
+
+    @Override
     public boolean isBusy() {
         return slot != null;
     }

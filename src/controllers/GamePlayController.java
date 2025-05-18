@@ -4,6 +4,7 @@ import models.*;
 import models.Animals.Animal;
 import models.Animals.AnimalLivingSpace;
 import models.Animals.AnimalProduct;
+import models.Artisan.*;
 import models.Tools.*;
 import models.enums.*;
 import models.enums.Types.*;
@@ -15,6 +16,7 @@ import models.recipe.CraftingRecipe;
 import models.Position;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class GamePlayController {
     private final Game game;
@@ -942,43 +944,6 @@ public class GamePlayController {
             (capacity > 0 ? " / " + capacity + " max." : ""));
     }
 
-    public Result artisanUse(String artisanName, String itemName) {
-        return null;
-    }
-
-//    public String tryStartProcessing(String machine, List<Item> inputItems, Time time) {
-//        // 1. Null or empty input check
-//        ArtisanMachineType machineType = ArtisanMachineType.valueOf(machine);
-//        if (inputItems == null || inputItems.isEmpty()) {
-//            return "You must add an item to process.";
-//        }
-//
-//        // 2. Machine already busy
-//        if (machine.isBusy()) {
-//            return "The machine is currently processing. Please wait.";
-//        }
-//
-//        // 3. Try to match a recipe
-//        ArtisanRecipe recipe = machine.findMatchingRecipe(inputItems);
-//        if (recipe == null) {
-//            return "These items don't match any recipe.";
-//        }
-//
-//        // 4. Is it complete? (You can customize this per recipe if needed)
-//        RecipeOption matched = recipe.getMatchingOption(inputItems);
-//        if (matched == null || !matched.getIngredient().matches(inputItems)) {
-//            return "You don't have all required ingredients.";
-//        }
-//
-//        // 5. All good — start processing
-//        boolean started = machine.startProcessing(inputItems, time);
-//        if (!started) {
-//            return "Failed to start processing for unknown reason.";
-//        }
-//
-//        return "Processing started: " + recipe.getName();
-//    }
-
     public Result artisanGet(String artisanName) {
         return null;
     }
@@ -1151,17 +1116,19 @@ public class GamePlayController {
 
 
     public Result fishing(String fishingPoleName) {
-        return null;
-    }
+        Player player = game.getCurrentPlayer();
+        Tool tool = player.getCurrentTool();
 
-    public int numberOfCaughtFish() {
-        return 0;
-    }
-    public int qualityOfCaughtFish() {
-        return 0;
-    }
-    private Tool getFishingPoleByName(String name) {
-        return null;
+        if (tool == null || !(tool instanceof FishingPole)) {
+            return new Result(false, "You must equip a fishing pole first.");
+        }
+
+        if (!tool.getToolQuality().name().equalsIgnoreCase(fishingPoleName.trim())) {
+            return new Result(false, "The equipped pole doesn't match the requested one.");
+        }
+
+        Direction fishingDirection = Direction.DOWN;
+        return tool.useTool(game, fishingDirection);
     }
 
     public Result showAllProducts() {

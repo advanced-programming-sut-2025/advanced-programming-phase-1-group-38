@@ -29,4 +29,16 @@ public class Fish extends Item {
     public String toString() {
         return type.getName() + " (" + quality.name() + ")";
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Fish other)) return false;
+        return type == other.type && quality == other.quality;
+    }
+
+    @Override
+    public int hashCode() {
+        return 31 * type.hashCode() + quality.hashCode();
+    }
 }

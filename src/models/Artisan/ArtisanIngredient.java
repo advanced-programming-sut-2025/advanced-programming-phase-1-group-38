@@ -38,7 +38,7 @@ public class ArtisanIngredient {
         return false;
     }
 
-    private boolean matchesType(Item item) {
+    public boolean matchesType(Item item) {
         if (excludedType != null) {
             if (excludedType instanceof FruitType et && item instanceof Fruit f && f.getFruitType() == et) return false;
             if (excludedType instanceof CropType et && item instanceof Crop c && c.getCropType() == et) return false;

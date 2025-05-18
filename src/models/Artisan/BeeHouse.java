@@ -30,6 +30,12 @@ public class BeeHouse implements ArtisanMachine {
     }
 
     @Override
+    public ArtisanMachineType getMachineType() {
+        return ArtisanMachineType.BEE_HOUSE;
+    }
+
+
+    @Override
     public boolean startProcessing(List<models.Item> inputItems, Time time) {
         if (slot != null) return false;
         slot = new ArtisanProcessingSlot(recipes.get(0), List.of(), time);

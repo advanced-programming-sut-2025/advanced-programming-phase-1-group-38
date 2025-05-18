@@ -139,6 +139,12 @@ public class Keg implements ArtisanMachine {
     }
 
     @Override
+    public ArtisanMachineType getMachineType() {
+        return ArtisanMachineType.KEG;
+    }
+
+
+    @Override
     public boolean isBusy() {
         return slot != null;
     }
