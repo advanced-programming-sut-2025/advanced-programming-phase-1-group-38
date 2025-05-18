@@ -50,6 +50,34 @@ public class GamePlay implements AppMenu {
             System.out.println(res.message());
             return this;
         }
+        else if ((m = GamePlayCommands.SHOW_TIME.getMatcher(input)) != null) {
+            System.out.println(controller.showTime().message());
+            return this;
+        }
+        else if ((m = GamePlayCommands.SHOW_DATE.getMatcher(input)) != null) {
+            System.out.println(controller.showDate().message());
+            return this;
+        }
+        else if ((m = GamePlayCommands.SHOW_DATETIME.getMatcher(input)) != null) {
+            System.out.println(controller.showDateTime().message());
+            return this;
+        }
+        else if ((m = GamePlayCommands.SHOW_DAY_OF_WEEK.getMatcher(input)) != null) {
+            System.out.println(controller.showDayOfWeek().message());
+            return this;
+        }
+        else if ((m = GamePlayCommands.SHOW_SEASON.getMatcher(input)) != null) {
+            System.out.println(controller.showSeason().message());
+            return this;
+        }
+        else if ((m = GamePlayCommands.SHOW_WEATHER.getMatcher(input)) != null) {
+            System.out.println(controller.showWeather().message());
+            return this;
+        }
+        else if ((m = GamePlayCommands.SHOW_WEATHER_FORECAST.getMatcher(input)) != null) {
+            System.out.println(controller.showWeatherForecast().message());
+            return this;
+        }
         else if ((m = GamePlayCommands.ARTISAN_USE.getMatcher(input)) != null) {
             String machine = m.group("name");
             String item    = m.group("item");

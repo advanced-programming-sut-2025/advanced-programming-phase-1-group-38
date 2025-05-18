@@ -9,7 +9,9 @@ public enum Menu {
     MAIN_MENU("Main", new MainMenu()),
     PROFILE_MENU("Profile", new ProfileMenu()),
     GAME_MENU("Game", new GameMenu()),
-    EXIT_MENU("Exit", new ExitMenu());
+    EXIT_MENU("Exit", new ExitMenu()),
+    GAMEPLAY_MENU("Gameplay", new GamePlay());
+
 
     private final String displayName;
     private final AppMenu menu;

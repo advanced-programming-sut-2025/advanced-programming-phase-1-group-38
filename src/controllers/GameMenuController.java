@@ -107,6 +107,8 @@ public class GameMenuController {
 
         if (mapSelectionIndex == players.size()) {
             waitingForMapSelection = false;
+            App.setCurrentMenu(Menu.GAMEPLAY_MENU);
+            currentGame.setCurrentPlayer(players.get(0));
             result += "\nAll maps selected. Game is ready to play!";
         }
 
