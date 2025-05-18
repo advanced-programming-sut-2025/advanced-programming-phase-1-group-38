@@ -4,6 +4,7 @@ import models.Item;
 import models.Tool;
 import models.enums.Types.BackpackType;
 import models.enums.Types.ItemType;
+import models.enums.Types.MaterialTypes;
 import models.farming.Seed;
 
 import java.util.LinkedHashMap;
@@ -27,6 +28,12 @@ public class Backpack extends Inventory {
         this.type = newType;
         this.capacity = newType.getCapacity();
         this.isCapacityUnlimited = newType.isUnlimited();
+    }
+    @Override
+    public void addToInventoryyyy(MaterialTypes type, int quantity) {
+        Item item = type instanceof Item ? (Item) type : null;
+        if (item != null)
+            this.addToInventory(item, quantity);
     }
 
     @Override

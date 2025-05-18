@@ -24,6 +24,7 @@ public class Game {
     private final Random rng = new Random();
     private final List<TradeRequest> pendingTrades = new ArrayList<>();
     private final List<TradeRequest> completedTrades = new ArrayList<>();
+    private final List<Item> shippingBin = new ArrayList<>();
 
     public Game(List<Shop> shops, List<Player> players, Weather startingWeather, Seasons currentSeason, List<GameMap> gameMaps) {
         this.shops = shops;
@@ -300,5 +301,16 @@ public class Game {
             }
             player.resetTurnEnergy();
         }
+    }
+
+    public boolean isNearShippingBin(Position position) {
+        // TODO: ShippingBin class and fix position
+        Position binPosition = new Position(0, 0);
+        int dx = Math.abs(position.getX() - binPosition.getX());
+        int dy = Math.abs(position.getY() - binPosition.getY());
+        return dx <= 1 && dy <= 1;
+    }
+    public List<Item> getShippingBin() {
+        return shippingBin;
     }
 }

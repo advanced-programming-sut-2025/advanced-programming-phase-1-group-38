@@ -1895,7 +1895,7 @@ public class GamePlayController {
                 return "Invalid number format for count.";
             }
         } else if (parts.length > 2) {
-            return "Invalid format. Did you mean: purchase <item> -n <count>?";
+            return "Invalid format";
         }
 
         if (!currentShop.hasEntry(name))
@@ -1919,6 +1919,53 @@ public class GamePlayController {
         player.getBackpack().addToInventoryyyy(itemType, count);
 
         return "Successfully purchased " + count + " × " + name;
+    }
+    public String sell(String input) {
+        Player player = App.getCurrentGame().getCurrentPlayer();
+
+        if (!App.getCurrentGame().isNearShippingBin(player.getPosition())) {
+            return "You must be near a shipping bin to sell items.";
+        }
+
+        String[] parts = input.trim().split("\\s+");
+        if (parts.length < 2) {
+            return "Invalid command format. Use: sell <product_name> [-n <count>]";
+        }
+
+        String itemName = parts[1];
+        int count = 1;
+
+        if (parts.length == 4 && parts[2].equals("-n")) {
+            try {
+                count = Integer.parseInt(parts[3]);
+                if (count <= 0)
+                    return "Count must be a positive number.";
+            } catch (NumberFormatException e) {
+                return "Invalid number format for count.";
+            }
+        } else if (parts.length > 2 && !parts[2].equals("-n")) {
+            return "Invalid command ";
+        }
+
+        Backpack backpack = player.getBackpack();
+        Item item = backpack.getItemByName(itemName);
+
+        if (item == null) {
+            return "You do not have any item named '" + itemName + "' in your inventory.";
+        }
+
+        int available = backpack.getQuantity(item);
+        if (available < count) {
+            return "You do not have " + count + " of " + itemName + " in your inventory.";
+        }
+
+        backpack.removeFromInventory(item, count);
+
+        for (int i = 0; i < count; i++) {
+            App.getCurrentGame().getShippingBin().add(item);
+        }
+
+        return "Successfully sold " + count + " × " + item.getName() + ". You will receive the money tomorrow.";
     }
 }
 //    public NPC getNearbyNPC(Player player, GameMap map) {
