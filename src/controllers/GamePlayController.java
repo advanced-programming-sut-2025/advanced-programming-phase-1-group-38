@@ -1074,57 +1074,527 @@ public class GamePlayController {
         return null;
     }
 
-    public Result friendships() {
+    private Player findPlayer(String username) {
+        for (Player p : game.getPlayers()) {
+            if (p.getName().equalsIgnoreCase(username)) {
+                return p;
+            }
+        }
         return null;
-    }
-    public Result talk(String username, String message) {
-        return null;
-    }
-    public Result talkHistoryWithUser(String username) {
-        return null;
-    }
-    public Result giveGift(String username, String itemName, int amount) {
-        return null;
-    }
-    public Result giftList() {
-        return null;
-    }
-    public Result giftRate(int giftNumber, int rate) {
-        return null;
-    }
-    public Result giveHistory(String username) {
-        return null;
-    }
-    public Result hug(String username) {
-        return null;
-    }
-    public Result giveFlowerToUser(String username) {
-        return null;
-    }
-    public Result askMarriage(String username, Item ring) {
-        return null;
-    }
-    public Result respondToMarriageRequest(String respond, String username) {
-        return  null;
     }
 
+    private Result fail(String msg) {
+        return new Result(false, msg);
+    }
+
+    private Result success(String msg) {
+        return new Result(true, msg);
+    }
+
+    private boolean areAdjacent(Player a, Player b) {
+        Position p1 = a.getPosition(), p2 = b.getPosition();
+        return Math.abs(p1.getX() - p2.getX()) <= 1
+            && Math.abs(p1.getY() - p2.getY()) <= 1;
+    }
+
+    public Result showFriendships() {
+        Player me = game.getCurrentPlayer();
+        var all = me.getAllFriendships();
+        if (all.isEmpty()) {
+            return new Result(true, "You have no friendships yet.");
+        }
+        StringJoiner sj = new StringJoiner("\n");
+        for (Friendship f : all) {
+            List<Player> pair = f.getPlayers();
+            Player other = pair.get(0).equals(me) ? pair.get(1) : pair.get(0);
+            sj.add(String.format(
+                "%s: Level %d (%d XP)",
+                other.getName(),
+                f.getLevel(),
+                f.getXp()
+            ));
+        }
+        return new Result(true, sj.toString());
+    }
+
+    public Result showNotifications() {
+        Player me = game.getCurrentPlayer();
+        List<String> notes = me.drainNotifications();
+        if (notes.isEmpty()) {
+            return new Result(true, "No notifications.");
+        }
+        StringBuilder out = new StringBuilder();
+        for (String n : notes) {
+            out.append("Notifications: ").append(n).append("\n");
+        }
+        return new Result(true, out.toString().trim());
+    }
+
+    public Result talk(String user, String msg) {
+        Player me   = game.getCurrentPlayer();
+        Player them = findPlayer(user);
+        if (them == null)       return fail("No such player: " + user);
+        if (!areAdjacent(me, them)) return fail("You’re too far apart.");
+
+        int gained = me.interactWith(them, 20, game.getTime());
+        me.getFriendship(them).recordMessage(me.getName(), msg);
+        them.getFriendship(me).recordMessage(me.getName(), msg);
+
+        String out = String.format(
+            "You said “%s” to %s and gained %d XP! Friendship level is now %d.",
+            msg, them.getName(), gained, me.getFriendship(them).getLevel()
+        );
+        return success(out);
+    }
+
+    public Result talkHistory(String user) {
+        Player me   = game.getCurrentPlayer();
+        Player them = findPlayer(user);
+        if (them == null) return fail("No such player: " + user);
+
+        List<String> msgs = me.getFriendship(them).getMessages();
+        if (msgs.isEmpty()) {
+            return success("No messages exchanged yet.");
+        }
+        return success(String.join("\n", msgs));
+    }
+
+    public Result gift(String username, String itemName, int amount) {
+        Player me   = game.getCurrentPlayer();
+        Player them = findPlayer(username);
+        if (them == null) {
+            return new Result(false, "No player named “" + username + "” found.");
+        }
+        if (!areAdjacent(me, them)) {
+            return new Result(false, "You must be standing next to someone to gift them an item.");
+        }
+
+        Friendship f = me.getFriendship(them);
+        if (f.getLevel() < 1) {
+            return new Result(false,
+                "You unlock gifting once you reach friendship level 1. " +
+                    "Your current level is: " + f.getLevel());
+        }
+
+        Item prototype = me.getBackpack().getItemByName(itemName);
+        int have = prototype == null
+            ? 0
+            : me.getBackpack().getItems().getOrDefault(prototype, 0);
+        if (prototype == null || have < amount) {
+            return new Result(false,
+                "You have only " + have + " of “" + itemName + "” in your inventory. " +
+                    "You need at least " + amount + " to gift.");
+        }
+
+        me.getBackpack().removeFromInventory(prototype, amount);
+
+        int today  = game.getTime().getDayOfYear();
+        int gained = f.addXp(50, today);
+        them.getFriendship(me).addXp(gained, today);
+
+        f.recordGift(me.getName(), itemName, amount, today, 0);
+
+        String notification = String.format(
+            "You received %d× %s from %s!",
+            amount, itemName, me.getName()
+        );
+        them.receiveNotification(notification);
+
+        String resultMessage = String.format(
+            "Gift sent! You gained %d friendship XP. " +
+                "Your friendship level is now %d.",
+            gained, f.getLevel()
+        );
+        return new Result(true, resultMessage);
+    }
+
+    public Result giftList() {
+        Player me = game.getCurrentPlayer();
+        StringBuilder sb = new StringBuilder();
+        for (Friendship f : me.getAllFriendships()) {
+            for (int i = 0; i < f.getGifts().size(); i++) {
+                sb.append(i)
+                    .append(": ")
+                    .append(f.getGifts().get(i))
+                    .append("\n");
+            }
+        }
+        String out = sb.length() == 0 ? "No gifts yet." : sb.toString();
+        return success(out);
+    }
+
+    public Result giftRate(int idx, int rate) {
+        Player me = game.getCurrentPlayer();
+
+        Friendship owner = null;
+        int counter = 0;
+        for (Friendship f : me.getAllFriendships()) {
+            if (idx < counter + f.getGifts().size()) {
+                owner = f;
+                break;
+            }
+            counter += f.getGifts().size();
+        }
+        if (owner == null) return fail("Invalid gift number: " + idx);
+
+        int localIndex = idx - counter;
+        List<Friendship.GiftRecord> gifts = owner.getGifts();
+        Friendship.GiftRecord gr = gifts.get(localIndex);
+
+        gifts.set(localIndex,
+            new Friendship.GiftRecord(
+                gr.item(), gr.amount(), gr.day(), rate
+            )
+        );
+
+        int bonus = 30 * (rate - 3) + 15;
+        owner.addXp(bonus, game.getTime().getDayOfYear());
+
+        return success("Gift #" + idx + " rated " + rate + ".");
+    }
+
+    public Result giftHistory(String user) {
+        Player me   = game.getCurrentPlayer();
+        Player them = findPlayer(user);
+        if (them == null) return fail("No such player: " + user);
+
+        List<Friendship.GiftRecord> hist =
+            me.getFriendship(them).getGifts();
+        if (hist.isEmpty()) {
+            return success("No gifts exchanged yet.");
+        }
+
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < hist.size(); i++) {
+            sb.append(i).append(": ").append(hist.get(i)).append("\n");
+        }
+        return success(sb.toString());
+    }
+
+    public Result hug(String user) {
+        Player me = game.getCurrentPlayer();
+        Player them = findPlayer(user);
+        if (them == null) {
+            return new Result(false, "No such player: " + user);
+        }
+        if (!areAdjacent(me, them)) {
+            return new Result(false, "You must be standing next to someone to hug them.");
+        }
+
+        Friendship f = me.getFriendship(them);
+
+        if (f.getLevel() < 2) {
+            return new Result(false,
+                "You need friendship level 2 to hug. " +
+                    "Your current level is: " + f.getLevel());
+        }
+
+        int gained = me.interactWith(them, 60, game.getTime());
+        them.interactWith(me, gained, game.getTime());
+
+        String out = String.format(
+            "You hugged %s and gained %d XP. Level=%d.",
+            them.getName(),
+            gained,
+            f.getLevel()
+        );
+        return new Result(true, out);
+    }
+
+    public Result flower(String username) {
+        Player me   = game.getCurrentPlayer();
+        Player them = findPlayer(username);
+        if (them == null) {
+            return new Result(false, "No such player: " + username);
+        }
+        if (!areAdjacent(me, them)) {
+            return new Result(false, "You must stand next to someone to give them a flower.");
+        }
+
+        Friendship f = me.getFriendship(them);
+        int currentLevel = f.getLevel();
+        int currentXp    = f.getXp();
+        int xpForLevel2 = (1 + 1) * 100
+            + (2)     * 100;
+        if (currentXp < xpForLevel2) {
+            return new Result(false,
+                String.format("You need %d XP (friendship level 2) to give a flower. You have %d XP.",
+                    xpForLevel2, currentXp));
+        }
+
+        Item flower = me.getBackpack().getItemByName("Flower");
+        int have     = flower == null
+            ? 0
+            : me.getBackpack().getItems().getOrDefault(flower, 0);
+        if (flower == null || have < 1) {
+            return new Result(false,
+                String.format("You have no flowers to give. You need at least 1."));
+        }
+
+        me.getBackpack().removeFromInventory(flower, 1);
+        them.getBackpack().addToInventory(flower, 1);
+
+        int xpNeededForLevel3 = xpForLevel2 + 3 * 100;
+        int xpToAward = xpNeededForLevel3 - currentXp;
+        int gained = f.addXp(xpToAward, game.getTime().getDayOfYear());
+        them.getFriendship(me).addXp(gained, game.getTime().getDayOfYear());
+
+        me.receiveNotification(
+            "You gave a flower to " + them.getName() +
+                " and gained " + gained + " XP! Level is now " + f.getLevel() + "."
+        );
+        them.receiveNotification(
+            me.getName() + " gave you a flower! Your friendship is now level " +
+                f.getLevel() + "."
+        );
+
+        return new Result(true,
+            "Flower given! You moved from level " + currentLevel +
+                " to level " + f.getLevel() + " (" + f.getXp() + " XP).");
+    }
+
+    private void chargeEnergy(Player p, int baseCost) {
+        int today = game.getTime().getDayOfYear();
+        int cost  = p.isUnderRejectionPenalty(today)
+            ? (baseCost + 1) / 2
+            : baseCost;
+        p.reduceEnergy(cost);
+    }
+
+    public Result askMarriage(String user, String ringName) {
+        Player me   = game.getCurrentPlayer();
+        Player them = findPlayer(user);
+        int today   = game.getTime().getDayOfYear();
+
+        if (them == null) {
+            return new Result(false, "No such player: " + user);
+        }
+        if (me.getGender() != Player.PlayerGender.MALE
+            || them.getGender() != Player.PlayerGender.FEMALE) {
+            return new Result(false, "Only a male may propose to a female.");
+        }
+        if (!areAdjacent(me, them)) {
+            return new Result(false,
+                "You must stand next to someone to propose marriage.");
+        }
+
+        Friendship f = me.getFriendship(them);
+        if (f.getLevel() < 3) {
+            return new Result(false,
+                "You need friendship level 3 to propose. Current: " + f.getLevel());
+        }
+
+        Item ring = me.getBackpack().getItemByName(ringName);
+        if (ring == null
+            || me.getBackpack().getItems().getOrDefault(ring, 0) < 1) {
+            return new Result(false,
+                "You need one “" + ringName + "” in your inventory to propose.");
+        }
+
+        chargeEnergy(me, 5);
+
+        me.getBackpack().removeFromInventory(ring, 1);
+        them.receiveMarriageProposal(me, ring);
+
+        return new Result(true,
+            "Marriage proposal sent to " + them.getName() +
+                ". They can now `respond -accept` or `respond -reject`.");
+    }
+
+    public Result respondMarriage(boolean accept, String user) {
+        Player me   = game.getCurrentPlayer();
+        Player them = findPlayer(user);
+        int today   = game.getTime().getDayOfYear();
+
+        if (them == null) {
+            return new Result(false, "No such player: " + user);
+        }
+        if (me.getPendingProposalFrom() != them) {
+            return new Result(false, "No pending proposal from " + user + ".");
+        }
+
+        Item ring = me.getPendingProposalRing();
+        me.clearMarriageProposal();
+
+        if (!accept) {
+            them.getBackpack().addToInventory(ring, 1);
+
+            Friendship f1 = them.getFriendship(me);
+            Friendship f2 = me.getFriendship(them);
+            f1.resetXpAndLevel();
+            f2.resetXpAndLevel();
+
+            me.setRejectionPenaltyUntil(today + 7);
+            them.setRejectionPenaltyUntil(today + 7);
+
+            chargeEnergy(me, 10);
+            chargeEnergy(them, 10);
+
+            return new Result(true,
+                them.getName() + " has rejected your proposal. " +
+                    "Friendship reset to 0, and you both pay half energy costs for 7 days.");
+        }
+
+        Friendship f = them.getFriendship(me);
+        while (f.getLevel() < 4) {
+            f.addXp((f.getLevel() + 1) * 100, today);
+        }
+        them.getFriendship(me).addXp(0, today);
+
+        int combined = me.getMoney() + them.getMoney();
+        me.setMoney(combined);
+        them.setMoney(combined);
+
+        me.marry(them);
+        them.marry(me);
+
+        GameMap shared = game.getCurrentPlayerMap();
+        game.assignMapToPlayer(me, shared);
+        game.assignMapToPlayer(them, shared);
+
+        me.setEnergy(me.getEnergy() + 50);
+        them.setEnergy(them.getEnergy() + 50);
+
+        chargeEnergy(me, 10);
+        chargeEnergy(them, 10);
+
+        return new Result(true,
+            "Marriage accepted! You are now married. " +
+                "Friendship is maxed at level 4, your money is combined (" + combined + "), " +
+                "and you both gained +50 energy.");
+    }
+
+
     public Result startTrade() {
-        return null;
+        Player me = game.getCurrentPlayer();
+        List<TradeRequest> mine = game.getPendingTrades().stream()
+            .filter(t->t.getTo()==me)
+            .collect(Collectors.toList());
+        if (mine.isEmpty()) {
+            return new Result(true, "No new trade requests.");
+        }
+        StringBuilder sb = new StringBuilder("New trade requests:\n");
+        for (TradeRequest t : mine) {
+            sb.append(String.format(
+                "#%d %s from %s: %d×%s %s %s→%d×%s\n",
+                t.getId(),
+                t.getType()==TradeRequest.Type.OFFER?"OFFER":"REQUEST",
+                t.getFrom().getName(),
+                t.getAmount(), t.getItem().getName(),
+                t.getType()==TradeRequest.Type.REQUEST?"for":"→",
+                t.getTargetAmount(), t.getTargetItem().getName()
+            ));
+        }
+        return new Result(true, sb.toString());
     }
-    public Result tradeWithMoney(String targetUsername, String type, String itemName, int amount, int price) {
-        return null;
+
+    public Result trade(String user, String typeStr, String itemName, int amt, Integer price, String targetItemName, Integer targetAmt) {
+        Player me = game.getCurrentPlayer();
+        Player them = findPlayer(user);
+        if (them == null) return new Result(false, "No such player: " + user);
+        if (!areAdjacent(me, them)) return new Result(false, "Too far apart.");
+        TradeRequest.Type type;
+        try {
+            type = TradeRequest.Type.valueOf(typeStr.toUpperCase());
+        } catch (Exception e) {
+            return new Result(false, "Type must be offer or request.");
+        }
+
+        Item myItem = me.getBackpack().getItemByName(itemName);
+        if (myItem == null || me.getBackpack().getItems().getOrDefault(myItem, 0) < amt)
+            return new Result(false, "Not enough " + itemName + " to trade.");
+
+        Item targ = null;
+        int targAmt = 0;
+        if (targetItemName != null) {
+            targ = them.getBackpack().getItemByName(targetItemName);
+            if (targ == null || them.getBackpack().getItems().getOrDefault(targ, 0) < targetAmt)
+                return new Result(false, "No such target item or insufficient quantity.");
+        }
+
+        int day = game.getTime().getDayOfYear();
+        var req = new TradeRequest(type, me, them, myItem, amt, targ, targAmt, day);
+        game.addTrade(req);
+
+        return new Result(true,
+            "Trade " + typeStr + " #" + req.getId() + " created: " +
+                amt + "×" + myItem.getName() +
+                (targ != null ? " for " + targAmt + "×" + targ.getName() : "") +
+                (price != null ? (" or " + price + "g") : "")
+        );
     }
-    public Result tradeWithItem(String targetUsername, String type, String itemName, int amount, String targetItemName, int targetAmount) {
-        return null;
+
+    public Result tradeList() {
+        Player me = game.getCurrentPlayer();
+        List<TradeRequest> open = game.getPendingTrades().stream()
+            .filter(t -> t.getFrom() == me || t.getTo() == me)
+            .collect(Collectors.toList());
+
+        if (open.isEmpty()) {
+            return new Result(true, "No open trades.");
+        }
+
+        StringBuilder sb = new StringBuilder();
+        for (TradeRequest t : open) {
+            sb.append(t.toString()).append("\n");
+        }
+        return new Result(true, sb.toString());
     }
-    public Result showTradeList(String targetUsername, String type, String itemName, int amount, int price) {
-        return null;
+
+    public Result tradeResponse(boolean accept, int id) {
+        Player me = game.getCurrentPlayer();
+
+        var opt = game.getPendingTrades().stream()
+            .filter(t -> t.getId() == id && t.getTo() == me)
+            .findFirst();
+        if (opt.isEmpty()) {
+            return new Result(false, "No such pending trade #" + id);
+        }
+        TradeRequest req = opt.get();
+
+        game.removeTrade(req);
+        game.recordCompletedTrade(req);
+
+        if (!accept) {
+            return new Result(true, "Trade #" + id + " rejected.");
+        }
+
+        Player sender   = req.getFrom();
+        Player receiver = req.getTo();
+
+        sender.getBackpack().removeFromInventory(req.getItem(), req.getAmount());
+        receiver.getBackpack().addToInventory(req.getItem(), req.getAmount());
+
+        if (req.getTargetItem() != null) {
+            receiver.getBackpack().removeFromInventory(req.getTargetItem(), req.getTargetAmount());
+            sender.getBackpack().addToInventory(req.getTargetItem(), req.getTargetAmount());
+        }
+
+        int delta = 30;
+        int gained = sender.getFriendship(receiver)
+            .addXp(delta, game.getTime().getDayOfYear());
+        receiver.getFriendship(sender)
+            .addXp(gained, game.getTime().getDayOfYear());
+
+        return new Result(
+            true,
+            "Trade #" + id + " completed. You gained " + gained + " friendship XP."
+        );
     }
-    public Result tradeResponse(String respond,int id) {
-        return null;
-    }
-    public Result showTradeHistory() {
-        return null;
+
+    public Result tradeHistory() {
+        Player me = game.getCurrentPlayer();
+        List<TradeRequest> hist = game.getCompletedTrades().stream()
+            .filter(t -> t.getFrom() == me || t.getTo() == me)
+            .collect(Collectors.toList());
+        if (hist.isEmpty()) {
+            return new Result(true, "No trade history yet.");
+        }
+        StringBuilder sb = new StringBuilder();
+        for (TradeRequest t : hist) {
+            sb.append(t).append("\n");
+        }
+        return new Result(true, sb.toString());
     }
 
     public Result showMyAnimalsInfo() {
