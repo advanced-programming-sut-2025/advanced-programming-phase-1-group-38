@@ -112,4 +112,7 @@ public class Backpack extends Inventory {
         return new LinkedHashMap<>(items);
     }
 
+    public int getQuantity(Item item) {
+        return items.getOrDefault(item, 0);
+    }
 }

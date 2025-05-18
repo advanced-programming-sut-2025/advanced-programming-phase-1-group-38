@@ -55,6 +55,11 @@ public class CheesePress implements ArtisanMachine {
     }
 
     @Override
+    public ArtisanMachineType getMachineType() {
+        return ArtisanMachineType.CHEESE_PRESS;
+    }
+
+    @Override
     public boolean startProcessing(List<Item> inputItems, Time time) {
         if (slot != null) return false;
 

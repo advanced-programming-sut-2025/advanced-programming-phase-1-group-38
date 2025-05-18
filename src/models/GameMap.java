@@ -1,6 +1,7 @@
 package models;
 
 import models.Animals.AnimalLivingSpace;
+import models.Artisan.ArtisanMachine;
 import models.enums.Seasons;
 import models.enums.Types.TileType;
 import models.enums.Weather;
@@ -21,6 +22,7 @@ public class GameMap {
     private final Position homeTopLeft = new Position(3, 15);
     private final int homeWidth = 4;
     private final int homeHeight = 4;
+    private final List<ArtisanMachine> artisanMachines = new ArrayList<>();
 
 
     private Map<Position, AnimalLivingSpace> animalBuildings = new HashMap<>();
@@ -179,19 +181,11 @@ public class GameMap {
         return animalBuildings.get(pos);
     }
 
-    public void processSeasonalCrops(Seasons currentSeason) {
-        for (int y = 0; y < height; y++) {
-            for (int x = 0; x < width; x++) {
-                Tile tile = tiles[y][x];
-                Object content = tile.getContent();
+    public List<ArtisanMachine> getArtisanMachines() {
+        return artisanMachines;
+    }
 
-                if (content instanceof Crop crop) {
-                    CropType type = crop.getCropType();
-                    if (!type.growsIn(currentSeason)) {
-                        crop.kill();
-                    }
-                }
-            }
-        }
+    public void addArtisanMachine(ArtisanMachine machine) {
+        artisanMachines.add(machine);
     }
 }

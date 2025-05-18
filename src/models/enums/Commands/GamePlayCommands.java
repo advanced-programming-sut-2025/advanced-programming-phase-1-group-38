@@ -7,8 +7,12 @@ public enum GamePlayCommands implements Command {
     EXIT_GAME(""),
     FORCE_TERMINATE(""),
     NEXT_TURN(""),
+    CHEAT_ADVANCE_TIME("^\\s*cheat\\s+advance\\s+time\\s+(?<hours>\\d+)h\\s*$"),
+    CHEAT_ADVANCE_DATE("^\\s*cheat\\s+advance\\s+date\\s+(?<days>\\d+)d\\s*$"),
     WALK("^\\s*walk\\s+-l\\s+(?<position>\\d+\\s*,\\s*\\d+)\\s*$"),
     WALK_CONFIRM("^\\s*walk\\s+confirm\\s+(?<answer>[yn])\\s*$"),
+    ARTISAN_USE("^\\s*artisan\\s+use\\s+(?<name>.+?)\\s+(?<item>.+?)\\s*$"),
+    ARTISAN_GET("^\\s*artisan\\s+get\\s+(?<name>.+?)\\s*$"),
     PRINT_MAP("^\\s*print\\s+map\\s+-l\\s+(?<position>\\d+,\\d+)\\s+-s\\s+(?<size>\\d+)\\s*$"),
 
     // added
