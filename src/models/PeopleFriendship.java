@@ -1,10 +1,9 @@
 package models;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-public class Friendship {
+public class PeopleFriendship {
     private final Player a, b;
     private int xp = 0;
     private int lastInteractionDay = -1;
@@ -13,24 +12,29 @@ public class Friendship {
     private final List<String> messages = new ArrayList<>();
     private final List<GiftRecord> gifts = new ArrayList<>();
 
-    public Friendship(Player a, Player b) {
+    public PeopleFriendship(Player a, Player b) {
         this.a = a;
         this.b = b;
     }
 
-    public record GiftRecord(String item, int amount, int day, int rate) {}
+    public record GiftRecord(String item, int amount, int day, int rate) {
+    }
 
     public void recordMessage(String from, String msg) {
         messages.add("[" + from + "]: " + msg);
     }
 
-    public List<String> getMessages() { return messages; }
+    public List<String> getMessages() {
+        return messages;
+    }
 
     public void recordGift(String from, String item, int amt, int day, int rate) {
         gifts.add(new GiftRecord(item, amt, day, rate));
     }
 
-    public List<GiftRecord> getGifts() { return gifts; }
+    public List<GiftRecord> getGifts() {
+        return gifts;
+    }
 
     public int getLevel() {
         int level = 0;
@@ -90,7 +94,7 @@ public class Friendship {
 
     @Override
     public boolean equals(Object o) {
-        if (!(o instanceof Friendship other)) return false;
+        if (!(o instanceof PeopleFriendship other)) return false;
         return (Objects.equals(a, other.a) && Objects.equals(b, other.b)) ||
             (Objects.equals(a, other.b) && Objects.equals(b, other.a));
     }

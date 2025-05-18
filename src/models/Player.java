@@ -1,13 +1,11 @@
 package models;
 
-import models.Relationship.Friendship;
 import models.enums.Skill;
 import models.enums.SkillLevel;
 import models.enums.Types.BackpackType;
 import models.inventory.Backpack;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 public class Player {
     private final User user;
@@ -21,15 +19,23 @@ public class Player {
     private int energyUsedThisTurn = 0;
     private int money;
     private boolean isFainted;
-    private final Map<String, Friendship> friendships = new HashMap<>();
+    private final Map<Player, PeopleFriendship> friendships = new HashMap<>();
+    private final List<String> notifications = new ArrayList<>();
 
+    public enum PlayerGender {MALE, FEMALE}
 
+    private final PlayerGender gender;
+    private Player marriedTo = null;
+    private boolean isMarried = false;
+    private int energyPenaltyUntilDay = -1;
+    private Player pendingProposalFrom = null;
+    private Item pendingProposalRing = null;
 
     public Player(User user) {
-        this(user, new Position(0, 0), new Backpack(BackpackType.INITIAL));
+        this(user, new Position(0, 0), new Backpack(BackpackType.INITIAL), PlayerGender.MALE);
     }
 
-    public Player(User user, Position position, Backpack backpack) {
+    public Player(User user, Position position, Backpack backpack, PlayerGender gender) {
         this.user = user;
         this.position = position;
         this.backpack = backpack;
@@ -42,9 +48,8 @@ public class Player {
         this.energyUsedThisTurn = 0;
         this.money = 100;
         this.isFainted = false;
+        this.gender = gender;
     }
-
-    public Map<String, Friendship> getFriendships() { return friendships; }
 
     public String getName() {
         return user.getUsername();
@@ -167,5 +172,65 @@ public class Player {
 
     public void resetEnergy() {
         this.energy = 200;
+    }
+
+    public Collection<PeopleFriendship> getAllFriendships() {
+        return friendships.values();
+    }
+
+    public PeopleFriendship getFriendship(Player other) {
+        String keyThis = this.getName().toLowerCase();
+        String keyOther = other.getName().toLowerCase();
+        Player key = keyThis.compareTo(keyOther) <= 0 ? other : this;
+
+        friendships.computeIfAbsent(key, p -> new PeopleFriendship(this, other));
+        return friendships.get(key);
+    }
+
+    public int interactWith(Player other, int xpValue, Time time) {
+        int today = time.getDayOfYear();
+        PeopleFriendship f = getFriendship(other);
+        int gained = f.addXp(xpValue, today);
+        if (gained > 0) {
+            other.getFriendship(this).addXp(gained, today);
+        }
+        return gained;
+    }
+
+    public void receiveNotification(String message) {
+        notifications.add(message);
+    }
+
+    public List<String> drainNotifications() {
+        List<String> copy = new ArrayList<>(notifications);
+        notifications.clear();
+        return copy;
+    }
+
+    public PlayerGender getGender() { return gender; }
+
+    public boolean isMarried() { return isMarried; }
+    public Player  getMarriedTo() { return marriedTo; }
+
+    public void marry(Player spouse) {
+        this.isMarried  = true;
+        this.marriedTo = spouse;
+    }
+
+    public void receiveMarriageProposal(Player from, Item ring) {
+        this.pendingProposalFrom = from;
+        this.pendingProposalRing = ring;
+    }
+    public void clearMarriageProposal() {
+        this.pendingProposalFrom = null;
+        this.pendingProposalRing = null;
+    }
+    public Player getPendingProposalFrom() { return pendingProposalFrom; }
+    public Item   getPendingProposalRing() { return pendingProposalRing; }
+    public void setRejectionPenaltyUntil(int dayOfYear) {
+        this.energyPenaltyUntilDay = dayOfYear;
+    }
+    public boolean isUnderRejectionPenalty(int today) {
+        return today <= energyPenaltyUntilDay;
     }
 }
