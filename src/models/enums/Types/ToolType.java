@@ -1,6 +1,6 @@
 package models.enums.Types;
 
-public enum ToolType {
+public enum ToolType implements MaterialTypes {
     HOE,
     PICKAXE,
     AXE,
@@ -11,4 +11,14 @@ public enum ToolType {
     SHEAR,
     BACKPACK,
     TRASH_CAN;
+
+    @Override
+    public boolean isTool() {
+        return true;
+    }
+
+    @Override
+    public String getName() {
+        return "";
+    }
 }

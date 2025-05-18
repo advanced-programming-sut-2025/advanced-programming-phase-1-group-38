@@ -11,7 +11,7 @@ import java.util.*;
 
 public class GameMenuController {
 
-    private final List<Player> players = new ArrayList<>();
+    private final ArrayList<Player> players = new ArrayList<>();
     private Game currentGame;
     private GamePlayController gameplay;
     private int mapSelectionIndex = 0;
