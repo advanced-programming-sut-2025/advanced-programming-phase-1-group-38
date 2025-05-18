@@ -22,6 +22,8 @@ public class Game {
     private Map<Player, GameMap> playerGameMap;
     private Time time = new Time();
     private List<Position> lastThorHits = new ArrayList<>();
+    private int currentDay;
+
 
 
     public Game(List<Shop> shops, List<Player> players, Weather startingWeather, Seasons currentSeason, List<GameMap> gameMaps) {
@@ -242,5 +244,8 @@ public class Game {
         for (Player player : players) {
         //   player.goToBed();
         }
+    }
+    public int getCurrentDay() {
+        return currentDay;
     }
 }

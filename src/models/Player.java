@@ -1,5 +1,6 @@
 package models;
 
+import models.Relationship.Friendship;
 import models.enums.Skill;
 import models.enums.SkillLevel;
 import models.enums.Types.BackpackType;
@@ -20,6 +21,9 @@ public class Player {
     private int energyUsedThisTurn = 0;
     private int money;
     private boolean isFainted;
+    private final Map<String, Friendship> friendships = new HashMap<>();
+
+
 
     public Player(User user) {
         this(user, new Position(0, 0), new Backpack(BackpackType.INITIAL));
@@ -39,6 +43,8 @@ public class Player {
         this.money = 100;
         this.isFainted = false;
     }
+
+    public Map<String, Friendship> getFriendships() { return friendships; }
 
     public String getName() {
         return user.getUsername();

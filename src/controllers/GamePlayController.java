@@ -5,6 +5,7 @@ import models.Animals.Animal;
 import models.Animals.AnimalLivingSpace;
 import models.Animals.AnimalProduct;
 import models.Artisan.*;
+import models.Relationship.Friendship;
 import models.Tools.*;
 import models.enums.*;
 import models.enums.Types.*;
@@ -26,33 +27,37 @@ public class GamePlayController {
     public GamePlayController(Game game) {
         this.game = game;
     }
-    public Result exitGame(){
-        return null;
-    }
-    public Result saveGame(){
-        return null;
-    }
-    public Result deleteGame(){
+
+    public Result exitGame() {
         return null;
     }
 
-    public Result nextTurn(){
+    public Result saveGame() {
+        return null;
+    }
+
+    public Result deleteGame() {
+        return null;
+    }
+
+    public Result nextTurn() {
         return null;
     }
 
     // Time and Date
 
-    public Result showTime(){
+    public Result showTime() {
         Time time = game.getTime();
         int hour = time.getHourOfDay();
         String formatted = (hour == 0 ? 12 : hour % 12) + (hour < 12 ? " AM" : " PM");
         return new Result(true, "Current time: " + formatted);
     }
+
     public Result showDate() {
         Time time = game.getTime();
         int day = time.getDayOfSeason();
         String season = time.getCurrentSeason().name().charAt(0) +
-            time.getCurrentSeason().name().substring(1).toLowerCase();
+                time.getCurrentSeason().name().substring(1).toLowerCase();
         return new Result(true, "Day " + day + " in " + season);
     }
 
@@ -64,7 +69,7 @@ public class GamePlayController {
 
         int day = time.getDayOfSeason();
         String season = time.getCurrentSeason().name().charAt(0) +
-            time.getCurrentSeason().name().substring(1).toLowerCase();
+                time.getCurrentSeason().name().substring(1).toLowerCase();
 
         return new Result(true, "Day " + day + " in " + season + " - " + formattedTime);
     }
@@ -211,8 +216,8 @@ public class GamePlayController {
         String[] p = posStr.split(",");
         int cx, cy, size;
         try {
-            cx   = Integer.parseInt(p[0].trim());
-            cy   = Integer.parseInt(p[1].trim());
+            cx = Integer.parseInt(p[0].trim());
+            cy = Integer.parseInt(p[1].trim());
             size = Integer.parseInt(sizeStr.trim());
             if (size < 1 || size % 2 == 0)
                 return new Result(false, "Size must be an odd positive number.");
@@ -221,12 +226,12 @@ public class GamePlayController {
         }
 
         GameMap map = game.getCurrentPlayerMap();
-        int half = size/2;
+        int half = size / 2;
         StringBuilder sb = new StringBuilder();
 
         for (int dy = -half; dy <= half; dy++) {
             for (int dx = -half; dx <= half; dx++) {
-                Position pt = new Position(cx+dx, cy+dy);
+                Position pt = new Position(cx + dx, cy + dy);
                 if (!map.isInsideMap(pt)) {
                     sb.append("  ");
                 } else {
@@ -241,28 +246,28 @@ public class GamePlayController {
 
     public Result showHelpReadingMap() {
         return new Result(true, """
-         👤  Player
-         🟩  Grass (Regular ground)
-         🟫  Plowed ground
-         🟦  Water
-         ⬛️  Quarry
-         🟨  Greenhouse
-         🟥  Home
-         🌳  Tree
-         🌲  Forage tree
-         🔥  Burned tree
-         🌾  Crop
-         🥀  Dead crop
-         💎  Mineral
-         🪨  Stone
-         🪵  Branch
-         🏠 Barn / Big Barn / Deluxe Barn
-         🐔 Coop / Big Coop / Deluxe Coop
-         ⛲ Well
-         📦 Shipping Bin
-         🐄  Cow     🐐  Goat    🐑  Sheep    🐖  Pig
-         🐇  Rabbit  🦆  Duck    🐓  Chicken  🦖  Dinosaur
-        """);
+                 👤  Player
+                 🟩  Grass (Regular ground)
+                 🟫  Plowed ground
+                 🟦  Water
+                 ⬛️  Quarry
+                 🟨  Greenhouse
+                 🟥  Home
+                 🌳  Tree
+                 🌲  Forage tree
+                 🔥  Burned tree
+                 🌾  Crop
+                 🥀  Dead crop
+                 💎  Mineral
+                 🪨  Stone
+                 🪵  Branch
+                 🏠 Barn / Big Barn / Deluxe Barn
+                 🐔 Coop / Big Coop / Deluxe Coop
+                 ⛲ Well
+                 📦 Shipping Bin
+                 🐄  Cow     🐐  Goat    🐑  Sheep    🐖  Pig
+                 🐇  Rabbit  🦆  Duck    🐓  Chicken  🦖  Dinosaur
+                """);
     }
 
     private String getSymbol(Tile tile) {
@@ -276,14 +281,14 @@ public class GamePlayController {
         for (AnimalLivingSpace space : game.getCurrentPlayerMap().getAnimalBuildings()) {
             for (Animal a : space.getAnimals()) {
                 if (a.getPosition().equals(p)) {
-                    return switch(a.getAnimalType()) {
-                        case COW      -> "🐄";
-                        case GOAT     -> "🐐";
-                        case SHEEP    -> "🐑";
-                        case PIG      -> "🐖";
-                        case RABBIT   -> "🐇";
-                        case DUCK     -> "🦆";
-                        case CHICKEN  -> "🐓";
+                    return switch (a.getAnimalType()) {
+                        case COW -> "🐄";
+                        case GOAT -> "🐐";
+                        case SHEEP -> "🐑";
+                        case PIG -> "🐖";
+                        case RABBIT -> "🐇";
+                        case DUCK -> "🦆";
+                        case CHICKEN -> "🐓";
                         case DINOSAUR -> "🦖";
                     };
                 }
@@ -292,11 +297,11 @@ public class GamePlayController {
 
         Object c = tile.getContent();
         if (c instanceof FarmBuilding fb) {
-            return switch(fb.getFarmBuildingType()) {
+            return switch (fb.getFarmBuildingType()) {
                 case BARN, BIG_BARN, DELUXE_BARN -> "🏠";
                 case COOP, BIG_COOP, DELUXE_COOP -> "🐔";
-                case WELL                         -> "⛲";
-                case SHIPPING_BIN                 -> "📦";
+                case WELL -> "⛲";
+                case SHIPPING_BIN -> "📦";
             };
         }
 
@@ -304,22 +309,22 @@ public class GamePlayController {
             return crop.isDead() ? "🥀" : "🌾";
         }
 
-        if (c instanceof Branch)          return "🪵";
+        if (c instanceof Branch) return "🪵";
         if (c instanceof ForagingMineral) return "💎";
-        if (c instanceof Stone)           return "🪨";
+        if (c instanceof Stone) return "🪨";
         if (c instanceof Tree t) {
             if (t.isBurnt()) return "🔥";
             return t.isForageTree() ? "🌲" : "🌳";
         }
 
-        return switch(tile.getTileType()) {
+        return switch (tile.getTileType()) {
             case REGULAR_GROUND -> "🟩";
-            case PLOWED_GROUND  -> "🟫";
-            case WATER          -> "🟦";
-            case QUARRY         -> "⬛️";
-            case GREENHOUSE     -> "🟨";
-            case HOME           -> "🟥";
-            default             -> "❓";
+            case PLOWED_GROUND -> "🟫";
+            case WATER -> "🟦";
+            case QUARRY -> "⬛️";
+            case GREENHOUSE -> "🟨";
+            case HOME -> "🟥";
+            default -> "❓";
         };
     }
 
@@ -333,11 +338,12 @@ public class GamePlayController {
 
         for (int i = 2; i < path.size(); i++) {
             Position prev = path.get(i - 1);
-            Position cur  = path.get(i);
+            Position cur = path.get(i);
             int dx = normalize(cur.getX() - prev.getX());
             int dy = normalize(cur.getY() - prev.getY());
             if (dx != prevDx || dy != prevDy) turns++;
-            prevDx = dx; prevDy = dy;
+            prevDx = dx;
+            prevDy = dy;
         }
         return turns;
     }
@@ -360,9 +366,9 @@ public class GamePlayController {
         }
 
         Player player = game.getCurrentPlayer();
-        GameMap map    = game.getCurrentPlayerMap();
+        GameMap map = game.getCurrentPlayerMap();
         Position origin = player.getPosition();
-        Position goal   = new Position(tx, ty);
+        Position goal = new Position(tx, ty);
 
         if (!map.isInsideMap(goal) || !map.getTile(goal).isWalkable()) {
             return new Result(false, "You can't walk to (" + tx + "," + ty + ").");
@@ -374,15 +380,15 @@ public class GamePlayController {
         }
 
         int distance = path.size() - 1;
-        int turns    = countTurns(path);
+        int turns = countTurns(path);
         float energy = (distance + 10 * turns) / 20f;
 
-        pendingPath   = path;
+        pendingPath = path;
         pendingEnergy = energy;
         String msg = String.format(
-            "Distance: %d  Turns: %d  Energy needed: %.2f\n" +
-                "Type `walk confirm y` to go or `walk confirm n` to cancel",
-            distance, turns, energy);
+                "Distance: %d  Turns: %d  Energy needed: %.2f\n" +
+                        "Type `walk confirm y` to go or `walk confirm n` to cancel",
+                distance, turns, energy);
         return new Result(true, msg);
     }
 
@@ -402,7 +408,7 @@ public class GamePlayController {
 
         for (int i = 1; i < pendingPath.size(); i++) {
             Position step = pendingPath.get(i);
-            int cost = (int)Math.ceil(perStep);
+            int cost = (int) Math.ceil(perStep);
             player.reduceEnergy(cost);
             player.setPosition(step);
 
@@ -416,8 +422,8 @@ public class GamePlayController {
         Position arrived = pendingPath.get(pendingPath.size() - 1);
         pendingPath = null;
         return new Result(true,
-            "You arrived at " + arrived +
-                ". Energy remaining: " + player.getEnergy());
+                "You arrived at " + arrived +
+                        ". Energy remaining: " + player.getEnergy());
     }
 
     // Energy
@@ -511,7 +517,7 @@ public class GamePlayController {
         player.addMoney(refund);
 
         return new Result(true, "You threw away " + quantity + "x " + item.getName()
-            + " and got back " + refund + " gold.");
+                + " and got back " + refund + " gold.");
     }
 
     // Tools
@@ -552,10 +558,10 @@ public class GamePlayController {
             int quantity = entry.getValue();
 
             message.append("- ")
-                .append(tool.toString())
-                .append(" x")
-                .append(quantity)
-                .append("\n");
+                    .append(tool.toString())
+                    .append(" x")
+                    .append(quantity)
+                    .append("\n");
         }
 
         return new Result(true, message.toString().trim());
@@ -622,10 +628,14 @@ public class GamePlayController {
         return null;
     }
 
-    public Result craftingShowRecipes() { return null; }
+    public Result craftingShowRecipes() {
+        return null;
+    }
+
     public Result craft(CraftingRecipe item) {
         return null;
     }
+
     private boolean canCraft(CraftingRecipe item) {
         return false;
     }
@@ -633,12 +643,15 @@ public class GamePlayController {
     public Result placeItem(Item item, Direction direction) {
         return null;
     }
+
     private Position neighborTile(Direction direction) {
         return null;
     }
+
     private Tile getTileByPosition(Position position) {
         return null;
     }
+
     private boolean canItemBePlacedHere(Position position, Item item) {
         return false;
     }
@@ -771,6 +784,7 @@ public class GamePlayController {
 
         return new Result(true, "You pet " + animal.getName() + ". Friendship level is now " + animal.getFriendshipLevel() + ".");
     }
+
     public Result cheatSetFriendship(String animalName, String amount) {
         Animal animal = getAnimalByName(animalName);
         if (animal == null) {
@@ -802,13 +816,18 @@ public class GamePlayController {
     }
 
 
-    public Result cookingShowRecipes() { return null; }
+    public Result cookingShowRecipes() {
+        return null;
+    }
+
     public Result cookingPrepare(Item cookingRecipe) {
         return null;
     }
+
     private boolean canCook(CookingRecipe cookingRecipe) {
         return false;
     }
+
     public Result eat(Item food) {
         return null;
     }
@@ -903,9 +922,9 @@ public class GamePlayController {
                 int totalTime = crop.getGrowthStages().stream().mapToInt(Integer::intValue).sum();
 
                 return new Result(true,
-                    "Name: " + name + "\n" +
-                        "Source: " + source + "\n" +
-                        "Total Growth Time: " + totalTime);
+                        "Name: " + name + "\n" +
+                                "Source: " + source + "\n" +
+                                "Total Growth Time: " + totalTime);
             }
         }
 
@@ -916,9 +935,9 @@ public class GamePlayController {
                 int totalTime = tree.getStages().stream().mapToInt(Integer::intValue).sum();
 
                 return new Result(true,
-                    "Name: " + name + "\n" +
-                        "Source: " + source + "\n" +
-                        "Total Growth Time: " + totalTime);
+                        "Name: " + name + "\n" +
+                                "Source: " + source + "\n" +
+                                "Total Growth Time: " + totalTime);
             }
         }
 
@@ -941,12 +960,12 @@ public class GamePlayController {
         int capacity = wateringCan.getCapacity();
 
         return new Result(true, "Water remaining: " + waterLeft + " units" +
-            (capacity > 0 ? " / " + capacity + " max." : ""));
+                (capacity > 0 ? " / " + capacity + " max." : ""));
     }
 
     public Result tryStartArtisan(String machineName, String itemName) {
         Player player = game.getCurrentPlayer();
-        GameMap map   = game.getCurrentPlayerMap();
+        GameMap map = game.getCurrentPlayerMap();
         Time time = game.getTime();
 
         ArtisanMachine machine = findMachine(machineName);
@@ -958,25 +977,22 @@ public class GamePlayController {
         }
 
         Item prototype;
-        int  required;
+        int required;
         if (machine instanceof CharcoalKiln) {
             if (!itemName.equalsIgnoreCase("Wood")) {
                 return new Result(false, "Charcoal Kiln only accepts Wood.");
             }
             prototype = new Wood();
-            required  = 10;
-        }
-        else if (machine instanceof Keg) {
+            required = 10;
+        } else if (machine instanceof Keg) {
             if (!itemName.equalsIgnoreCase("Coffee Bean"))
                 return new Result(false, "Keg only accepts Coffee Bean.");
             prototype = new HarvestedCrop(CropType.COFFEE_BEAN);
-            required  = 5;
-            }
-        else if (machine instanceof BeeHouse) {
+            required = 5;
+        } else if (machine instanceof BeeHouse) {
             prototype = null;
-            required  = 0;
-        }
-        else {
+            required = 0;
+        } else {
             return new Result(false, "This machine does not accept any items.");
         }
 
@@ -985,8 +1001,8 @@ public class GamePlayController {
             int have = player.getBackpack().getQuantity(prototype);
             if (have < required) {
                 return new Result(false,
-                    "You need " + required + "× " + prototype.getName() +
-                        " but only have " + have + ".");
+                        "You need " + required + "× " + prototype.getName() +
+                                " but only have " + have + ".");
             }
             player.getBackpack().removeFromInventory(prototype, required);
             inputs = List.of(prototype);
@@ -1003,15 +1019,15 @@ public class GamePlayController {
         }
 
         return new Result(true,
-            "Processing started on your " + machineName +
-                (required > 0
-                    ? " using " + required + "× " + prototype.getName()
-                    : "") + "!");
+                "Processing started on your " + machineName +
+                        (required > 0
+                                ? " using " + required + "× " + prototype.getName()
+                                : "") + "!");
     }
 
     public Result tryCollectArtisan(String machineName) {
         Player player = game.getCurrentPlayer();
-        GameMap map   = game.getCurrentPlayerMap();
+        GameMap map = game.getCurrentPlayerMap();
         Time time = game.getTime();
 
         ArtisanMachine machine = findMachine(machineName);
@@ -1021,8 +1037,8 @@ public class GamePlayController {
 
         if (!machine.isReady(time)) {
             return new Result(false,
-                "Your " + machineName + " is still working (" +
-                    machine.getTimeRemaining(time) + "h left).");
+                    "Your " + machineName + " is still working (" +
+                            machine.getTimeRemaining(time) + "h left).");
         }
 
         machine.collectProduct(time);
@@ -1041,12 +1057,12 @@ public class GamePlayController {
 
         if (!player.getBackpack().hasSpaceFor(output, 1)) {
             return new Result(false,
-                "Your inventory is full—cannot collect " + output.getName() + ".");
+                    "Your inventory is full—cannot collect " + output.getName() + ".");
         }
         player.getBackpack().addToInventory(output, 1);
 
         return new Result(true,
-            "Collected \"" + output.getName() + "\" from your " + machineName + "!");
+                "Collected \"" + output.getName() + "\" from your " + machineName + "!");
     }
 
     private ArtisanMachine findMachine(String machineName) {
@@ -1061,52 +1077,67 @@ public class GamePlayController {
     public Result friendships() {
         return null;
     }
+
     public Result talk(String username, String message) {
         return null;
     }
+
     public Result talkHistoryWithUser(String username) {
         return null;
     }
+
     public Result giveGift(String username, String itemName, int amount) {
         return null;
     }
+
     public Result giftList() {
         return null;
     }
+
     public Result giftRate(int giftNumber, int rate) {
         return null;
     }
+
     public Result giveHistory(String username) {
         return null;
     }
+
     public Result hug(String username) {
         return null;
     }
+
     public Result giveFlowerToUser(String username) {
         return null;
     }
+
     public Result askMarriage(String username, Item ring) {
         return null;
     }
+
     public Result respondToMarriageRequest(String respond, String username) {
-        return  null;
+        return null;
     }
 
     public Result startTrade() {
         return null;
     }
+
     public Result tradeWithMoney(String targetUsername, String type, String itemName, int amount, int price) {
         return null;
     }
+
     public Result tradeWithItem(String targetUsername, String type, String itemName, int amount, String targetItemName, int targetAmount) {
         return null;
     }
+
     public Result showTradeList(String targetUsername, String type, String itemName, int amount, int price) {
         return null;
     }
-    public Result tradeResponse(String respond,int id) {
+
+    public Result tradeResponse(String respond, int id) {
         return null;
     }
+
     public Result showTradeHistory() {
         return null;
     }
@@ -1200,9 +1231,9 @@ public class GamePlayController {
                 player.getBackpack().addToInventory(product, 1);
 
                 return new Result(true,
-                    "Collected " + product.getQuality().name().toLowerCase() + " "
-                        + product.getProductType().name().toLowerCase().replace("_", " ")
-                        + " from " + animalName + ".");
+                        "Collected " + product.getQuality().name().toLowerCase() + " "
+                                + product.getProductType().name().toLowerCase().replace("_", " ")
+                                + " from " + animalName + ".");
             }
         }
 
@@ -1244,9 +1275,11 @@ public class GamePlayController {
     public Result showAllProducts() {
         return null;
     }
+
     public Result showAvailableProducts() {
         return null;
     }
+
     public Result purchase(String productName, Integer count) {
         return null;
     }
@@ -1312,19 +1345,126 @@ public class GamePlayController {
     public Result meetNPC(String NCPName) {
         return null;
     }
+
     public Result giftNPC(String NCPName, String itemName) {
         return null;
     }
+
     public Result showFriendshipNPCList() {
         return null;
     }
+
     public Result showQuestsList() {
         return null;
     }
+
     public Result finishQuest(int index) {
         return null;
     }
+
     private NPC geNPCByName(String NPCName) {
         return null;
     }
 }
+//    public NPC getNearbyNPC(Player player, GameMap map) {
+//        Position p = player.getPosition();
+//        for (Position pos : map.getObjectsOnMap().keySet()) {
+//            Object obj = map.getObjectAt(pos);
+//            if (obj instanceof NPC && p.isNeighbor(pos)) {
+//                return (NPC) obj;
+//            }
+//        }
+//        return null;
+//    }
+//
+//    public Result questsList() {
+//        Player player = App.getLoggedInUser().getPlayer();
+//        Game game = App.getLoggedInUser().getGame();
+//        int today = game.getCurrentDay();
+//        Map<String, Friendship> friendships = player.getFriendships();
+//
+//        StringBuilder sb = new StringBuilder();
+//        int idx = 1;
+//        for (String npcName : friendships.keySet()) {
+//            NPC npc = App.getNPCRegistry().getNPCByName(npcName);
+//            if (npc == null) continue;
+//            Friendship f = friendships.get(npcName);
+//            for (Quest q : npc.getQuests()) {
+//                boolean available = q.isActive()
+//                        && f.getLevel().ordinal() >= q.getUnlockFriendshipLevel()
+//                        && today >= q.getUnlockDay();
+//                if (available) {
+//                    sb.append(idx)
+//                            .append(". NPC: ").append(npcName)
+//                            .append(" | Quest: ").append(q.getDescription())
+//                            .append(" | Requirements: ").append(q.getRequirements())
+//                            .append(" | Rewards: ").append(q.getRewards())
+//                            .append("\n");
+//                }
+//                idx++;
+//            }
+//        }
+//        if (sb.length() == 0)
+//            return new Result(true, "No active quests found!");
+//        return new Result(true, sb.toString());
+//    }
+//
+//    public Result questsFinish(int questIndex) {
+//        Player player = App.getLoggedInUser().getPlayer();
+//        Game game = App.getLoggedInUser().getGame();
+//        int today = game.getCurrentDay();        Map<String, Friendship> friendships = player.getFriendships();
+//
+//        // جمع‌آوری همه ماموریت‌های فعال با همان logic قدم قبل
+//        List<QuestInfo> activeQuests = new ArrayList<>();
+//        for (String npcName : friendships.keySet()) {
+//            NPC npc = App.getNPCRegistry().getNPCByName(npcName);
+//            if (npc == null) continue;
+//            Friendship f = friendships.get(npcName);
+//            for (Quest q : npc.getQuests()) {
+//                boolean available = q.isActive()
+//                        && f.getLevel().ordinal() >= q.getUnlockFriendshipLevel()
+//                        && today >= q.getUnlockDay();
+//                if (available)
+//                    activeQuests.add(new QuestInfo(npc, q));
+//            }
+//        }
+//
+//        if (questIndex < 1 || questIndex > activeQuests.size())
+//            return new Result(false, "Invalid quest index!");
+//
+//        QuestInfo questInfo = activeQuests.get(questIndex - 1);
+//        Quest quest = questInfo.quest;
+//        NPC npc = questInfo.npc;
+//
+//        // چک آیتم‌ها
+//        for (String req : quest.getRequirements()) {
+//            if (!player.getBackpack().hasItem(req, 1))
+//                return new Result(false, "You don't have required item: " + req);
+//        }
+//        // چک موقعیت مکانی
+//        if (!player.getPosition().isNeighbor(npc.getPosition()))
+//            return new Result(false, "You must be next to the NPC!");
+//
+//        // حذف آیتم‌ها
+//        for (String req : quest.getRequirements())
+//            player.getBackpack().removeFromInventory(req, 1);
+//
+//        // دادن جوایز (ساده: اضافه به انونتوری یا xp)
+//        for (String reward : quest.getRewards())
+//            player.getBackpack().addToInventory(reward, 1);
+//
+//        quest.setActive(false);
+//
+//        return new Result(true, "Quest completed! Rewards: " + quest.getRewards());
+//    }
+//
+//    private static class QuestInfo {
+//        NPC npc;
+//        Quest quest;
+//        QuestInfo(NPC npc, Quest quest) {
+//            this.npc = npc;
+//            this.quest = quest;
+//        }
+//    }
+//
+//}
