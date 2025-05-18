@@ -23,7 +23,8 @@ public class Game {
     private Time time = new Time();
     private List<Position> lastThorHits = new ArrayList<>();
     private final Random rng = new Random();
-
+    private final List<TradeRequest> pendingTrades = new ArrayList<>();
+    private final List<TradeRequest> completedTrades = new ArrayList<>();
 
     public Game(List<Shop> shops, List<Player> players, Weather startingWeather, Seasons currentSeason, List<GameMap> gameMaps) {
         this.shops = shops;
@@ -80,6 +81,25 @@ public class Game {
 
     public void setCurrentSeason(Seasons currentSeason) {
         this.currentSeason = currentSeason;
+    }
+
+    public List<TradeRequest> getPendingTrades() {
+        return Collections.unmodifiableList(pendingTrades);
+    }
+
+    public List<TradeRequest> getCompletedTrades() {
+        return Collections.unmodifiableList(completedTrades);
+    }
+
+    public void addTrade(TradeRequest t) {
+        pendingTrades.add(t);
+    }
+    public void removeTrade(TradeRequest t) {
+        pendingTrades.remove(t);
+    }
+
+    public void recordCompletedTrade(TradeRequest t) {
+        completedTrades.add(t);
     }
 
     public Time getTime() {
@@ -198,6 +218,14 @@ public class Game {
     }
 
     public void enterNextDay() {
+        int today = time.getDayOfYear();
+
+        for (Player p : players) {
+            for (Friendship f : p.getAllFriendships()) {
+                f.dailyDecay(today);
+            }
+        }
+
         this.currentSeason = time.getCurrentSeason();
 
         if (tomorrowWeather != null) {
