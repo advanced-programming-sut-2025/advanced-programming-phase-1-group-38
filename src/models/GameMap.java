@@ -3,11 +3,11 @@ package models;
 import models.Animals.AnimalLivingSpace;
 import models.Artisan.ArtisanMachine;
 import models.enums.Seasons;
+import models.enums.Types.StoneType;
 import models.enums.Types.TileType;
 import models.enums.Weather;
 import models.enums.Types.FarmBuildingType;
-import models.farming.Crop;
-import models.farming.CropType;
+import models.farming.*;
 
 import java.util.*;
 
@@ -23,6 +23,7 @@ public class GameMap {
     private final int homeWidth = 4;
     private final int homeHeight = 4;
     private final List<ArtisanMachine> artisanMachines = new ArrayList<>();
+    private final Random rng = new Random();
 
 
     private Map<Position, AnimalLivingSpace> animalBuildings = new HashMap<>();
@@ -33,6 +34,8 @@ public class GameMap {
         this.height = height;
         markGreenhouseTiles();
         markHomeArea();
+        populateQuarry();
+        populateForageTrees();
     }
 
     public void markQuarryArea(Position topLeft, int quarryWidth, int quarryHeight) {
@@ -122,6 +125,44 @@ public class GameMap {
         }
     }
 
+    private void populateQuarry() {
+        for (int x = 0; x < width; x++) {
+            for (int y = 0; y < height; y++) {
+                Tile t = tiles[x][y];
+                if (t.getTileType() == TileType.QUARRY) {
+                    double r = rng.nextDouble();
+                    if (r < 0.6) {
+                        t.setContent(new Stone(StoneType.REGULAR_STONE));
+                    }
+                    else if (r < 0.9) {
+                        var types = ForagingMineralTypes.values();
+                        var pick = types[rng.nextInt(types.length)];
+                        t.setContent(new ForagingMineral(pick));
+                    }
+                }
+            }
+        }
+    }
+
+    private void populateForageTrees() {
+        TreeType[] forageTypes = Arrays.stream(TreeType.values())
+            .filter(TreeType::isForage)
+            .toArray(TreeType[]::new);
+
+        for (int x = 0; x < width; x++) {
+            for (int y = 0; y < height; y++) {
+                Tile t = tiles[x][y];
+                if (t.getTileType() == TileType.REGULAR_GROUND
+                    && t.getContent() == null
+                    && rng.nextDouble() < 0.05) {
+
+                    int i = rng.nextInt(forageTypes.length);
+                    t.setContent(new Tree(forageTypes[i]));
+                }
+            }
+        }
+    }
+
     public Tile getTile(Position pos) {
         int x = pos.getX();
         int y = pos.getY();
@@ -172,6 +213,10 @@ public class GameMap {
         animalBuildings.put(pos, building);
         return true;
     }
+
+    public Position getHomeTopLeft() { return homeTopLeft; }
+    public int getHomeWidth()      { return homeWidth; }
+    public int getHomeHeight()     { return homeHeight; }
 
     public Collection<AnimalLivingSpace> getAnimalBuildings() {
         return animalBuildings.values();
