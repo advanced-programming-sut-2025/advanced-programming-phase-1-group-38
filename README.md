@@ -1,3 +1,7 @@
+Mehrsa Salmanipour 403171005_
+Amin Shabani 403171027_
+Shayan Jami 403170922
+
 # StardewValley
 
 A [libGDX](https://libgdx.com/) project generated with [gdx-liftoff](https://github.com/libgdx/gdx-liftoff).
