@@ -50,7 +50,7 @@ public class Player {
         // Add some initial items
         inventory.add(ToolType.SCYTHE, 1);
         inventory.add(ToolType.PICKAXE, 1);
-        inventory.add(CropType.CARROT, 10);
+        inventory.add(CropType.CARROT, 100);
         inventory.add(SeedType.CORN_SEED, 20);
         inventory.add(SeedType.CARROT_SEED, 20);
         inventory.add(CropType.CORN, 10);

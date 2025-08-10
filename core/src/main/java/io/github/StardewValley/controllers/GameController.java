@@ -43,6 +43,7 @@ public class GameController {
     private boolean roofVisible = true;
     private final GameTime gameTime;
     private Weather weather;
+    private WorldController worldController;
 
     private Tile[][] tileGrid;
     private int lastUpdatedDay = -1;
@@ -166,9 +167,7 @@ public class GameController {
                 moved = true;
                 player.setAnimation("walk/right", "character/walk/right", 2, 0.2f, true);
             }
-        }
-
-        if (Gdx.input.isKeyPressed(Input.Keys.UP)) {
+        } else if (Gdx.input.isKeyPressed(Input.Keys.UP)) {
             float tentativeY = newY + speed * delta;
             if (canMoveTo(newX, tentativeY)) {
                 newY = tentativeY;
@@ -187,6 +186,42 @@ public class GameController {
                 if (door.isPlayerInside(player.getX(), player.getY())) {
                     enterDoor(door);
                     break;
+                }
+            }
+        } else if (Gdx.input.isKeyJustPressed(Input.Keys.T)) {
+            if (worldController != null) {
+                var npc = worldController.npc().closestOn(currentMapPath, player.getX(), player.getY(), 32f);
+                if (npc != null) {
+                    int gained = worldController.npc().talk(this, npc, gameTime);
+                    // TODO: show toast if gained > 0 (first talk today), otherwise "already talked today"
+                    Gdx.app.log("Talk", "points=" + gained);
+                }
+            }
+        } else if (Gdx.input.isKeyJustPressed(Input.Keys.G)) {
+            if (worldController != null) {
+                ItemType held = player.getInventoryRenderer().getSelectedType();
+
+                // don’t gift tools
+                if (held == null || (held instanceof ToolType)) return;
+
+                var npc = worldController.npc().closestOn(currentMapPath, player.getX(), player.getY(), 32f);
+                if (npc == null) return;
+
+                int points = worldController.npc().gift(this, npc, held, gameTime);
+
+                // First gift of the day should be 50 (normal) or 200 (favorite). Otherwise 0.
+                if (points >= 50) {
+                    int removed = player.getInventory().remove(held, 1);
+                    Gdx.app.log("Gift", "points=" + points + " removed=" + removed + " item=" + held);
+
+                    // If removed==false, you likely have an equals/hashCode mismatch for ItemType.
+                    // Optional fallback if you have a removeById or similar:
+                    // if (!removed) removed = player.getInventory().removeByTypeId(held.getId(), 1);
+
+                    // TODO: show toast: npc.getName() + " +"+points
+                } else {
+                    // TODO: show toast: "Already gifted today" or "They don't want this"
+                    Gdx.app.log("Gift", "points=0 (not consumed) item=" + held);
                 }
             }
         } else if (Gdx.input.justTouched() && camera != null) {
@@ -616,5 +651,9 @@ public class GameController {
 
     public String getHomeMapPath() {                      // ← getter
         return homeMapPath;
+    }
+
+    public void setWorldController(WorldController wc) {
+        this.worldController = wc;
     }
 }

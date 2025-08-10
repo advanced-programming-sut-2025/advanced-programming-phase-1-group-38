@@ -162,6 +162,9 @@ public class WorldView implements Screen {
         // Draw any players who are (currently) in the NPC map here
         batch.setProjectionMatrix(npcProj);
         batch.begin();
+
+        worldController.npc().renderOn(batch, "maps/npcMap.tmx");
+
         for (io.github.StardewValley.controllers.GameController gc : worldController.getAllControllers()) {
             String cur = gc.getCurrentMapPath();
             if (cur != null && cur.endsWith("npcMap.tmx")) {
@@ -172,32 +175,6 @@ public class WorldView implements Screen {
 
         Gdx.gl.glDisable(GL20.GL_SCISSOR_TEST);
         Gdx.gl.glViewport(0, 0, sw, sh);
-    }
-
-    private void syncRoofVisibility(io.github.StardewValley.controllers.GameController[] controllers,
-                                    String mapId,
-                                    com.badlogic.gdx.maps.tiled.TiledMap targetMap) {
-        com.badlogic.gdx.maps.tiled.TiledMapTileLayer targetRoof =
-            (com.badlogic.gdx.maps.tiled.TiledMapTileLayer) targetMap.getLayers().get("RoofTiles");
-        if (targetRoof == null) return;
-
-        Boolean visible = null;
-
-        for (io.github.StardewValley.controllers.GameController gc : controllers) {
-            String cur = gc.getCurrentMapPath();
-            if (cur != null && cur.equals(mapId)) {
-                com.badlogic.gdx.maps.tiled.TiledMapTileLayer srcRoof =
-                    (com.badlogic.gdx.maps.tiled.TiledMapTileLayer) gc.getMap().getLayers().get("RoofTiles");
-                if (srcRoof != null) {
-                    visible = srcRoof.isVisible();
-                    break;
-                }
-            }
-        }
-
-        if (visible != null) {
-            targetRoof.setVisible(visible);
-        }
     }
 
     @Override public void resize(int w, int h) {

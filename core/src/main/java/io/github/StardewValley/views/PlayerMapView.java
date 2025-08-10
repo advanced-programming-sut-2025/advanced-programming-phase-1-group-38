@@ -69,6 +69,8 @@ public class PlayerMapView implements Screen {
 
     private CookingMenuView cookingMenuView;
 
+    private NpcQuestPopupView npcQuestView;
+
     private final ShapeRenderer shapeRenderer = new ShapeRenderer();
     private boolean debugDraw = false;          // press F3 to toggle
 
@@ -99,6 +101,7 @@ public class PlayerMapView implements Screen {
 
         batch = new SpriteBatch();
         controller.setCamera(camera);
+        controller.setWorldController(worldController);   // ← add this
         camera.update();
 
         inventoryRenderer = controller.getPlayer().getInventoryRenderer();
@@ -125,9 +128,13 @@ public class PlayerMapView implements Screen {
             controller.getPlayer().getAllCookingRecipes()
         );
 
+<<<<<<< HEAD
         shopView = new ShopView(controller.getPlayer().getInventory(), ShopCatalog.basicGeneralStore());
         sellMenuView = new SellMenuView(controller.getPlayer().getInventory());
 
+=======
+        npcQuestView = new NpcQuestPopupView(worldController, controller);
+>>>>>>> 38face7 (WIP: local work)
 
         Gdx.input.setInputProcessor(new InventoryScrollHandler(inventoryRenderer, inventoryMenuView, cookingMenuView));
 
@@ -269,6 +276,21 @@ public class PlayerMapView implements Screen {
             cookingMenuView.toggle();
         }
 
+        if (Gdx.input.isKeyJustPressed(Input.Keys.Q)) {
+            if (npcQuestView.isVisible()) {
+                npcQuestView.close();
+            } else {
+                var npc = worldController.npc().closestOn(
+                    controller.getCurrentMapPath(),
+                    controller.getPlayerX(),
+                    controller.getPlayerY(),
+                    32f
+                );
+                if (npc != null) npcQuestView.open(npc);
+            }
+        }
+
+
         boolean menuVisible = inventoryMenuView.isVisible();
 
         if (menuWasVisible && !menuVisible) {
@@ -362,6 +384,8 @@ public class PlayerMapView implements Screen {
             shapeRenderer.end();
         }
 
+        worldController.npc().renderOn(batch, controller.getCurrentMapPath());
+
 
         renderOtherPlayers(batch);
         controller.render(batch);
@@ -445,6 +469,7 @@ public class PlayerMapView implements Screen {
             cookingMenuView.render(batch);
         }
 
+<<<<<<< HEAD
         // ... after cooking/crafting renders, before batch.end()
         if (journalOverlay.isVisible()) {
             // اگه Big/Small font داری:
@@ -471,6 +496,9 @@ public class PlayerMapView implements Screen {
         BitmapFont small = GameAssetManager.getGameAssetManager().getSmallFont();
         small.draw(batch, "Gold: "+GameEconomy.getGold(), clockBgSprite.getX()+clockBgSprite.getWidth()+12, clockBgSprite.getY()+18);
 
+=======
+        npcQuestView.render(batch);
+>>>>>>> 38face7 (WIP: local work)
 
         batch.end();
     }
@@ -503,13 +531,18 @@ public class PlayerMapView implements Screen {
 
     private boolean isMenuOpen() {
         return (inventoryMenuView != null && inventoryMenuView.isVisible())
+<<<<<<< HEAD
                 || (cookingMenuView   != null && cookingMenuView.isVisible())
                 || (shopView != null && shopView.isVisible())
                 || (sellMenuView != null && sellMenuView.isVisible())
                 || (craftingMenuView  != null && craftingMenuView.isVisible());
+=======
+            || (cookingMenuView != null && cookingMenuView.isVisible())
+            || (npcQuestView != null && npcQuestView.isVisible());
+>>>>>>> 38face7 (WIP: local work)
     }
 
-    // PlayerMapView.java
+
     private void renderOtherPlayers(SpriteBatch batch) {
         if (worldController == null) return;
 
@@ -517,12 +550,12 @@ public class PlayerMapView implements Screen {
         java.util.List<Player> others = new java.util.ArrayList<>();
 
         for (GameController gc : worldController.getAllControllers()) {
-            if (gc == controller) continue;             // skip self
-            if (gc.getMap() != thisMap) continue;       // must share SAME map instance
+            if (gc == controller) continue;           // skip self
+            if (gc.getMap() != thisMap) continue;     // only same *instance* of TiledMap
             others.add(gc.getPlayer());
         }
 
-        // y-sort so lower sprites draw in front
+        // y-sort so lower sprites render in front
         others.sort((a, b) -> Float.compare(a.getY(), b.getY()));
 
         for (Player p : others) {

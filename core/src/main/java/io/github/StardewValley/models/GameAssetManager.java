@@ -76,6 +76,7 @@ public class GameAssetManager {
         createFont(16);
         createFont(14);
         assetManager.load("black.png", Texture.class);
+        assetManager.finishLoadingAsset("black.png");
 
     }
 

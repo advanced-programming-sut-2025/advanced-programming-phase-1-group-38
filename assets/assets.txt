@@ -561,7 +561,6 @@ maps/Grass.tsx
 maps/Grass_Hill_Tiles_v2.png
 maps/Grass_Hill_Tiles_v2.tsx
 maps/OutdoorMap1.tmx
-maps/OutdoorMap11.tmx
 maps/OutdoorMap2.tmx
 maps/OutdoorMapp1.tmx
 maps/Paths.png
@@ -578,6 +577,10 @@ menu2.png
 menu3.png
 menu5.png
 menuuu.png
+npc/robin/1.png
+npc/robin/2.png
+npc/robin/3.png
+npc/robin/4.png
 pixelFont-7-8x14-sproutLands.ttf
 pixelFont.ttf
 player.png
