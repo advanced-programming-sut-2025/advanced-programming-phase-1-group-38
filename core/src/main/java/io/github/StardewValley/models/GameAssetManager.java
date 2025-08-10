@@ -130,6 +130,11 @@ public class GameAssetManager {
             : null;
     }
 
+    public TiledMap loadFreshMap(String mapPath) {
+        TmxMapLoader loader = new TmxMapLoader(new InternalFileHandleResolver());
+        return loader.load(mapPath); // never null if the file exists and dependencies resolve
+    }
+
     public Texture getTexture(String path) {
         return textureCache.computeIfAbsent(path,
             p -> new Texture(Gdx.files.internal(p)));

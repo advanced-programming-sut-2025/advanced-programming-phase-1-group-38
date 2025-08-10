@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.11.2" orientation="orthogonal" renderorder="right-down" width="40" height="30" tilewidth="16" tileheight="16" infinite="0" nextlayerid="17" nextobjectid="30">
+<map version="1.10" tiledversion="1.11.2" orientation="orthogonal" renderorder="right-down" width="40" height="30" tilewidth="16" tileheight="16" infinite="0" nextlayerid="17" nextobjectid="31">
  <tileset firstgid="1" source="Grass.tsx"/>
  <tileset firstgid="81" source="Tilled Dirt.tsx"/>
  <tileset firstgid="145" source="Wooden House.tsx"/>
  <tileset firstgid="180" source="Basic Furniture.tsx"/>
  <tileset firstgid="234" source="Water.tsx"/>
+ <tileset firstgid="238" source="Paths.tsx"/>
  <layer id="1" name="Grass" width="40" height="30">
   <data encoding="csv">
 32,33,33,33,33,33,33,33,33,33,33,33,33,33,33,33,33,33,33,33,33,33,33,33,33,33,33,33,33,33,33,33,33,33,33,33,33,33,33,34,
@@ -209,6 +210,14 @@
     <property name="targetMap" value="same"/>
    </properties>
   </object>
+  <object id="30" x="608" y="144" width="16" height="16">
+   <properties>
+    <property name="spawnX" type="int" value="11"/>
+    <property name="spawnY" type="int" value="19"/>
+    <property name="targetMap" value="npcMap.tmx"/>
+    <property name="type" value="entrance"/>
+   </properties>
+  </object>
  </objectgroup>
  <layer id="9" name="Decorations" width="40" height="30">
   <data encoding="csv">
@@ -221,7 +230,7 @@
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,155,0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,252,253,
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,

@@ -19,7 +19,9 @@ import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
+import io.github.StardewValley.Main;
 import io.github.StardewValley.controllers.GameController;
+import io.github.StardewValley.controllers.WorldController;
 import io.github.StardewValley.models.*;
 
 import static io.github.StardewValley.controllers.GameController.TILE_SIZE;
@@ -38,6 +40,9 @@ public class PlayerMapView implements Screen {
     private ShopView shopView;
     private SellMenuView sellMenuView;
     private ControlsOverlay controlsOverlay = new ControlsOverlay();
+
+    private WorldController worldController;
+    private int playerIndex;
 
     private int mapWidth;
     private int mapHeight;
@@ -65,8 +70,13 @@ public class PlayerMapView implements Screen {
     private CookingMenuView cookingMenuView;
 
     private final ShapeRenderer shapeRenderer = new ShapeRenderer();
-    private boolean debugDraw = true;          // press F3 to toggle
+    private boolean debugDraw = false;          // press F3 to toggle
 
+    public PlayerMapView(WorldController worldController, int playerIndex) {
+        this.worldController = worldController;
+        this.playerIndex = playerIndex;
+        this.controller = worldController.getAllControllers()[playerIndex];
+    }
 
 
     @Override
@@ -80,9 +90,7 @@ public class PlayerMapView implements Screen {
         uiCamera = new OrthographicCamera();
         uiCamera.setToOrtho(false, 800, 550);
 
-        String mapPath = "maps/OutdoorMap1.tmx";
-        GameAssetManager.getGameAssetManager().loadMap(mapPath);
-        map = GameAssetManager.getGameAssetManager().getMap(mapPath);
+        map = controller.getMap();
         mapRenderer = new OrthogonalTiledMapRenderer(map);
 
         int tileSize = 16;
@@ -90,7 +98,6 @@ public class PlayerMapView implements Screen {
         mapHeight = map.getProperties().get("height", Integer.class) * tileSize;
 
         batch = new SpriteBatch();
-        controller = new GameController(mapPath);
         controller.setCamera(camera);
         camera.update();
 
@@ -124,7 +131,6 @@ public class PlayerMapView implements Screen {
 
         Gdx.input.setInputProcessor(new InventoryScrollHandler(inventoryRenderer, inventoryMenuView, cookingMenuView));
 
-
         pointerTexture = new Texture(Gdx.files.internal("pointer.png"));
         clockPointer = new Sprite(pointerTexture);
         clockPointer.setOrigin(0, clockPointer.getHeight() / 2f);
@@ -157,6 +163,74 @@ public class PlayerMapView implements Screen {
 
     @Override
     public void render(float delta) {
+        if (Gdx.input.isKeyJustPressed(Input.Keys.N)) {
+            worldController.endTurnAndAdvanceIfRoundDone();
+            int newIndex = worldController.getCurrentPlayerIndex();
+            Main.getMain().setScreen(new PlayerMapView(worldController, newIndex));
+            return; // avoid rendering the old player after switching
+        }
+
+        if (Gdx.input.isKeyJustPressed(Input.Keys.M)) {
+            GameController[] ctrls = worldController.getAllControllers();
+
+            java.util.List<PlayerWorldSlice> slices = new java.util.ArrayList<>(ctrls.length);
+            for (GameController gc : ctrls) {
+                final String homePath = gc.getHomeMapPath(); // ← each player’s outdoor TMX
+                final com.badlogic.gdx.maps.tiled.TiledMap quadMap =
+                    io.github.StardewValley.models.GameAssetManager.getGameAssetManager().loadFreshMap(homePath);
+
+                slices.add(new PlayerWorldSlice() {
+                    private final com.badlogic.gdx.maps.tiled.renderers.OrthogonalTiledMapRenderer renderer =
+                        new com.badlogic.gdx.maps.tiled.renderers.OrthogonalTiledMapRenderer(quadMap, 1f);
+
+                    @Override public com.badlogic.gdx.maps.tiled.TiledMap getMap() { return quadMap; }
+
+                    @Override public com.badlogic.gdx.maps.tiled.renderers.OrthogonalTiledMapRenderer getRenderer() {
+                        return renderer;
+                    }
+
+                    @Override public int getMapWidthTiles()  {
+                        return quadMap.getProperties().get("width", Integer.class);
+                    }
+                    @Override public int getMapHeightTiles() {
+                        return quadMap.getProperties().get("height", Integer.class);
+                    }
+
+                    @Override public String getMapId() {
+                        return homePath; // for logging; WorldView doesn’t rely on this anymore
+                    }
+
+                    @Override
+                    public void renderEntities(com.badlogic.gdx.graphics.g2d.SpriteBatch batch, boolean drawPlayer) {
+                        // crops/items from the player’s game state
+                        io.github.StardewValley.models.Tile[][] tiles = gc.getTiles();
+                        for (int x = 0; x < tiles.length; x++) {
+                            for (int y = 0; y < tiles[0].length; y++) {
+                                io.github.StardewValley.models.Tile t = tiles[x][y];
+                                if (t.hasCrop()) {
+                                    String path = t.getCrop().getCurrentSpritePath();
+                                    com.badlogic.gdx.graphics.Texture tex =
+                                        io.github.StardewValley.models.GameAssetManager.getGameAssetManager().getTexture(path);
+                                    float drawX = t.getWorldX(), drawY = t.getWorldY();
+                                    batch.draw(tex,
+                                        drawX + io.github.StardewValley.controllers.GameController.TILE_SIZE/2f - tex.getWidth()/2f,
+                                        drawY + 3);
+                                }
+                            }
+                        }
+
+                        // draw the player *only if* we’re supposed to (i.e., not in NPC map)
+                        if (drawPlayer) {
+                            gc.render(batch);
+                        }
+                    }
+                });
+            }
+
+            Main.getMain().setScreen(new WorldView(this, slices, worldController.getNpcSlice(), worldController));
+            return;
+        }
+
         if (Gdx.input.isKeyJustPressed(Input.Keys.R)) debugDraw = !debugDraw;
 
         if (Gdx.input.isKeyJustPressed(Input.Keys.B)) {
@@ -205,7 +279,9 @@ public class PlayerMapView implements Screen {
         menuWasVisible = menuVisible;
 
         if (!isMenuOpen()) {
-            controller.update(delta);
+            if (!isMenuOpen()) {
+                worldController.updateAll(delta); // everyone simulates; only current acts
+            }
         }
 
 
@@ -217,6 +293,8 @@ public class PlayerMapView implements Screen {
             int tileSize = 16;
             mapWidth = map.getProperties().get("width", Integer.class) * tileSize;
             mapHeight = map.getProperties().get("height", Integer.class) * tileSize;
+
+            tiles = controller.getTiles();
         }
 
         updateCamera();
@@ -285,6 +363,7 @@ public class PlayerMapView implements Screen {
         }
 
 
+        renderOtherPlayers(batch);
         controller.render(batch);
         batch.end();
 
@@ -430,6 +509,26 @@ public class PlayerMapView implements Screen {
                 || (craftingMenuView  != null && craftingMenuView.isVisible());
     }
 
+    // PlayerMapView.java
+    private void renderOtherPlayers(SpriteBatch batch) {
+        if (worldController == null) return;
+
+        TiledMap thisMap = controller.getMap();
+        java.util.List<Player> others = new java.util.ArrayList<>();
+
+        for (GameController gc : worldController.getAllControllers()) {
+            if (gc == controller) continue;             // skip self
+            if (gc.getMap() != thisMap) continue;       // must share SAME map instance
+            others.add(gc.getPlayer());
+        }
+
+        // y-sort so lower sprites draw in front
+        others.sort((a, b) -> Float.compare(a.getY(), b.getY()));
+
+        for (Player p : others) {
+            p.render(batch);
+        }
+    }
 
     @Override public void resize(int width, int height) {
         viewport.update(width, height);

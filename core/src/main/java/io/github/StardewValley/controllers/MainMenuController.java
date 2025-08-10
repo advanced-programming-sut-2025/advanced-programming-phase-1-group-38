@@ -20,7 +20,9 @@ public class MainMenuController {
         }
 
         if (view.getPlayButton().isPressed()) {
-            Main.getMain().setScreen(new PlayerMapView());
+            String[] chosenMaps = {"maps/OutdoorMap1.tmx", "maps/OutdoorMap1.tmx", "maps/OutdoorMap1.tmx", "maps/OutdoorMap1.tmx"};
+            WorldController wc = new WorldController(chosenMaps);
+            Main.getMain().setScreen(new PlayerMapView(wc, 0));
         }
 
         if (view.getLogoutButton().isPressed()) {
