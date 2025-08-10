@@ -1,0 +1,34 @@
+{
+a: {
+	class: io.github.StardewValley.models.User
+	username: a
+	password: 8fa0014d75f8d027391ca5e6ede257e68dfab1bcbade74ecbd5c8fae8550577f
+	nickname: a
+	email: a@b.com
+	gender: MAN
+	securityQuestion: {
+		question: What was the name of your first pet?
+		answer: a
+	}
+	securityAnswer: null
+	player: null
+	highestGold: 0
+	totalGamesPlayed: 0
+}
+b: {
+	class: io.github.StardewValley.models.User
+	username: b
+	password: 3c6dc3c15ed335289680f009c38a8afc7411dee0b6f2664f5435f2ac4b8ea65a
+	nickname: b
+	email: a@b.com
+	gender: MAN
+	securityQuestion: {
+		question: What was the name of your first pet?
+		answer: b
+	}
+	securityAnswer: null
+	player: null
+	highestGold: 0
+	totalGamesPlayed: 0
+}
+}
