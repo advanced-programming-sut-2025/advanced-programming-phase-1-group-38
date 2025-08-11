@@ -355,7 +355,8 @@ public class PlayerMapView implements Screen {
 
         if (!isMenuOpen()) {
             if (!isMenuOpen()) {
-                worldController.updateAll(delta); // everyone simulates; only current acts
+                worldController.updateAll(delta);
+                controller.updateFloatingIcons(delta);// everyone simulates; only current acts
             }
         }
 
@@ -460,6 +461,21 @@ public class PlayerMapView implements Screen {
 
         renderOtherPlayers(batch);
         controller.render(batch);
+
+        for (var e : controller.getFloatingIcons()) {
+            float t = com.badlogic.gdx.math.MathUtils.clamp(e.age / e.life, 0f, 1f);
+            float alpha = 1f - t;
+            float yOff  = e.rise * t;
+
+            com.badlogic.gdx.graphics.Texture tex =
+                io.github.StardewValley.models.GameAssetManager.getGameAssetManager().getTexture(e.texKey);
+
+            batch.setColor(1f, 1f, 1f, alpha);
+            // center on x; rise over time
+            batch.draw(tex, e.x - e.size * 0.5f, e.y + yOff, e.size, e.size);
+        }
+        batch.setColor(com.badlogic.gdx.graphics.Color.WHITE);
+
         batch.end();
 
         batch.setProjectionMatrix(uiCamera.combined);

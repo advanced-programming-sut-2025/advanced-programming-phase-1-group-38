@@ -166,6 +166,7 @@ fridge/fridge2.png
 fridge/fridge3.png
 fridge/fridge4.png
 fridge/fridge5.png
+gift.png
 gold_coin.png
 i18n/MyGame.properties
 i18n/MyGame_de.properties

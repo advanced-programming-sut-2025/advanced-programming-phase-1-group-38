@@ -257,6 +257,7 @@ public class GiftPopupView {
 
         if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) {
             giveSelected();
+            close();
         }
     }
 
@@ -290,6 +291,10 @@ public class GiftPopupView {
 
         // consume one only if it counted
         inventory.remove(t, 1);
+
+        float px = gc.getPlayerX();
+        float py = gc.getPlayerY();
+        gc.spawnFloatingIcon("gift.png", px + 8, py + io.github.StardewValley.controllers.GameController.TILE_SIZE, 1.0f);
 
         toastText  = npc.name + "  +" + points;
         toastTimer = 1.8f;

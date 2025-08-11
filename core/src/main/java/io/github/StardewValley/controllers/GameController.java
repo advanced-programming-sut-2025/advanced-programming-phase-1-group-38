@@ -652,4 +652,38 @@ public class GameController {
     public void setWorldController(WorldController wc) {
         this.worldController = wc;
     }
+
+
+    public static class FloatingIcon {
+        public float x, y;          // world coordinates
+        public float age = 0f;      // seconds elapsed
+        public float life = 1.0f;   // seconds total
+        public String texKey;       // texture key in GameAssetManager (e.g., "ui/gift.png")
+        public float rise = 24f;    // how many world units to rise over life
+        public float size = 16f;    // draw size (world units)
+    }
+
+    private final com.badlogic.gdx.utils.Array<FloatingIcon> floatingIcons = new com.badlogic.gdx.utils.Array<>();
+
+    public void spawnFloatingIcon(String texKey, float worldX, float worldY, float lifeSec) {
+        FloatingIcon e = new FloatingIcon();
+        e.texKey = texKey;
+        e.x = worldX;
+        e.y = worldY;
+        e.life = lifeSec;
+        floatingIcons.add(e);
+    }
+
+    public com.badlogic.gdx.utils.Array<FloatingIcon> getFloatingIcons() {
+        return floatingIcons;
+    }
+
+    public void updateFloatingIcons(float dt) {
+        for (int i = floatingIcons.size - 1; i >= 0; i--) {
+            FloatingIcon e = floatingIcons.get(i);
+            e.age += dt;
+            if (e.age >= e.life) floatingIcons.removeIndex(i);
+        }
+    }
+
 }
