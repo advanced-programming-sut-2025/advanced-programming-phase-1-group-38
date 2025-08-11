@@ -19,6 +19,7 @@ import io.github.StardewValley.models.*;
 import io.github.StardewValley.models.Artisan.MachineInstance;
 import io.github.StardewValley.models.Artisan.MachineType;
 import io.github.StardewValley.models.enums.Skill;
+import io.github.StardewValley.views.GiftPopupView;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -63,6 +64,8 @@ public class GameController {
 
     private final TiledMap sharedNpcMap;
     private final java.util.Map<String, TiledMap> mapCache = new java.util.HashMap<>();
+
+    private GiftPopupView giftPopup;
 
 
     private static final int TILLED_TILE_ID = 89;
@@ -636,6 +639,13 @@ public class GameController {
         return cell != null && cell.getTile() != null;
     }
 
+    public void setGiftPopup(GiftPopupView v) {  // <-- add this
+        this.giftPopup = v;
+    }
+    public GiftPopupView getGiftPopup() {        // <-- add this
+        return giftPopup;
+    }
+
 
     public void setCamera(OrthographicCamera camera) {
         this.camera = camera;
@@ -658,7 +668,7 @@ public class GameController {
         public float x, y;          // world coordinates
         public float age = 0f;      // seconds elapsed
         public float life = 1.0f;   // seconds total
-        public String texKey;       // texture key in GameAssetManager (e.g., "ui/gift.png")
+        public String texKey;       // texture key in GameAssetManager (e.g., "gift.png")
         public float rise = 24f;    // how many world units to rise over life
         public float size = 16f;    // draw size (world units)
     }
