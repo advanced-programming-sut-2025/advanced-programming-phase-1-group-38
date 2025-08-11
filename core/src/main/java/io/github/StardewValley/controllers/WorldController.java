@@ -2,10 +2,7 @@ package io.github.StardewValley.controllers;
 
 // WorldController.java
 import com.badlogic.gdx.maps.tiled.TiledMap;
-import io.github.StardewValley.models.GameTime;
-import io.github.StardewValley.models.Player;
-import io.github.StardewValley.models.NpcSocialService;
-import io.github.StardewValley.models.NpcQuestService;
+import io.github.StardewValley.models.*;
 import io.github.StardewValley.views.NpcWorldSlice;
 import io.github.StardewValley.views.PlayerWorldSlice;
 
@@ -17,8 +14,12 @@ public class WorldController {
     private final GameController[] controllers = new GameController[4];
     private final PlayerWorldSlice npcSlice;
 
+    private final java.util.Map<String, java.util.ArrayDeque<Notification>> inbox = new java.util.HashMap<>();
+    private final java.util.Map<String, Integer> unreadByPlayer = new java.util.HashMap<>();
+
     private final NpcController npcController;
     private final Map<GameController, String> playerIds = new HashMap<>();
+    private final PlayerFriendService playerFriends = new PlayerFriendService();
 
     private int currentPlayerIndex = 0;
     private int turnsIntoHour = 0;
@@ -75,6 +76,73 @@ public class WorldController {
     public GameTime getSharedTime() { return sharedTime; }
     public PlayerWorldSlice getNpcSlice() { return npcSlice; }
     public NpcController npc() { return npcController; }
+
+    public void pushNotification(String toPlayerId, Notification n) {
+        pushNotification(toPlayerId, n, /*countUnread*/ true);
+    }
+
+    public void pushNotification(String toPlayerId, Notification n, boolean countUnread) {
+        inbox.computeIfAbsent(toPlayerId, k -> new java.util.ArrayDeque<>()).addLast(n);
+        var q = inbox.get(toPlayerId);
+        while (q.size() > 50) q.removeFirst();
+        if (countUnread) {
+            unreadByPlayer.put(toPlayerId, getUnreadCount(toPlayerId) + 1);
+        }
+    }
+
+    public int getUnreadCount(String playerId) {
+        return unreadByPlayer.getOrDefault(playerId, 0);
+    }
+
+    public void clearUnread(String playerId) {
+        unreadByPlayer.put(playerId, 0);
+    }
+
+    public java.util.Deque<Notification> getInbox(String playerId) {
+        return inbox.getOrDefault(playerId, new java.util.ArrayDeque<>());
+    }
+
+    public PlayerFriendService playerFriends() { return playerFriends; }
+    public String playerIdOf(GameController gc) { return playerIds.get(gc); }
+
+    // WorldController.java (helper)
+    public GameController nearestOtherPlayer(GameController me, float maxDist) {
+        GameController best = null;
+        float bestD2 = maxDist * maxDist;
+
+        TiledMap map = me.getMap();
+        float mx = me.getPlayerX(), my = me.getPlayerY();
+
+        for (GameController gc : controllers) {
+            if (gc == me) continue;
+            if (gc.getMap() != map) continue; // same *instance* matters
+
+            float dx = gc.getPlayerX() - mx, dy = gc.getPlayerY() - my;
+            float d2 = dx*dx + dy*dy;
+            if (d2 <= bestD2) { bestD2 = d2; best = gc; }
+        }
+        return best;
+    }
+
+    // WorldController.java
+    public java.util.List<GameController> nearbyPlayers(GameController me, float radius) {
+        java.util.ArrayList<GameController> out = new java.util.ArrayList<>();
+        float r2 = radius * radius;
+        TiledMap map = me.getMap();
+        float mx = me.getPlayerX(), my = me.getPlayerY();
+
+        for (GameController gc : controllers) {
+            if (gc == me) continue;
+            if (gc.getMap() != map) continue;
+            float dx = gc.getPlayerX() - mx, dy = gc.getPlayerY() - my;
+            float d2 = dx*dx + dy*dy;
+            if (d2 <= r2) out.add(gc);
+        }
+        // optional: sort by distance or stable playerId
+        out.sort((a,b) -> playerIdOf(a).compareTo(playerIdOf(b)));
+        return out;
+    }
+
 
     public void dispose() {
         for (GameController gc : controllers) if (gc != null) gc.dispose();

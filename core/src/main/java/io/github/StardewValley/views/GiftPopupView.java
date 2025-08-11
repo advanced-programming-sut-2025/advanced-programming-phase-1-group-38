@@ -16,6 +16,10 @@ import java.util.List;
 
 /** Popup to gift an item to an NPC. First row = favorites, second row = other giftable items. */
 public class GiftPopupView {
+    private enum Mode { NPC, PLAYER }
+    private Mode mode = Mode.NPC;
+
+    private GameController targetPlayer = null;
 
     private final GameController gc;
     private final WorldController world;
@@ -64,6 +68,8 @@ public class GiftPopupView {
     public boolean isVisible() { return visible; }
 
     public void open(NpcCharacter npc) {
+        this.mode = Mode.NPC;          // <-- add this
+        this.targetPlayer = null;      // <-- and this (clear previous player)
         this.npc = npc;
         rebuildList();
         visible = true;
@@ -83,39 +89,40 @@ public class GiftPopupView {
     private void rebuildList() {
         flat.clear();
         favoritesCount = 0;
-        if (npc == null) return;
 
-        // panel & row anchors
         float sw = Gdx.graphics.getWidth(), sh = Gdx.graphics.getHeight();
         panelX = (sw - panelW) / 2f;
         panelY = (sh - panelH) / 2f;
 
         rowLeftX = panelX + 30f;
-
         float titleH = 44f;
-        row1TopY = panelY + panelH - titleH - 8f;            // favorites row
-        row2TopY = row1TopY - (SLOT + ROW_GAP);               // others row
+        row1TopY = panelY + panelH - titleH - 8f;
+        row2TopY = row1TopY - (SLOT + ROW_GAP);
 
-        // favorites via stable keys
-        java.util.Set<String> favKeys = world.npc().favoriteKeys(npc.id);
-
-        List<Inventory.Stack> fav  = new ArrayList<>();
-        List<Inventory.Stack> rest = new ArrayList<>();
-
-        for (int i = 0; i < inventory.size(); i++) {
-            Inventory.Stack s = inventory.peek(i);
-            if (s == null) continue;
-            ItemType t = s.getType();
-            if (t instanceof ToolType) continue;              // no tools
-
-            String key = io.github.StardewValley.controllers.NpcController.itemKey(t);
-            if (favKeys.contains(key)) fav.add(s); else rest.add(s);
+        if (mode == Mode.NPC && npc != null) {
+            var favKeys = world.npc().favoriteKeys(npc.id);
+            List<Inventory.Stack> fav  = new ArrayList<>();
+            List<Inventory.Stack> rest = new ArrayList<>();
+            for (int i = 0; i < inventory.size(); i++) {
+                var s = inventory.peek(i);
+                if (s == null) continue;
+                if (s.getType() instanceof ToolType) continue;
+                String key = io.github.StardewValley.controllers.NpcController.itemKey(s.getType());
+                if (favKeys.contains(key)) fav.add(s); else rest.add(s);
+            }
+            flat.addAll(fav);
+            favoritesCount = fav.size();
+            flat.addAll(rest);
+        } else {
+            // PLAYER mode: simple list (no tools)
+            for (int i = 0; i < inventory.size(); i++) {
+                var s = inventory.peek(i);
+                if (s == null) continue;
+                if (s.getType() instanceof ToolType) continue;
+                flat.add(s);
+            }
+            favoritesCount = 0;
         }
-
-        flat.addAll(fav);
-        favoritesCount = fav.size();
-        flat.addAll(rest);
-
         selected = flat.isEmpty() ? -1 : 0;
     }
 
@@ -126,7 +133,13 @@ public class GiftPopupView {
         batch.draw(panelBg, panelX, panelY, panelW, panelH);
 
         // title
-        String title = (npc != null) ? ("GIFT TO " + npc.name.toUpperCase()) : "GIFT";
+        String title;
+        if (mode == Mode.NPC) {
+            title = (npc != null) ? ("GIFT TO " + npc.name.toUpperCase()) : "GIFT";
+        } else {
+            String pid = (targetPlayer != null) ? world.playerIdOf(targetPlayer) : "PLAYER";
+            title = "GIFT TO " + pid;
+        }
         GlyphLayout tl = new GlyphLayout(big, title);
         big.draw(batch, tl, panelX + (panelW - tl.width)/2f, panelY + panelH - 14f);
 
@@ -143,8 +156,9 @@ public class GiftPopupView {
 
         // Others row
         if (othersVisible > 0) {
-            small.draw(batch, "Your Items", panelX + 30f, row2TopY + LABEL_GAP);
-            drawRow(batch, rowLeftX, row2TopY, /*start*/favoritesCount, /*count*/othersVisible);
+            float y = (mode == Mode.NPC) ? row2TopY : row1TopY;  // <-- use top row in PLAYER mode
+            small.draw(batch, "Your Items", panelX + 30f, y + LABEL_GAP);
+            drawRow(batch, rowLeftX, y, /*start*/favoritesCount, /*count*/othersVisible);
         }
 
         if (favVisible == 0 && othersVisible == 0) {
@@ -262,46 +276,63 @@ public class GiftPopupView {
     }
 
     private void giveSelected() {
-        if (selected < 0 || selected >= flat.size() || npc == null) return;
+        if (selected < 0 || selected >= flat.size()) return;
 
         Inventory.Stack s = flat.get(selected);
         if (s == null) return;
-
         ItemType t = s.getType();
-        if (t instanceof ToolType) {
-            toastText = "Can't give tool!";
-            toastTimer = 1.8f;
+        if (t instanceof ToolType) { toast("Can't give tool!"); return; }
+
+        if (mode == Mode.NPC) {
+            if (npc == null) return;
+            boolean isFavorite = world.npc().isFavorite(npc.id, t);
+            int points = world.npc().gift(gc, npc, t, gc.getGameTime()); // once/day inside
+            if (points <= 0) { toast("Already gifted today"); return; }
+            if (isFavorite && points < 200) {
+                world.npc().addFriendPoints(gc, npc.id, 200 - points);
+                points = 200;
+            }
+            inventory.remove(t, 1);
+            gc.spawnFloatingIcon("gift.png", gc.getPlayerX()+8, gc.getPlayerY()+GameController.TILE_SIZE, 1.0f);
+            toast(npc.name + "  +" + points);
+            int old = selected; rebuildList();
+            if (flat.isEmpty()) close(); else selected = Math.min(old, flat.size()-1);
             return;
         }
 
-        boolean isFavorite = world.npc().isFavorite(npc.id, t);
+        // PLAYER mode
+        if (targetPlayer == null) return;
+        if (targetPlayer.getMap() != gc.getMap()) { toast("Player not on this map"); return; }
+        float dx = targetPlayer.getPlayerX() - gc.getPlayerX();
+        float dy = targetPlayer.getPlayerY() - gc.getPlayerY();
+        if (dx*dx + dy*dy > 64f*64f) { toast("Get closer to give"); return; }
 
-        // attempt gift (once per day logic inside)
-        int points = world.npc().gift(gc, npc, t, gc.getGameTime());
-        if (points <= 0) {
-            toastText = "No effect (already gifted today)";
-            toastTimer = 1.5f;
-            return;
-        }
+        String a = world.playerIdOf(gc);
+        String b = world.playerIdOf(targetPlayer);
+        int day  = gc.getGameTime().getDay();
+        int delta = world.playerFriends().giftOncePerDay(a, b, day, false);
+        if (delta <= 0) { toast("Already gifted today"); return; }
 
-        if (isFavorite && points < 200) {
-            world.npc().addFriendPoints(gc, npc.id, 200 - points);
-            points = 200;
-        }
+        if (inventory.remove(t, 1) == 0) { toast("No item left"); return; }
+        targetPlayer.getPlayer().getInventory().add(t, 1);
 
-        // consume one only if it counted
-        inventory.remove(t, 1);
+        gc.spawnFloatingIcon("gift.png", gc.getPlayerX()+8, gc.getPlayerY()+GameController.TILE_SIZE, 1.0f);
+        targetPlayer.spawnFloatingIcon("gift.png", targetPlayer.getPlayerX()+8, targetPlayer.getPlayerY()+GameController.TILE_SIZE, 1.0f);
 
-        float px = gc.getPlayerX();
-        float py = gc.getPlayerY();
-        gc.spawnFloatingIcon("gift.png", px + 8, py + io.github.StardewValley.controllers.GameController.TILE_SIZE, 1.0f);
+        long now = System.currentTimeMillis();
+        world.pushNotification(b, new Notification(a, b, "sent you a gift", now), true);
+        toast("Gave +" + delta + " friendship");
+        close();
+    }
 
-        toastText  = npc.name + "  +" + points;
-        toastTimer = 1.8f;
+    private void toast(String s) { toastText = s; toastTimer = 1.6f; }
 
-        int old = selected;
+
+    public void openForPlayer(GameController other) {
+        this.mode = Mode.PLAYER;
+        this.targetPlayer = other;
+        this.npc = null;
         rebuildList();
-        if (flat.isEmpty()) close();
-        else selected = Math.min(old, flat.size() - 1);
+        visible = true;
     }
 }
