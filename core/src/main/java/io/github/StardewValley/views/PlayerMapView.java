@@ -128,13 +128,10 @@ public class PlayerMapView implements Screen {
             controller.getPlayer().getAllCookingRecipes()
         );
 
-<<<<<<< HEAD
         shopView = new ShopView(controller.getPlayer().getInventory(), ShopCatalog.basicGeneralStore());
         sellMenuView = new SellMenuView(controller.getPlayer().getInventory());
 
-=======
         npcQuestView = new NpcQuestPopupView(worldController, controller);
->>>>>>> 38face7 (WIP: local work)
 
         Gdx.input.setInputProcessor(new InventoryScrollHandler(inventoryRenderer, inventoryMenuView, cookingMenuView));
 
@@ -469,7 +466,6 @@ public class PlayerMapView implements Screen {
             cookingMenuView.render(batch);
         }
 
-<<<<<<< HEAD
         // ... after cooking/crafting renders, before batch.end()
         if (journalOverlay.isVisible()) {
             // اگه Big/Small font داری:
@@ -496,9 +492,7 @@ public class PlayerMapView implements Screen {
         BitmapFont small = GameAssetManager.getGameAssetManager().getSmallFont();
         small.draw(batch, "Gold: "+GameEconomy.getGold(), clockBgSprite.getX()+clockBgSprite.getWidth()+12, clockBgSprite.getY()+18);
 
-=======
         npcQuestView.render(batch);
->>>>>>> 38face7 (WIP: local work)
 
         batch.end();
     }
@@ -531,15 +525,13 @@ public class PlayerMapView implements Screen {
 
     private boolean isMenuOpen() {
         return (inventoryMenuView != null && inventoryMenuView.isVisible())
-<<<<<<< HEAD
                 || (cookingMenuView   != null && cookingMenuView.isVisible())
                 || (shopView != null && shopView.isVisible())
                 || (sellMenuView != null && sellMenuView.isVisible())
-                || (craftingMenuView  != null && craftingMenuView.isVisible());
-=======
-            || (cookingMenuView != null && cookingMenuView.isVisible())
-            || (npcQuestView != null && npcQuestView.isVisible());
->>>>>>> 38face7 (WIP: local work)
+                || (craftingMenuView  != null && craftingMenuView.isVisible())
+                || (cookingMenuView != null && cookingMenuView.isVisible())
+                || (npcQuestView != null && npcQuestView.isVisible());
+
     }
 
 
