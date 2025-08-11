@@ -234,7 +234,7 @@ public class NpcQuestPopupView {
             for (var e : q.rewardItems.entrySet()) bag.add(e.getKey(), e.getValue());
         }
         if (q.rewardGold != null && q.rewardGold > 0) {
-            // playerCtrl.getPlayer().addGold(q.rewardGold); // or bag.add(GOLD, q.rewardGold);
+             playerCtrl.getPlayer().getGameEconomy().addGold(q.rewardGold); // or bag.add(GOLD, q.rewardGold);
         }
         if (q.rewardFriendPoints != null && q.rewardFriendPoints > 0) {
             world.npc().addFriendPoints(playerCtrl, npc.id, q.rewardFriendPoints);

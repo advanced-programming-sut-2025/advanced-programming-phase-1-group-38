@@ -723,6 +723,10 @@ menu2.png
 menu3.png
 menu5.png
 menuuu.png
+npc/abigail/1.png
+npc/abigail/2.png
+npc/abigail/3.png
+npc/abigail/4.png
 npc/robin/1.png
 npc/robin/2.png
 npc/robin/3.png
