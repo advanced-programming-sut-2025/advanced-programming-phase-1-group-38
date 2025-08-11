@@ -44,6 +44,8 @@ public class PlayerMapView implements Screen {
     private WorldController worldController;
     private int playerIndex;
 
+    private PlayerChatOverlay chatOverlay;
+
     private String activeSpeech = null;
     private float speechTimer = 0f;
     private NpcCharacter speakingNpc = null;
@@ -83,9 +85,14 @@ public class PlayerMapView implements Screen {
     private final Vector3 tmpProject = new Vector3();
 
     private GiftPopupView giftPopupView;
+    private Texture notifTex;
+    private Sprite  notifSprite;
 
     private final ShapeRenderer shapeRenderer = new ShapeRenderer();
     private boolean debugDraw = false;          // press F3 to toggle
+
+    private enum Panel { NONE, INVENTORY, CRAFTING, SHOP, SELL, COOKING, JOURNAL, CONTROLS, QUEST, GIFT, CHAT }
+    private Panel activePanel = Panel.NONE;
 
     public PlayerMapView(WorldController worldController, int playerIndex) {
         this.worldController = worldController;
@@ -130,9 +137,13 @@ public class PlayerMapView implements Screen {
 
         );
 
-        inventoryMenuView.setOnOpenSellMenu(() -> {
-            if (!isMenuOpen()) sellMenuView.toggle(); else if (sellMenuView.isVisible()) sellMenuView.toggle();
-        });
+        inventoryMenuView.setOnOpenSellMenu(() -> Gdx.app.postRunnable(() -> {
+            if (activePanel == Panel.INVENTORY) {
+                if (inventoryMenuView.isVisible()) inventoryMenuView.toggle(); // close current
+                if (!sellMenuView.isVisible()) sellMenuView.toggle();          // open target
+                activePanel = Panel.SELL;
+            }
+        }));
 
         cookingMenuView = new CookingMenuView(
             controller.getPlayer().getInventory(),
@@ -147,8 +158,10 @@ public class PlayerMapView implements Screen {
 
         npcQuestView = new NpcQuestPopupView(worldController, controller);
 
+        chatOverlay = new PlayerChatOverlay(worldController, controller);
         giftPopupView = new GiftPopupView(controller, worldController,
             controller.getPlayer().getInventory());
+        controller.setGiftPopup(giftPopupView);
 
         pointerTexture = new Texture(Gdx.files.internal("pointer.png"));
         clockPointer = new Sprite(pointerTexture);
@@ -178,9 +191,13 @@ public class PlayerMapView implements Screen {
 
         tiles = controller.getTiles();
 
+        notifTex = new Texture(Gdx.files.internal("gift.png")); // pick any 32x32 bell icon
+        notifSprite = new Sprite(notifTex);
+        notifSprite.setSize(32f, 32f);
+
         talkReadyAnim = GameAssetManager.getGameAssetManager().getFrameAnimation(
             "ui/dialogue_ready",   // cache key (any unique string)
-            "dialogue/",           // base path; method appends 1..N + ".png"
+            "dialogue/",           // base path; method appends 1-N + ".png"
             7,                     // frameCount
             0.10f,                 // frameDuration (sec)
             true                   // looping
@@ -193,14 +210,14 @@ public class PlayerMapView implements Screen {
 
     @Override
     public void render(float delta) {
-        if (Gdx.input.isKeyJustPressed(Input.Keys.N)) {
+        if (!uiOpen() && Gdx.input.isKeyJustPressed(Input.Keys.N)) {
             worldController.endTurnAndAdvanceIfRoundDone();
             int newIndex = worldController.getCurrentPlayerIndex();
             Main.getMain().setScreen(new PlayerMapView(worldController, newIndex));
             return; // avoid rendering the old player after switching
         }
 
-        if (Gdx.input.isKeyJustPressed(Input.Keys.M)) {
+        if (!uiOpen() && Gdx.input.isKeyJustPressed(Input.Keys.M)) {
             GameController[] ctrls = worldController.getAllControllers();
 
             java.util.List<PlayerWorldSlice> slices = new java.util.ArrayList<>(ctrls.length);
@@ -261,87 +278,100 @@ public class PlayerMapView implements Screen {
             return;
         }
 
-        if (Gdx.input.isKeyJustPressed(Input.Keys.R)) debugDraw = !debugDraw;
+        if (!uiOpen() && Gdx.input.isKeyJustPressed(Input.Keys.R)) debugDraw = !debugDraw;
+
+        if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
+            togglePanel(Panel.INVENTORY, true,
+                () -> { // open
+                    if (!inventoryMenuView.isVisible()) inventoryMenuView.toggle();
+                    int selected = inventoryRenderer.getSelectedIndex();
+                    inventoryMenuView.setSelectedIndex(selected);
+                },
+                () -> { // close
+                    if (inventoryMenuView.isVisible()) inventoryMenuView.toggle();
+                    int selected = inventoryMenuView.getSelectedIndex();
+                    inventoryRenderer.setSelectedIndex(selected);
+                }
+            );
+        }
 
         if (Gdx.input.isKeyJustPressed(Input.Keys.B)) {
-            boolean canOpen = !isMenuOpen();
-            if (canOpen) craftingMenuView.toggle();
-            else if (craftingMenuView.isVisible()) craftingMenuView.toggle();
+            togglePanel(Panel.CRAFTING, true,
+                () -> { if (!craftingMenuView.isVisible()) craftingMenuView.toggle(); },
+                () -> { if (craftingMenuView.isVisible())  craftingMenuView.toggle(); }
+            );
         }
 
         if (Gdx.input.isKeyJustPressed(Input.Keys.H)) {
-            controlsOverlay.toggle();
+            togglePanel(Panel.CONTROLS, true,
+                () -> { if (!controlsOverlay.isVisible()) controlsOverlay.toggle(); },
+                () -> { if (controlsOverlay.isVisible())  controlsOverlay.toggle(); }
+            );
         }
 
-        if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
-            boolean willOpen = !inventoryMenuView.isVisible();
-            inventoryMenuView.toggle();
-
-            if (willOpen) {
-                // 🔁 Menu is opening → copy hotbar state to menu
-                int selected = inventoryRenderer.getSelectedIndex();
-                inventoryMenuView.setSelectedIndex(selected);
-            } else {
-                // 🔁 Menu is closing → copy menu state to hotbar
-                int selected = inventoryMenuView.getSelectedIndex();
-                inventoryRenderer.setSelectedIndex(selected);
-            }
+        if (Gdx.input.isKeyJustPressed(Input.Keys.F)) {
+            togglePanel(Panel.JOURNAL, true,
+                () -> { if (!journalOverlay.isVisible()) journalOverlay.toggle(); },
+                () -> { if (journalOverlay.isVisible())  journalOverlay.toggle(); }
+            );
         }
-
-        if (Gdx.input.isKeyJustPressed(Input.Keys.F)) journalOverlay.toggle();
 
         if (Gdx.input.isKeyJustPressed(Input.Keys.K)) {
-            if (!isMenuOpen()) shopView.toggle(); else if (shopView.isVisible()) shopView.toggle();
+            togglePanel(Panel.SHOP, true,
+                () -> { if (!shopView.isVisible()) shopView.toggle(); },
+                () -> { if (shopView.isVisible())  shopView.toggle(); }
+            );
         }
 
-
-        if (Gdx.input.isKeyJustPressed(Input.Keys.C) && controller.isPlayerInHouse()) {
-            cookingMenuView.toggle();
+        if (Gdx.input.isKeyJustPressed(Input.Keys.C)) {
+            togglePanel(Panel.COOKING, controller.isPlayerInHouse(),
+                () -> { if (!cookingMenuView.isVisible()) cookingMenuView.toggle(); },
+                () -> { if (cookingMenuView.isVisible())  cookingMenuView.toggle(); }
+            );
         }
 
         if (Gdx.input.isKeyJustPressed(Input.Keys.Q)) {
-            if (npcQuestView.isVisible()) {
-                npcQuestView.close();
-            } else {
-                var npc = worldController.npc().closestOn(
-                    controller.getCurrentMapPath(),
-                    controller.getPlayerX(),
-                    controller.getPlayerY(),
-                    32f
-                );
-                if (npc != null) npcQuestView.open(npc);
-            }
+            togglePanel(Panel.QUEST, true,
+                () -> { // open
+                    var npc = worldController.npc().closestOn(
+                        controller.getCurrentMapPath(), controller.getPlayerX(), controller.getPlayerY(), 32f
+                    );
+                    if (npc != null) npcQuestView.open(npc);
+                },
+                () -> npcQuestView.close()
+            );
         }
 
         if (Gdx.input.isKeyJustPressed(Input.Keys.G)) {
-            if (giftPopupView.isVisible()) {
-                giftPopupView.close(); // toggle off
-            } else if (!isMenuOpen()) {
-                // only open if no other menu is open
-                var npc = worldController.npc().closestOn(
-                    controller.getCurrentMapPath(),
-                    controller.getPlayerX(), controller.getPlayerY(),
-                    32f
-                );
-                if (npc != null) giftPopupView.open(npc);
-                // else: optionally show a small toast that no NPC is nearby
-            }
+            togglePanel(Panel.GIFT, true,
+                () -> {
+                    var npc = worldController.npc().closestOn(
+                        controller.getCurrentMapPath(), controller.getPlayerX(), controller.getPlayerY(), 32f
+                    );
+                    if (npc != null && !giftPopupView.isVisible()) giftPopupView.open(npc);
+                },
+                () -> giftPopupView.close()
+            );
         }
-        if (!isMenuOpen() && Gdx.input.isKeyJustPressed(Input.Keys.T)) {
+
+        if (!uiOpen() && Gdx.input.isKeyJustPressed(Input.Keys.T)) {
             var npc = worldController.npc().closestOn(
-                controller.getCurrentMapPath(),
-                controller.getPlayerX(),
-                controller.getPlayerY(),
-                32f
+                controller.getCurrentMapPath(), controller.getPlayerX(), controller.getPlayerY(), 32f
             );
             if (npc != null && worldController.npc().hasDialogue(controller, npc, controller.getGameTime())) {
                 String line = worldController.npc().pickDialogue(controller, npc, controller.getGameTime());
-                if (line != null) {
-                    activeSpeech = line;
-                    speechTimer = 3.0f;
-                    speakingNpc = npc;
-                }
+                if (line != null) { activeSpeech = line; speechTimer = 3f; speakingNpc = npc; }
             }
+        }
+
+        if (Gdx.input.isKeyJustPressed(Input.Keys.Y)) {
+            togglePanel(Panel.CHAT, true,
+                () -> { if (!chatOverlay.isVisible()) chatOverlay.toggle();
+                    String myId = worldController.playerIdOf(controller);
+                    worldController.clearUnread(myId);
+                },
+                () -> { if (chatOverlay.isVisible()) chatOverlay.toggle(); }
+            );
         }
 
         boolean menuVisible = inventoryMenuView.isVisible();
@@ -353,13 +383,10 @@ public class PlayerMapView implements Screen {
 
         menuWasVisible = menuVisible;
 
-        if (!isMenuOpen()) {
-            if (!isMenuOpen()) {
-                worldController.updateAll(delta);
-                controller.updateFloatingIcons(delta);// everyone simulates; only current acts
-            }
+        if (!uiOpen()) {
+            worldController.updateAll(delta);
+            controller.updateFloatingIcons(delta);
         }
-
 
         TiledMap newMap = controller.getMap();
         if (newMap != map) {
@@ -617,11 +644,78 @@ public class PlayerMapView implements Screen {
             }
         }
 
+        // ----- Notifications bell (UI) -----
+        String myId = worldController.playerIdOf(controller);
+        int unread = worldController.getUnreadCount(myId);
+
+// place it near the clock
+        float bellX = clockBgSprite.getX() + clockBgSprite.getWidth() + 180f;
+        float bellY = clockBgSprite.getY() + 20;
+        notifSprite.setPosition(bellX, bellY);
+        notifSprite.draw(batch);
+
+// badge
+        if (unread > 0) {
+            // simple red circle + count
+            // (no ShapeRenderer here; just text – or draw a small red dot texture if you have one)
+            BitmapFont sf = GameAssetManager.getGameAssetManager().getSmallFont();
+            sf.setColor(1, 0.2f, 0.2f, 1);              // red-ish
+            sf.draw(batch, String.valueOf(unread), bellX + 22f, bellY + 26f);
+            sf.setColor(1,1,1,1);
+        }
+
+        if (Gdx.input.isButtonJustPressed(com.badlogic.gdx.Input.Buttons.LEFT)) {
+            float mx = Gdx.input.getX(), my = Gdx.graphics.getHeight() - Gdx.input.getY();
+            float bw = notifSprite.getWidth() * notifSprite.getScaleX();
+            float bh = notifSprite.getHeight() * notifSprite.getScaleY();
+            if (mx >= bellX && mx <= bellX + bw && my >= bellY && my <= bellY + bh) {
+                togglePanel(Panel.CHAT, true,
+                    () -> { if (!chatOverlay.isVisible()) chatOverlay.toggle();
+                        worldController.clearUnread(myId);
+                    },
+                    () -> { if (chatOverlay.isVisible()) chatOverlay.toggle(); }
+                );
+            }
+        }
+
+
+        if (chatOverlay != null && chatOverlay.isVisible()) {
+            chatOverlay.render(batch);
+        }
+
         if (giftPopupView != null && giftPopupView.isVisible()) {
             giftPopupView.render(batch);
         }
 
         batch.end();
+
+        syncActivePanel();
+    }
+
+    private boolean uiOpen() { return activePanel != Panel.NONE; }
+
+    private void togglePanel(Panel p, boolean canOpen, Runnable open, Runnable close) {
+        if (activePanel == Panel.NONE) {
+            if (canOpen) { open.run(); activePanel = p; }
+        } else if (activePanel == p) {
+            close.run(); activePanel = Panel.NONE;
+        } // if some *other* panel is open, do nothing
+    }
+
+    private void syncActivePanel() {
+        switch (activePanel) {
+            case INVENTORY -> { if (!inventoryMenuView.isVisible()) activePanel = Panel.NONE; }
+            case CRAFTING   -> { if (!craftingMenuView.isVisible())  activePanel = Panel.NONE; }
+            case SHOP       -> { if (!shopView.isVisible())           activePanel = Panel.NONE; }
+            case SELL       -> { if (!sellMenuView.isVisible())       activePanel = Panel.NONE; }
+            case COOKING    -> { if (!cookingMenuView.isVisible())    activePanel = Panel.NONE; }
+            case JOURNAL    -> { if (!journalOverlay.isVisible())     activePanel = Panel.NONE; }
+            case CONTROLS   -> { if (!controlsOverlay.isVisible())    activePanel = Panel.NONE; }
+            case QUEST      -> { if (!npcQuestView.isVisible())       activePanel = Panel.NONE; }
+            case GIFT       -> { if (!giftPopupView.isVisible())      activePanel = Panel.NONE; }
+            case CHAT       -> { if (chatOverlay == null || !chatOverlay.isVisible()) activePanel = Panel.NONE; }
+            default -> {}
+        }
     }
 
     private void updateCamera() {
@@ -650,16 +744,7 @@ public class PlayerMapView implements Screen {
         camera.update();
     }
 
-    private boolean isMenuOpen() {
-        return (inventoryMenuView != null && inventoryMenuView.isVisible())
-            || (cookingMenuView   != null && cookingMenuView.isVisible())
-            || (shopView          != null && shopView.isVisible())
-            || (sellMenuView      != null && sellMenuView.isVisible())
-            || (craftingMenuView  != null && craftingMenuView.isVisible())
-            || (npcQuestView      != null && npcQuestView.isVisible())
-            || (giftPopupView     != null && giftPopupView.isVisible());
-    }
-
+    private boolean isMenuOpen() { return uiOpen(); }
 
     private void renderOtherPlayers(SpriteBatch batch) {
         if (worldController == null) return;
@@ -701,5 +786,6 @@ public class PlayerMapView implements Screen {
         clockBgTexture.dispose();
         weatherTexture.dispose();
         shapeRenderer.dispose();
+        if (notifTex != null) notifTex.dispose();
     }
 }
