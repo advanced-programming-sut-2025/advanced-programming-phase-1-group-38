@@ -16,6 +16,8 @@ import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.Array;
 import io.github.StardewValley.models.*;
+import io.github.StardewValley.models.Artisan.MachineInstance;
+import io.github.StardewValley.models.Artisan.MachineType;
 import io.github.StardewValley.models.enums.Skill;
 
 import java.util.ArrayList;
@@ -30,7 +32,8 @@ public class GameController {
     private static final int EC_UNTILL = 1;
     private static final int EC_PLANT = 1;
     private static final int EC_HARVEST = 1;
-
+    private final List<MachineInstance> machines = new ArrayList<>();
+    public List<MachineInstance> getMachines() { return machines; }
     private final Player player;
     private final List<Door> doors = new ArrayList<>();
     private final List<RectangleMapObject> roofClickZones = new ArrayList<>();
@@ -114,6 +117,8 @@ public class GameController {
             }
             lastUpdatedDay = gameTime.getDay();
         }
+        for (MachineInstance m : machines) m.update(delta);
+
 
         TiledMapTileLayer roofLayer = (TiledMapTileLayer) map.getLayers().get("RoofTiles");
         if (roofLayer != null && roofLayer.isVisible() && !isPlayerInHouse()) {
@@ -130,6 +135,24 @@ public class GameController {
             }
         }
     }
+
+    public void addMachine(MachineType type, int tileX, int tileY) {
+        machines.add(new MachineInstance(type, tileX, tileY));
+    }
+
+    public MachineInstance findNearestMachine(float worldX, float worldY, float radius) {
+        MachineInstance best = null;
+        float best2 = radius * radius;
+        for (MachineInstance m : machines) {
+            float cx = m.tileX * TILE_SIZE + TILE_SIZE/2f;
+            float cy = m.tileY * TILE_SIZE + TILE_SIZE/2f;
+            float dx = worldX - cx, dy = worldY - cy;
+            float d2 = dx*dx + dy*dy;
+            if (d2 <= best2) { best2 = d2; best = m; }
+        }
+        return best;
+    }
+
 
     private void handleInput(float delta) {
         if (player.isActionLocked()) return;

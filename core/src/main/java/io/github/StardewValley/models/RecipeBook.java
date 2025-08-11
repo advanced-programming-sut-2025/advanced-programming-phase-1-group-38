@@ -74,7 +74,7 @@ public class RecipeBook {
         // ماهی
         list.add(new CookingRecipe(
                 "Sashimi",
-                M.apply(new Object[]{ MaterialType.AnyFish }, new Integer[]{ 1 }),
+                M.apply(new Object[]{ MaterialType.Salmon }, new Integer[]{ 1 }),
                 FoodType.SASHIMI
         ));
 
@@ -87,7 +87,7 @@ public class RecipeBook {
 
         list.add(new CookingRecipe(
                 "Maki Roll",
-                M.apply(new Object[]{ MaterialType.AnyFish, MaterialType.Rice, MaterialType.Fiber },
+                M.apply(new Object[]{ MaterialType.Salmon, MaterialType.Rice, MaterialType.Fiber },
                         new Integer[]{ 1, 1, 1 }),
                 FoodType.MAKI_ROLL
         ));

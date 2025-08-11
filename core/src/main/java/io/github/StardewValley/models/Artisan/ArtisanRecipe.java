@@ -1,40 +1,25 @@
-//package io.github.StardewValley.models.Artisan;
-//
-//import io.github.StardewValley.models.Item;
-//
-//import java.util.List;
-//
-//public class ArtisanRecipe {
-//    private final String name;
-//    private final String description;
-//    private final String processingTime;
-//    private final List<RecipeOption> options;
-//    private final ArtisanProductType productType;
-//
-//    public ArtisanRecipe(String name, String description, String processingTime,
-//                         List<RecipeOption> options, ArtisanProductType productType) {
-//        this.name = name;
-//        this.description = description;
-//        this.processingTime = processingTime;
-//        this.options = options;
-//        this.productType = productType;
-//    }
-//
-//    public String getName() { return name; }
-//    public String getDescription() { return description; }
-//    public String getProcessingTime() { return processingTime; }
-//    public List<RecipeOption> getOptions() { return options; }
-//    public ArtisanProductType getProductType() {
-//        return productType;
-//    }
-//
-//    public RecipeOption getMatchingOption(List<Item> items) {
-//        for (RecipeOption option : options) {
-//            if (option.getIngredient().matches(items)) {
-//                return option;
-//            }
-//        }
-//        return null;
-//    }
-//
-//}
+package io.github.StardewValley.models.Artisan;
+
+import io.github.StardewValley.models.ItemType;
+
+
+public class ArtisanRecipe {
+    public final MachineType machine;
+    public final ItemType input;
+    
+    public final int inputQty;
+    public final ArtisanProductType output;
+    public final int outputQty;
+    public final float prepareSeconds;
+    public final float workSeconds;
+    /** برای آیکن‌های واریانت (ژله/آبمیوه/شراب رنگی) اختیاریه */
+    public final String variantKey;
+
+    public ArtisanRecipe(MachineType m, ItemType in, int inQty,
+                            ArtisanProductType out, int outQty,
+                            float prep, float work, String variantKey) {
+        this.machine=m; this.input=in; this.inputQty=inQty;
+        this.output=out; this.outputQty=outQty;
+        this.prepareSeconds=prep; this.workSeconds=work; this.variantKey = variantKey;
+    }
+}

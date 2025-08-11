@@ -21,6 +21,8 @@ import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
 import io.github.StardewValley.controllers.GameController;
 import io.github.StardewValley.models.*;
+import io.github.StardewValley.models.Artisan.MachineInstance;
+import io.github.StardewValley.models.Artisan.MachineType;
 
 import static io.github.StardewValley.controllers.GameController.TILE_SIZE;
 
@@ -107,6 +109,8 @@ public class PlayerMapView implements Screen {
 
         );
         controller.getPlayer().getInventory().add(MaterialType.Wood, 50);
+        controller.getPlayer().getInventory().add(CropType.CARROT, 5);    // برای Jar/Keg
+        controller.getPlayer().getInventory().add(MaterialType.Wood, 50); // برای Charcoal Kiln
 
         inventoryMenuView.setOnOpenSellMenu(() -> {
             if (!isMenuOpen()) sellMenuView.toggle(); else if (sellMenuView.isVisible()) sellMenuView.toggle();
@@ -138,7 +142,13 @@ public class PlayerMapView implements Screen {
         dayNightClockTexture = new Texture(Gdx.files.internal("dayNight.png"));
         dayNightClockSprite = new Sprite(dayNightClockTexture);
         dayNightClockSprite.setScale(1.25f);
-
+// چند دستگاه کنار هم برای تست
+// دستگاه‌ها نزدیک محل اسپاون پلیر (35,24)
+        controller.addMachine(MachineType.CHARCOAL_KILN, 36, 24); // چوب → ذغال
+        controller.addMachine(MachineType.CHEESE_PRESS,  37, 24); // شیر → پنیر
+        controller.addMachine(MachineType.PRESERVE_JAR,  38, 24); // هویج → ترشی
+        controller.addMachine(MachineType.KEG,           39, 24); // هویج → آبمیوه (تست)
+        controller.addMachine(MachineType.MAYO_MACHINE,  40, 24); // تخم‌مرغ → مایونز
 
         WeatherType weatherType = controller.getWeather().getWeatherType();
         weatherTexture = new Texture(Gdx.files.internal(weatherType.getIconPath()));
@@ -193,6 +203,41 @@ public class PlayerMapView implements Screen {
 
         if (Gdx.input.isKeyJustPressed(Input.Keys.C) && controller.isPlayerInHouse()) {
             cookingMenuView.toggle();
+        }
+
+        // ── Artisan interaction ───────────────────────────────
+// X → اگر دستگاه نزدیکت DONE بود، بردار؛ اگر IDLE بود، با آیتم انتخاب‌شده استارت کن
+        if (!isMenuOpen() && Gdx.input.isKeyJustPressed(Input.Keys.X)) {
+            float px = controller.getPlayerX(), py = controller.getPlayerY();
+            MachineInstance m = controller.findNearestMachine(px, py, 40f); // حدود 2.5 tile
+            if (m != null) {
+                switch (m.state()) {
+                    case DONE:
+                        // خروجی رو بده توی اینونتوری و ریست
+                        m.collect(controller.getPlayer().getInventory());
+                        break;
+                    case IDLE:
+                        // از اسلات انتخاب‌شده‌ی هات‌بار آیتم بگیر
+                        ItemType heldType = inventoryRenderer.getSelectedType();
+                        if (heldType != null) {
+                            // نکته: heldQty را بزرگ می‌فرستیم؛ خود tryStart با remove چک می‌کند داری یا نه
+                            m.tryStart(controller.getPlayer().getInventory(), heldType, 999);
+                        }
+                        break;
+                    default:
+                        // PREPARING/WORKING → کاری نکن (می‌تونی پیام بدی)
+                        break;
+                }
+            }
+        }
+
+// Z → لغو فرایند دستگاه و برگرداندن ورودی‌ها
+        if (!isMenuOpen() && Gdx.input.isKeyJustPressed(Input.Keys.Z)) {
+            float px = controller.getPlayerX(), py = controller.getPlayerY();
+            MachineInstance m = controller.findNearestMachine(px, py, 40f);
+            if (m != null) {
+                m.cancel(controller.getPlayer().getInventory());
+            }
         }
 
         boolean menuVisible = inventoryMenuView.isVisible();

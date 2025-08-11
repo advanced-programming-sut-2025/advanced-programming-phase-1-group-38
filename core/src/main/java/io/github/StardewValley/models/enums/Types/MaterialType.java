@@ -4,15 +4,19 @@ import io.github.StardewValley.models.ItemType;
 
 public enum MaterialType implements MaterialTypes, ItemType {
 
-    Egg("egg"),
-    Milk("milk"),
-    Cheese("cheese"),
-    Sugar("sugar"),
-    Oil("oil"),
+    // ─── Animal / Dairy / Pantry ──────────────────────────────────────────────
+    Egg("Egg"),
+    Milk("Milk"),
+    Cheese("Cheese"),
+    Sugar("Sugar"),
+    Oil("Oil"),
+    Wool("Wool", "Animal_product/Wool.png"),
+    Truffle("Truffle", "Animal_product/Truffle.png"),
+    Honey("Honey", "Artisan/Honey.png"),
 
-    // Crops
+    // ─── Crops ────────────────────────────────────────────────────────────────
     Wheat("Wheat"),
-    WheatFlour("Wheat flour"),
+    WheatFlour("Wheat Flour"),
     Pumpkin("Pumpkin"),
     Tomato("Tomato"),
     Corn("Corn"),
@@ -20,7 +24,7 @@ public enum MaterialType implements MaterialTypes, ItemType {
     Blueberry("Blueberry"),
     Melon("Melon"),
     Apricot("Apricot"),
-    RedCabbage("Red cabbage"),
+    RedCabbage("Red Cabbage"),
     Radish("Radish"),
     Amaranth("Amaranth"),
     Kale("Kale"),
@@ -29,43 +33,46 @@ public enum MaterialType implements MaterialTypes, ItemType {
     Carrot("Carrot"),
     Eggplant("Eggplant"),
     Leek("Leek"),
+    Sunflower("Sunflower"),
+    SunflowerSeeds("Sunflower Seeds"),
+    Hops("Hops"),
 
-    // Fish
+    // ─── Fish (برای رسپی‌ها/دودکُن) ─────────────────────────────────────────
     Sardine("Sardine"),
     Salmon("Salmon"),
-    AnyFish("Any fish"),
     Flounder("Flounder"),
-    MidnightCarp("Midnight carp"),
+    MidnightCarp("Midnight Carp"),
 
-    // Foraged Type
+    // ─── Foraging ────────────────────────────────────────────────────────────
     Dandelion("Dandelion"),
     Coffee("Coffee"),
+    CoffeeBean("Coffee Bean"),
 
-    // Processed Type
+    // ─── Processed / Cooked basics (اگر نیاز شد در فروشگاه/رسپی) ───────────
     Rice("Rice"),
     Bread("Bread"),
-    HashBrowns("Hash browns"),
+    HashBrowns("Hashbrowns", "items/Hashbrowns.png"), // فایل واقعی یک‌کلمه‌ای است
     Omelet("Omelet"),
 
-    // Handicrafts Type
-    CopperOre("Copper ore"),
-    IronOre("Iron ore"),
-    GoldOre("Gold ore"),
-    IridiumOre("Iridium ore"),
-    CopperBar("Copper bar"),
-    IronBar("Iron bar"),
-    GoldBar("Gold bar"),
-    IridiumBar("Iridium bar"),
+    // ─── Resources / Ores / Bars / Misc ──────────────────────────────────────
+    CopperOre("Copper Ore"),
+    IronOre("Iron Ore"),
+    GoldOre("Gold Ore"),
+    IridiumOre("Iridium Ore"),
+    CopperBar("Copper Bar"),
+    IronBar("Iron Bar"),
+    GoldBar("Gold Bar"),
+    IridiumBar("Iridium Bar"),
     Wood("Wood"),
     Stone("Stone"),
-    Coal("Coal"),
+    Coal("Coal"),                 // خروجی Charcoal Kiln
     Fiber("Fiber"),
     Iron("Iron"),
     HardWood("Hard wood"),
     GoldCoin("Gold coin"),
     Diamond("Diamond"),
 
-    // pierre's remainings
+    // ─── Pierre’s / Shop leftovers ───────────────────────────────────────────
     Bouquet("Bouquet"),
     WeddingRing("Wedding Ring"),
     DehydratorRecipe("Dehydrator recipe"),
@@ -77,10 +84,10 @@ public enum MaterialType implements MaterialTypes, ItemType {
     BasicRetainingSoil("Basic retaining Soil"),
     QualityRetainingSoil("Quality-Retaining Soil"),
 
-    // Joja's remainings
+    // ─── Joja ────────────────────────────────────────────────────────────────
     JojaCola("Joja Cola"),
 
-    // Carpenter's items
+    // ─── Carpenter buildings (به‌عنوان آیتم خریدنی) ────────────────────────
     Barn("Barn"),
     BigBarn("Big Barn"),
     DeluxeBarn("Deluxe Barn"),
@@ -90,47 +97,63 @@ public enum MaterialType implements MaterialTypes, ItemType {
     Well("Well"),
     ShippingBin("Shipping Bin"),
 
-    // StarDrop Saloon
+    // ─── Stardrop Saloon items ───────────────────────────────────────────────
     Beer("Beer"),
     Salad("Salad"),
     Spaghetti("Spaghetti"),
     Pizza("Pizza"),
 
-    // Marine's Ranch items:
+    // ─── Marnie’s Ranch ─────────────────────────────────────────────────────
     Hay("Hay"),
     MilkPail("Milk Pail"),
     Shears("Shears"),
 
-    // Fishing poles :
-    FishSmokerRecipe( "Fish Smoker recipe"),
-    TroutSoup( "Trout Soup"),
-    BambooPole( "Bamboo Pole"),
+    // ─── Fishing poles & recipes ─────────────────────────────────────────────
+    FishSmokerRecipe("Fish Smoker recipe"),
+    TroutSoup("Trout Soup"),
+    BambooPole("Bamboo Pole"),
     TrainingRod("Training Rod"),
     FiberglassRod("Fiberglass Rod"),
     IridiumRod("Iridium Rod");
 
+    // ─────────────────────────── Fields ───────────────────────────
     private final String name;
+    /** اگر اسم فایل با نام آیتم متفاوت است، این را مقدار بده (می‌تواند شامل پوشه باشد). */
+    private final String iconOverride;
 
+    // ───────────────────── Constructors ─────────────────────
     MaterialType(String name) {
-        this.name = name;
+        this(name, null);
     }
 
-    // ========= ItemType =========
-    @Override public boolean isTool() { return false; }
+    MaterialType(String name, String iconOverride) {
+        this.name = name;
+        this.iconOverride = iconOverride;
+    }
 
-    @Override public String getName() { return this.name; } // legacy
-
+    // ───────────────────── ItemType / MaterialTypes ─────────────────────
+    @Override public boolean isTool() { return false; }           // اگر لازم شد می‌توانی برای بعضی‌ها true کنی
+    @Override public String getName() { return this.name; }
     @Override public String id() { return this.name; }
 
-    @Override public String iconPath() {
-        // همه‌ی فایل‌ها طبق لیستت داخل یک پوشه هستند؛ اگر نیست، base را تغییر بده.
-        final String base = "items/";
+    @Override
+    public String iconPath() {
+        // اگر برای این آیتم مسیر خاص داده شده، همان را برگردان
+        if (iconOverride != null) {
+            // اگر کاربر مسیر کامل داده باشد (مثلاً "Animal_product/Wool.png") ما فقط prefix را اضافه می‌کنیم اگر لازم بود
+            if (iconOverride.startsWith("items/") || iconOverride.contains("/")) {
+                return iconOverride.startsWith("items/") ? iconOverride : iconOverride; // مسیر دلخواه
+            }
+            return "items/" + iconOverride;
+        }
 
-        // TitleCase + space→_ + apostrophe→%27  (مثل Tub_o%27_Flowers.png)
+        // ساخت خودکار مسیر: items/Title_Case_With_Underscores.png
+        final String base = "items/";
         String s = this.name.trim().replaceAll("\\s+", " ");
-        StringBuilder out = new StringBuilder();
+        StringBuilder out = new StringBuilder(s.length());
         for (int i = 0; i < s.length(); i++) {
             char c = s.charAt(i);
+            // حروف اول هر کلمه را کپیتال کن
             if (i == 0 || s.charAt(i - 1) == ' ' || s.charAt(i - 1) == '-') {
                 out.append(Character.toUpperCase(c));
             } else {

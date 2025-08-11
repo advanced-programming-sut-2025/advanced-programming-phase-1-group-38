@@ -50,7 +50,7 @@ public enum CookingRecipes implements MaterialTypes {
     )),
 
     MakiRoll("Maki Roll", 100, null, false, 0, 220, Map.of(
-            MaterialType.AnyFish, 1,
+            MaterialType.Salmon, 1,
             MaterialType.Rice, 1,
             MaterialType.Fiber, 1
     )),
