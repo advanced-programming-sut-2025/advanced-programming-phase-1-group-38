@@ -1,6 +1,8 @@
 // models/QuestBook.java
 package io.github.StardewValley.models;
 
+import io.github.StardewValley.models.enums.Types.MaterialType;
+
 import java.util.*;
 
 public final class QuestBook {
