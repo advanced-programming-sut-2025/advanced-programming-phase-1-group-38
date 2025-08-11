@@ -19,6 +19,10 @@ public class NpcController {
     private final NpcSocialService social;
     private final NpcQuestService quests;
     private final PlayerIdProvider pid;
+    private final java.util.Map<String, java.util.Map<String, Integer>> dialogueCooldownHour = new java.util.HashMap<>();
+    private int absHour(GameTime t) { return t.getDay() * 24 + t.getHour(); }
+    private final java.util.Map<String, java.util.Set<ItemType>> favsByNpc = new java.util.HashMap<>();
+
 
     public NpcController(NpcSocialService social, NpcQuestService quests, PlayerIdProvider pid) {
         this.social = social;
@@ -88,9 +92,54 @@ public class NpcController {
         return quests.tryCompleteQ3(npcId, t.getDay());
     }
 
-    // ---- Config pass-through ----------------------------------------------
-    public void setFavorites(String npcId, Set<ItemType> favs) {
+    public void setFavorites(String npcId, java.util.Set<ItemType> favs) {
         social.setFavorites(npcId, favs);
+        favsByNpc.put(npcId, favs);
+    }
+
+    public java.util.Set<ItemType> favoritesOf(String npcId) {
+        return favsByNpc.getOrDefault(npcId, java.util.Collections.emptySet());
+    }
+
+    // Add:
+    public boolean isFavorite(String npcId, ItemType t) {
+        if (t == null) return false;
+        var favs = favoritesOf(npcId);
+        for (ItemType f : favs) {
+            if (sameItem(f, t)) return true;
+        }
+        return false;
+    }
+
+    private boolean sameItem(ItemType a, ItemType b) {
+        if (a == b) return true;
+        if (a == null || b == null) return false;
+
+        // Best: compare explicit IDs if you have them
+        // return a.getId().equals(b.getId());
+
+        // Safe fallback: same class + same iconPath (what you already use for drawing)
+        return a.getClass() == b.getClass()
+                && String.valueOf(a.iconPath()).equals(String.valueOf(b.iconPath()));
+    }
+
+    // Build a canonical key for any ItemType.
+// For crops, use the crop sprite path; for others, iconPath.
+    public static String itemKey(ItemType t) {
+        if (t == null) return "null";
+        String icon = (t instanceof io.github.StardewValley.models.CropType)
+                ? ((io.github.StardewValley.models.CropType)t).cropTexture()
+                : String.valueOf(t.iconPath());
+        return t.getClass().getName() + "|" + icon;
+    }
+
+    // Precompute favorite keys for an NPC
+    public java.util.Set<String> favoriteKeys(String npcId) {
+        java.util.Set<String> keys = new java.util.HashSet<>();
+        for (ItemType it : favoritesOf(npcId)) {
+            keys.add(itemKey(it));
+        }
+        return keys;
     }
 
     public void setSendableGifts(String npcId, List<ItemType> gifts) {
@@ -128,8 +177,8 @@ public class NpcController {
             NpcCharacter robin = new NpcCharacter("robin", "Robin", npcMapPath, p[0], p[1]);
             robin.setAnimation("idle", "npc/robin/", 4, 0.18f, true);
             addNpc(robin);
-            social.setFavorites("robin", setOf(FoodType.SPAGHETTI, MaterialType.Wood, MaterialType.IronBar));
-            social.setSendableGifts("robin", java.util.Arrays.asList(MaterialType.Wood, MaterialType.IronBar));
+            setFavorites("robin", setOf(FoodType.SPAGHETTI, MaterialType.Wood, MaterialType.IronBar));
+            setSendableGifts("robin", java.util.Arrays.asList(MaterialType.Wood, MaterialType.IronBar));
         }
     }
 
@@ -169,6 +218,49 @@ public class NpcController {
 
     private static java.util.Set<ItemType> setOf(ItemType... items) {
         return new java.util.HashSet<>(java.util.Arrays.asList(items));
+    }
+
+    // --- Dialogue helpers ---
+    public boolean hasDialogue(GameController gc, NpcCharacter npc, GameTime time) {
+        if (isOnDialogueCooldown(gc, npc, time)) return false;   // ← no dialogue during cooldown
+        int lv = social.level(npc.id, pid.getPlayerId(gc));
+        for (var line : io.github.StardewValley.models.NpcDialogueBook.getFor(npc.id)) {
+            if (line.matches(time, lv)) return true;
+        }
+        return false;
+    }
+
+    public String pickDialogue(GameController gc, NpcCharacter npc, GameTime time) {
+        if (isOnDialogueCooldown(gc, npc, time)) return null;    // safety
+
+        int lv = social.level(npc.id, pid.getPlayerId(gc));
+        java.util.ArrayList<io.github.StardewValley.models.NpcDialogueBook.Line> pool = new java.util.ArrayList<>();
+        for (var line : io.github.StardewValley.models.NpcDialogueBook.getFor(npc.id)) {
+            if (line.matches(time, lv)) pool.add(line);
+        }
+        if (pool.isEmpty()) return null;
+
+        String text = pool.get(com.badlogic.gdx.math.MathUtils.random(pool.size() - 1)).text;
+
+        startDialogueCooldown(gc, npc, time, 1);
+
+        return text;
+    }
+
+    private boolean isOnDialogueCooldown(GameController gc, NpcCharacter npc, GameTime t) {
+        String playerId = pid.getPlayerId(gc);
+        var byPlayer = dialogueCooldownHour.get(npc.id);
+        if (byPlayer == null) return false;
+        Integer unlockAt = byPlayer.get(playerId);
+        return unlockAt != null && absHour(t) < unlockAt;
+    }
+
+    private void startDialogueCooldown(GameController gc, NpcCharacter npc, GameTime t, int hours) {
+        String playerId = pid.getPlayerId(gc);
+        int unlockAt = absHour(t) + hours;
+        dialogueCooldownHour
+                .computeIfAbsent(npc.id, k -> new java.util.HashMap<>())
+                .put(playerId, unlockAt);
     }
 
 }

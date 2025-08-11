@@ -220,33 +220,6 @@ public class GameController {
                     Gdx.app.log("Talk", "points=" + gained);
                 }
             }
-        } else if (Gdx.input.isKeyJustPressed(Input.Keys.G)) {
-            if (worldController != null) {
-                ItemType held = player.getInventoryRenderer().getSelectedType();
-
-                // don’t gift tools
-                if (held == null || (held instanceof ToolType)) return;
-
-                var npc = worldController.npc().closestOn(currentMapPath, player.getX(), player.getY(), 32f);
-                if (npc == null) return;
-
-                int points = worldController.npc().gift(this, npc, held, gameTime);
-
-                // First gift of the day should be 50 (normal) or 200 (favorite). Otherwise 0.
-                if (points >= 50) {
-                    int removed = player.getInventory().remove(held, 1);
-                    Gdx.app.log("Gift", "points=" + points + " removed=" + removed + " item=" + held);
-
-                    // If removed==false, you likely have an equals/hashCode mismatch for ItemType.
-                    // Optional fallback if you have a removeById or similar:
-                    // if (!removed) removed = player.getInventory().removeByTypeId(held.getId(), 1);
-
-                    // TODO: show toast: npc.getName() + " +"+points
-                } else {
-                    // TODO: show toast: "Already gifted today" or "They don't want this"
-                    Gdx.app.log("Gift", "points=0 (not consumed) item=" + held);
-                }
-            }
         } else if (Gdx.input.justTouched() && camera != null) {
             Vector3 world = camera.unproject(
                 new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0));
@@ -679,4 +652,38 @@ public class GameController {
     public void setWorldController(WorldController wc) {
         this.worldController = wc;
     }
+
+
+    public static class FloatingIcon {
+        public float x, y;          // world coordinates
+        public float age = 0f;      // seconds elapsed
+        public float life = 1.0f;   // seconds total
+        public String texKey;       // texture key in GameAssetManager (e.g., "ui/gift.png")
+        public float rise = 24f;    // how many world units to rise over life
+        public float size = 16f;    // draw size (world units)
+    }
+
+    private final com.badlogic.gdx.utils.Array<FloatingIcon> floatingIcons = new com.badlogic.gdx.utils.Array<>();
+
+    public void spawnFloatingIcon(String texKey, float worldX, float worldY, float lifeSec) {
+        FloatingIcon e = new FloatingIcon();
+        e.texKey = texKey;
+        e.x = worldX;
+        e.y = worldY;
+        e.life = lifeSec;
+        floatingIcons.add(e);
+    }
+
+    public com.badlogic.gdx.utils.Array<FloatingIcon> getFloatingIcons() {
+        return floatingIcons;
+    }
+
+    public void updateFloatingIcons(float dt) {
+        for (int i = floatingIcons.size - 1; i >= 0; i--) {
+            FloatingIcon e = floatingIcons.get(i);
+            e.age += dt;
+            if (e.age >= e.life) floatingIcons.removeIndex(i);
+        }
+    }
+
 }

@@ -6,7 +6,6 @@ import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import com.badlogic.gdx.utils.Align;
 import io.github.StardewValley.models.*;
 
 import java.util.ArrayList;
@@ -18,6 +17,7 @@ import java.util.List;
  */
 public class ShopView {
     private final Inventory inventory;
+    private  final GameEconomy gameEconomy;
     private final List<ShopProduct> all;
     private final List<ShopProduct> filtered = new ArrayList<>();
 
@@ -34,9 +34,10 @@ public class ShopView {
 
     private int filter = 0; // 0=All, 1=Seeds, 2=Tools, 3=Food, 4=Materials
 
-    public ShopView(Inventory inv, List<ShopProduct> products) {
+    public ShopView(Inventory inv, List<ShopProduct> products, GameEconomy gameEconomy) {
         this.inventory = inv;
         this.all = products;
+        this.gameEconomy = gameEconomy;
         this.filtered.addAll(products);
         this.panel = new Texture("inventory/panel_bg.png");
         this.slot  = new Texture("inventory/slot.png");
@@ -104,7 +105,7 @@ public class ShopView {
             small.draw(batch, p.getItem().id(), dx, dy+120);
             small.draw(batch, "Price: "+p.getPrice()+"g", dx, dy+100);
             small.draw(batch, "Stock: "+(p.getStock()<0?"∞":p.getStock()), dx, dy+80);
-            small.draw(batch, "Gold: "+ GameEconomy.getGold(), dx, dy+60);
+            small.draw(batch, "Gold: "+ gameEconomy.getGold(), dx, dy+60);
 
             // qty controls
             batch.draw(btnMinus, dx, dy+20, 28, 28);
@@ -157,7 +158,7 @@ public class ShopView {
     private void tryBuy(ShopProduct p) {
         if (p.isOutOfStock()) return;
         int total = p.getPrice() * qty;
-        if (!GameEconomy.spendGold(total)) return; // not enough gold
+        if (!gameEconomy.spendGold(total)) return; // not enough gold
         // clamp qty to stock
         int real = qty;
         if (p.getStock() > 0) real = Math.min(qty, p.getStock());

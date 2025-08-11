@@ -14,13 +14,15 @@ import java.util.List;
 /** Simple selling menu opened from the bin icon inside Inventory. */
 public class SellMenuView {
     private final Inventory inventory;
+    private final GameEconomy gameEconomy;
     private final Texture panel, slot, slotSel, btnSell, btnPlus, btnMinus;
     private boolean visible = false;
     private int sel = 0, qty = 1;
     private final List<ItemType> items = new ArrayList<>();
 
-    public SellMenuView(Inventory inv) {
+    public SellMenuView(Inventory inv, GameEconomy gameEconomy) {
         this.inventory = inv;
+        this.gameEconomy = gameEconomy;
         this.panel = new Texture("inventory/panel_bg.png");
         this.slot  = new Texture("inventory/slot.png");
         this.slotSel = new Texture("inventory/slot_selected.png");
@@ -81,7 +83,7 @@ public class SellMenuView {
             small.draw(batch, t.id(), dx, dy+120);
             small.draw(batch, "You have: "+have, dx, dy+100);
             small.draw(batch, "Unit: "+price+"g", dx, dy+80);
-            small.draw(batch, "Gold: "+GameEconomy.getGold(), dx, dy+60);
+            small.draw(batch, "Gold: "+ gameEconomy.getGold(), dx, dy+60);
 
             // qty
             batch.draw(btnMinus, dx, dy+20, 28, 28);
@@ -124,8 +126,18 @@ public class SellMenuView {
         if (real <= 0) return;
         int value = getSellPrice(t) * real;
         inventory.remove(t, real);
-        GameEconomy.addGold(value);
+        gameEconomy.addGold(value);
         refresh();
     }
+
+    public void dispose() {
+        panel.dispose();
+        slot.dispose();
+        slotSel.dispose();
+        btnSell.dispose();
+        btnPlus.dispose();
+        btnMinus.dispose();
+    }
+
 }
 

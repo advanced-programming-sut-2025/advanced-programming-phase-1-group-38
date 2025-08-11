@@ -41,10 +41,10 @@ public class NpcQuestPopupView {
 
         GameAssetManager am = GameAssetManager.getGameAssetManager();
         panelBg     = am.getTexture("inventory/panel_bg.png");
-        completeBtn = am.getTexture("inventory/cook_button.png");
-        lockIcon    = am.getTexture("black.png");
-        goldIcon    = am.getTexture("black.png");
-        heartIcon   = am.getTexture("black.png");
+        completeBtn = am.getTexture("inventory/complete.png");
+        lockIcon    = am.getTexture("inventory/lock.png");
+        goldIcon    = am.getTexture("gold_coin.png");
+        heartIcon   = am.getTexture("inventory/heart.png");
 
         titleFont  = am.getBigFont();
         rowFont    = am.getBigFont();
@@ -66,20 +66,22 @@ public class NpcQuestPopupView {
 
         titleFont.draw(b, npc.name + " — Quests", x + PADDING, y + H - 12);
 
+        drawFriendship(b, x, y + H - 36);
+
         List<QuestDef> quests = QuestBook.getForNpc(npc.id);
         if (quests.isEmpty()) {
-            smallFont.draw(b, "No quests available.", x + PADDING, y + H - 60);
+            smallFont.draw(b, "No quests available.", x + PADDING, y + H - 80);
         }
 
-        float rowY = y + H - 60;
+        float rowY = y + H - 80;   // lowered to make room for friendship line
         for (int i = 0; i < quests.size(); i++) {
             drawQuestRow(b, quests.get(i), x, rowY);
             rowY -= ROW_H;
-            if (rowY < y + 60) break; // simple clipping if too many
+            if (rowY < y + 60) break;
         }
 
         smallFont.setColor(1,1,1,0.75f);
-        smallFont.draw(b, "Q or Esc to close", x + PADDING, y + PADDING);
+        smallFont.draw(b, "Q to close", x + PADDING, y + PADDING);
         smallFont.setColor(Color.WHITE);
 
         handleInput();
@@ -89,8 +91,8 @@ public class NpcQuestPopupView {
         final float textX = x + PADDING;
         final float icon = 26f;
         final float rewardX = x + W * 0.48f;
-        final float btnW = 70, btnH = 70;
-        final float btnX = x + W - PADDING - btnW;
+        final float btnW = 55, btnH = 55;
+        final float btnX = x + W - PADDING - btnW - 30;
         final float btnY = rowY - btnH + 8;
 
         // title first
@@ -104,7 +106,7 @@ public class NpcQuestPopupView {
             default -> false;
         };
         if (done) {
-            smallFont.setColor(Color.GOLD);
+            smallFont.setColor(Color.GREEN);
             smallFont.draw(b, "COMPLETED", btnX - 6, rowY - 22);
             smallFont.setColor(Color.WHITE);
             return; // ← don't draw ingredients after completion
@@ -129,7 +131,7 @@ public class NpcQuestPopupView {
             b.draw(lockIcon, btnX, btnY, btnW, btnH);
             if (!why.isEmpty()) {
                 smallFont.setColor(1f,1f,1f,0.75f);
-                smallFont.draw(b, why, btnX - 6, btnY - 6);
+                smallFont.draw(b, why, btnX - 16, btnY - 6);
                 smallFont.setColor(Color.WHITE);
             }
             return; // ← no requirements or button while locked
@@ -178,7 +180,7 @@ public class NpcQuestPopupView {
         // --- Complete button (active + not completed) ---
         boolean canComplete = hasAll(q);
         if (canComplete) {
-            b.draw(completeBtn, btnX, btnY, btnW, btnH);
+            b.draw(completeBtn, btnX - 15, btnY, 80, 80);
             if (Gdx.input.isButtonJustPressed(Input.Buttons.LEFT)) {
                 float mx = Gdx.input.getX();
                 float my = Gdx.graphics.getHeight() - Gdx.input.getY();
@@ -191,6 +193,37 @@ public class NpcQuestPopupView {
             b.draw(completeBtn, btnX, btnY, btnW, btnH);
             b.setColor(Color.WHITE);
         }
+    }
+
+    private void drawFriendship(SpriteBatch b, float x, float yTop) {
+        if (npc == null) return;
+
+        // Get friendship stats
+        int pts     = world.npc().points(playerCtrl, npc.id);
+        int lv      = world.npc().level(playerCtrl, npc.id);
+        int per     = NpcSocialService.POINTS_PER_HEART;     // 200
+        int inLevel = Math.max(0, pts - lv * per);
+        inLevel = Math.min(inLevel, per);
+
+        // Left side: textual summary
+        String text = "Friendship  Lv " + lv + "   (" + inLevel + "/" + per + ")   total: " + pts;
+        smallFont.draw(b, text, x + PADDING, yTop - 6);
+
+        // Right side: 3 heart glyphs
+        final int maxHearts = 3;
+        float heartGap = 20f;
+        float heartsW = (maxHearts - 1) * heartGap;
+        float startX = x + W - PADDING - heartsW;
+        float baseline = yTop - 6;
+
+        for (int i = 0; i < maxHearts; i++) {
+            // filled if below current level
+            if (i < lv) smallFont.setColor(1f, 0.35f, 0.35f, 1f);     // red-ish
+            else        smallFont.setColor(1f, 1f, 1f, 0.35f);        // faded
+
+            smallFont.draw(b, "❤", startX + i * heartGap, baseline);
+        }
+        smallFont.setColor(1f,1f,1f,1f); // reset
     }
 
 
@@ -234,7 +267,7 @@ public class NpcQuestPopupView {
             for (var e : q.rewardItems.entrySet()) bag.add(e.getKey(), e.getValue());
         }
         if (q.rewardGold != null && q.rewardGold > 0) {
-            // playerCtrl.getPlayer().addGold(q.rewardGold); // or bag.add(GOLD, q.rewardGold);
+             playerCtrl.getPlayer().getGameEconomy().addGold(q.rewardGold); // or bag.add(GOLD, q.rewardGold);
         }
         if (q.rewardFriendPoints != null && q.rewardFriendPoints > 0) {
             world.npc().addFriendPoints(playerCtrl, npc.id, q.rewardFriendPoints);

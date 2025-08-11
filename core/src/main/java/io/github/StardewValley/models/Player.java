@@ -19,6 +19,7 @@ public class Player {
     private float actionCooldown = 0f;
     private boolean isCurrentAnimationLooping = true;
     private final List<CookingRecipe> recipeList;
+    GameEconomy gameEconomy;
     // === Energy ===
     private int maxEnergy = 270;      // قابل‌تنظیم
     private int energy = maxEnergy;
@@ -42,6 +43,7 @@ public class Player {
         this.y = y;
         this.setAnimation("idle_down", "character/idle/down", 2, 0.4f, true);
         this.inventory = new Inventory(inventorySize);
+        this.gameEconomy = new GameEconomy(250);
         this.fridge = new Inventory(36);
         this.inventoryRenderer = new InventoryRenderer(inventory);
 
@@ -54,6 +56,7 @@ public class Player {
         inventory.add(SeedType.CORN_SEED, 20);
         inventory.add(SeedType.CARROT_SEED, 20);
         inventory.add(CropType.CORN, 10);
+        inventory.add(MaterialType.Wood, 80);
     }
 
     public void render(SpriteBatch batch) {
@@ -166,5 +169,8 @@ public class Player {
         return currentAnimationKey;
     }
 
+    public GameEconomy getGameEconomy() {
+        return gameEconomy;
+    }
 
 }

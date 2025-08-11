@@ -3,6 +3,7 @@ package io.github.StardewValley.models.Artisan;
 import io.github.StardewValley.models.ItemType;
 
 public enum MachineType implements ItemType {
+    BEE_HOUSE("Bee House", "items/Bee_house.png"),
     KEG("Keg", "items/keg.png"),
     PRESERVE_JAR("Preserves Jar", "items/preserves_jar.png"),
     CHEESE_PRESS("Cheese Press", "items/cheese_press.png"),

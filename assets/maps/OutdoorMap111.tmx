@@ -210,7 +210,7 @@
     <property name="targetMap" value="same"/>
    </properties>
   </object>
-  <object id="30" x="600" y="136" width="32" height="32">
+  <object id="30" x="608" y="144" width="16" height="16">
    <properties>
     <property name="spawnX" type="int" value="11"/>
     <property name="spawnY" type="int" value="19"/>
