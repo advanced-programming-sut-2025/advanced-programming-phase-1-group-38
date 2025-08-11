@@ -127,8 +127,8 @@ public class NpcController {
             NpcCharacter robin = new NpcCharacter("robin", "Robin", npcMapPath, p[0], p[1]);
             robin.setAnimation("idle", "npc/robin/", 4, 0.18f, true);
             addNpc(robin);
-            social.setFavorites("robin", setOf(ToolType.PICKAXE));
-            social.setSendableGifts("robin", java.util.Arrays.asList(ToolType.PICKAXE));
+            social.setFavorites("robin", setOf(FoodType.SPAGHETTI, MaterialType.Wood, MaterialType.IronBar));
+            social.setSendableGifts("robin", java.util.Arrays.asList(MaterialType.Wood, MaterialType.IronBar));
         }
     }
 
