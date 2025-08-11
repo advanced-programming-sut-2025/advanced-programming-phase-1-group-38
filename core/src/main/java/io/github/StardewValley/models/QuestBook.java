@@ -1,6 +1,8 @@
 // models/QuestBook.java
 package io.github.StardewValley.models;
 
+import io.github.StardewValley.models.Artisan.MachineType;
+
 import java.util.*;
 
 public final class QuestBook {
@@ -17,12 +19,13 @@ public final class QuestBook {
         robin.add(QuestDef.b(2, "Deliver 10 Iron")
             .minLv(1) // requires Lv1 friendship
             .req(MaterialType.IronBar, 10)
-            .friendPts(200) // +1 heart
+//            .friendPts(200) // +1 heart
+            .req(MachineType.BEE_HOUSE, 3)
             .build());
 
         robin.add(QuestDef.b(3, "Deliver 1000 Wood")
             .req(MaterialType.Wood, 1000)
-            .gold(2500)
+            .gold(25000)
             .build());
 
         NPC_QUESTS.put("robin", Collections.unmodifiableList(robin));
