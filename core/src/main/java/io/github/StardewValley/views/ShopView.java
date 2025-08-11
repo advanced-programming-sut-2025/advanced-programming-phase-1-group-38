@@ -6,7 +6,6 @@ import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import com.badlogic.gdx.utils.Align;
 import io.github.StardewValley.models.*;
 
 import java.util.ArrayList;
@@ -18,7 +17,7 @@ import java.util.List;
  */
 public class ShopView {
     private final Inventory inventory;
-    private GameEconomy gameEconomy;
+    private  final GameEconomy gameEconomy;
     private final List<ShopProduct> all;
     private final List<ShopProduct> filtered = new ArrayList<>();
 

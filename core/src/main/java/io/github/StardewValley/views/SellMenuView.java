@@ -14,7 +14,7 @@ import java.util.List;
 /** Simple selling menu opened from the bin icon inside Inventory. */
 public class SellMenuView {
     private final Inventory inventory;
-    private GameEconomy gameEconomy;
+    private final GameEconomy gameEconomy;
     private final Texture panel, slot, slotSel, btnSell, btnPlus, btnMinus;
     private boolean visible = false;
     private int sel = 0, qty = 1;
