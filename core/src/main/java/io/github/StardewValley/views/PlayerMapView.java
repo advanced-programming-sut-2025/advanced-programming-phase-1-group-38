@@ -191,7 +191,7 @@ public class PlayerMapView implements Screen {
 
         tiles = controller.getTiles();
 
-        notifTex = new Texture(Gdx.files.internal("gift.png")); // pick any 32x32 bell icon
+        notifTex = new Texture(Gdx.files.internal("notification_bell.png")); // pick any 32x32 bell icon
         notifSprite = new Sprite(notifTex);
         notifSprite.setSize(32f, 32f);
 

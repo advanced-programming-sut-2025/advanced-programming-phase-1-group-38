@@ -1,6 +1,7 @@
 package io.github.StardewValley.controllers;
 
 // WorldController.java
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.maps.tiled.TiledMap;
 import io.github.StardewValley.models.*;
 import io.github.StardewValley.views.NpcWorldSlice;
@@ -143,6 +144,55 @@ public class WorldController {
         return out;
     }
 
+    // WorldController.java
+    public static class GiftReceipt {
+        public final String fromId, toId, itemId, itemName;
+        public final long ts;
+        public Integer rating; // null until rated
+        public GiftReceipt(String fromId, String toId, String itemId, String itemName, long ts) {
+            this.fromId = fromId; this.toId = toId;
+            this.itemId = itemId; this.itemName = itemName; this.ts = ts;
+        }
+    }
+
+    // per-recipient inbox
+    private final java.util.Map<String, java.util.Deque<GiftReceipt>> giftInbox = new java.util.HashMap<>();
+
+    public void recordGift(String fromId, String toId, String itemId, String itemName, long ts) {
+        giftInbox.computeIfAbsent(toId, k -> new java.util.ArrayDeque<>())
+            .add(new GiftReceipt(fromId, toId, itemId, itemName, ts));
+    }
+
+    // gifts between selected → me (only incoming to me)
+    public java.util.List<GiftReceipt> giftsBetween(String myId, String otherId) {
+        java.util.Deque<GiftReceipt> deq = giftInbox.getOrDefault(myId, new java.util.ArrayDeque<>());
+        java.util.ArrayList<GiftReceipt> out = new java.util.ArrayList<>();
+        for (GiftReceipt r : deq) if (r.fromId.equals(otherId)) out.add(r);
+        return out;
+    }
+
+    public GiftReceipt lastUnratedFromTo(String fromId, String toId) {
+        java.util.Deque<GiftReceipt> deq = giftInbox.getOrDefault(toId, new java.util.ArrayDeque<>());
+        java.util.Iterator<GiftReceipt> it = deq.descendingIterator();
+        while (it.hasNext()) {
+            GiftReceipt r = it.next();
+            if (r.fromId.equals(fromId) && r.rating == null) return r;
+        }
+        return null;
+    }
+
+    // apply rating & friendship formula if first gift today
+    public void rateGift(GiftReceipt r, int rating) {
+        if (r == null || rating < 1 || rating > 5) return;
+        r.rating = rating;
+
+        int day = getSharedTime().getDay();
+        // only first gift of the day from A -> B gets points
+        if (playerFriends().markFirstGiftToday(r.fromId, r.toId, day)) {
+            int points = (rating - 3) * 30 + 15;
+            playerFriends().add(r.fromId, r.toId, points);
+        }
+    }
 
     public void dispose() {
         for (GameController gc : controllers) if (gc != null) gc.dispose();

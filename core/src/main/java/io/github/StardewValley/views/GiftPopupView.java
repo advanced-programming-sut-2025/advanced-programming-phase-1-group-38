@@ -271,6 +271,9 @@ public class GiftPopupView {
 
         if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) {
             giveSelected();
+        }
+
+        if (Gdx.input.isKeyJustPressed(Input.Keys.G)) {
             close();
         }
     }
@@ -310,20 +313,63 @@ public class GiftPopupView {
         String a = world.playerIdOf(gc);
         String b = world.playerIdOf(targetPlayer);
         int day  = gc.getGameTime().getDay();
-        int delta = world.playerFriends().giftOncePerDay(a, b, day, false);
-        if (delta <= 0) { toast("Already gifted today"); return; }
 
-        if (inventory.remove(t, 1) == 0) { toast("No item left"); return; }
-        targetPlayer.getPlayer().getInventory().add(t, 1);
+// remove from giver (0 = success)
+        int leftoverRemove = inventory.remove(t, 1);
+        if (leftoverRemove > 0) {
+            toast("No item left");
+            return;
+        }
 
-        gc.spawnFloatingIcon("gift.png", gc.getPlayerX()+8, gc.getPlayerY()+GameController.TILE_SIZE, 1.0f);
-        targetPlayer.spawnFloatingIcon("gift.png", targetPlayer.getPlayerX()+8, targetPlayer.getPlayerY()+GameController.TILE_SIZE, 1.0f);
+// add to recipient (0 = success). If not, rollback.
+        Inventory targetInv = targetPlayer.getPlayer().getInventory();
+        int leftoverAdd = targetInv.add(t, 1);
+        if (leftoverAdd > 0) {
+            // recipient couldn't accept → put item back
+            inventory.add(t, 1);
+            toast("Recipient inventory is full");
+            return;
+        }
 
+// success: visuals + notif
+        gc.spawnFloatingIcon("gift.png",
+            gc.getPlayerX()+8, gc.getPlayerY()+GameController.TILE_SIZE, 1.0f);
+        targetPlayer.spawnFloatingIcon("gift.png",
+            targetPlayer.getPlayerX()+8, targetPlayer.getPlayerY()+GameController.TILE_SIZE, 1.0f);
+        String itemName = t.id();
         long now = System.currentTimeMillis();
-        world.pushNotification(b, new Notification(a, b, "sent you a gift", now), true);
-        toast("Gave +" + delta + " friendship");
-        close();
+        world.pushNotification(b,
+            new Notification(a, b, "sent you " + articleFor(itemName) + itemName, now),
+            true);
+
+        world.recordGift(a, b, t.id(), itemName, now);
+
+// optional: echo to sender (not unread)
+        world.pushNotification(a,
+            new Notification(a, b, "You sent " + articleFor(itemName) + itemName + " to " + b, now),
+            false);
+        toast("Gift sent (waiting for rating)");
+//        close();
+
+        int old = selected;
+        rebuildList();
+        if (flat.isEmpty()) {
+            toast("No giftable items left");
+            // optionally close() here if you want to auto-close when nothing left
+        } else {
+            selected = Math.min(old, flat.size() - 1);
+        }
+
     }
+
+    // GiftPopupView.java (add near the top or as a private static helper)
+    private static String articleFor(String name) {
+        if (name == null || name.isEmpty()) return "";
+        char c = Character.toLowerCase(name.charAt(0));
+        return "aeiou".indexOf(c) >= 0 ? "an " : "a ";
+    }
+
+
 
     private void toast(String s) { toastText = s; toastTimer = 1.6f; }
 
