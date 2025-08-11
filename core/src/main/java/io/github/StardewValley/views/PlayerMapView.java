@@ -44,6 +44,13 @@ public class PlayerMapView implements Screen {
     private WorldController worldController;
     private int playerIndex;
 
+    private String activeSpeech = null;
+    private float speechTimer = 0f;
+    private NpcCharacter speakingNpc = null;
+
+    private Texture px;  // load in show()
+    private BitmapFont speechFont;
+
     private int mapWidth;
     private int mapHeight;
 
@@ -70,6 +77,12 @@ public class PlayerMapView implements Screen {
     private CookingMenuView cookingMenuView;
 
     private NpcQuestPopupView npcQuestView;
+    private com.badlogic.gdx.graphics.g2d.Animation<com.badlogic.gdx.graphics.g2d.TextureRegion> talkReadyAnim;
+    private float talkReadyTime = 0f;
+    private Texture dialogueBoxTex;
+    private final Vector3 tmpProject = new Vector3();
+
+    private GiftPopupView giftPopupView;
 
     private final ShapeRenderer shapeRenderer = new ShapeRenderer();
     private boolean debugDraw = false;          // press F3 to toggle
@@ -127,12 +140,15 @@ public class PlayerMapView implements Screen {
             controller.getPlayer().getAllCookingRecipes()
         );
 
+        Gdx.input.setInputProcessor(new InventoryScrollHandler(inventoryRenderer, inventoryMenuView, cookingMenuView));
+
         shopView = new ShopView(controller.getPlayer().getInventory(), ShopCatalog.basicGeneralStore(), controller.getPlayer().getGameEconomy());
         sellMenuView = new SellMenuView(controller.getPlayer().getInventory(), controller.getPlayer().getGameEconomy());
 
         npcQuestView = new NpcQuestPopupView(worldController, controller);
 
-        Gdx.input.setInputProcessor(new InventoryScrollHandler(inventoryRenderer, inventoryMenuView, cookingMenuView));
+        giftPopupView = new GiftPopupView(controller, worldController,
+            controller.getPlayer().getInventory());
 
         pointerTexture = new Texture(Gdx.files.internal("pointer.png"));
         clockPointer = new Sprite(pointerTexture);
@@ -161,6 +177,17 @@ public class PlayerMapView implements Screen {
         generator.dispose();
 
         tiles = controller.getTiles();
+
+        talkReadyAnim = GameAssetManager.getGameAssetManager().getFrameAnimation(
+            "ui/dialogue_ready",   // cache key (any unique string)
+            "dialogue/",           // base path; method appends 1..N + ".png"
+            7,                     // frameCount
+            0.10f,                 // frameDuration (sec)
+            true                   // looping
+        );
+
+        speechFont = GameAssetManager.getGameAssetManager().getSmallFont();
+        dialogueBoxTex = GameAssetManager.getGameAssetManager().getTexture("dialogue/dialogue_box.png");
 
     }
 
@@ -286,6 +313,36 @@ public class PlayerMapView implements Screen {
             }
         }
 
+        if (Gdx.input.isKeyJustPressed(Input.Keys.G)) {
+            if (giftPopupView.isVisible()) {
+                giftPopupView.close(); // toggle off
+            } else if (!isMenuOpen()) {
+                // only open if no other menu is open
+                var npc = worldController.npc().closestOn(
+                    controller.getCurrentMapPath(),
+                    controller.getPlayerX(), controller.getPlayerY(),
+                    32f
+                );
+                if (npc != null) giftPopupView.open(npc);
+                // else: optionally show a small toast that no NPC is nearby
+            }
+        }
+        if (!isMenuOpen() && Gdx.input.isKeyJustPressed(Input.Keys.T)) {
+            var npc = worldController.npc().closestOn(
+                controller.getCurrentMapPath(),
+                controller.getPlayerX(),
+                controller.getPlayerY(),
+                32f
+            );
+            if (npc != null && worldController.npc().hasDialogue(controller, npc, controller.getGameTime())) {
+                String line = worldController.npc().pickDialogue(controller, npc, controller.getGameTime());
+                if (line != null) {
+                    activeSpeech = line;
+                    speechTimer = 3.0f;
+                    speakingNpc = npc;
+                }
+            }
+        }
 
         boolean menuVisible = inventoryMenuView.isVisible();
 
@@ -382,6 +439,24 @@ public class PlayerMapView implements Screen {
 
         worldController.npc().renderOn(batch, controller.getCurrentMapPath());
 
+        talkReadyTime += delta; // make sure this happens only once per frame
+        for (var n : worldController.npc().getNpcsOn(controller.getCurrentMapPath())) {
+            // hide while this npc is speaking
+            if (activeSpeech != null && speakingNpc == n) continue;
+            if (!worldController.npc().hasDialogue(controller, n, controller.getGameTime())) continue;
+
+            var fr = n.getCurrentFrame();
+            float nx = n.getX(), ny = n.getY();
+            float w  = (fr != null) ? fr.getRegionWidth()  : 16f;
+            float h  = (fr != null) ? fr.getRegionHeight() : 16f;
+
+            float size = 12f;                 // world units (so it scales with zoom)
+            float ix = nx + 0.7f + w * 0.5f - size * 0.5f;
+            float iy = ny + h + 4f;           // just above the head
+
+            var frame = talkReadyAnim.getKeyFrame(talkReadyTime, true);
+            batch.draw(frame, ix, iy, size, size);
+        }
 
         renderOtherPlayers(batch);
         controller.render(batch);
@@ -493,6 +568,43 @@ public class PlayerMapView implements Screen {
 
         npcQuestView.render(batch);
 
+        // --- Speech bubble (UI space) ---
+        if (activeSpeech != null && speakingNpc != null) {
+            speechTimer -= delta;
+
+            if (speechTimer <= 0f) {
+                // just clear, do NOT return here
+                activeSpeech = null;
+                speakingNpc  = null;
+            } else {
+                var fr = speakingNpc.getCurrentFrame();
+                float nx = speakingNpc.getX(), ny = speakingNpc.getY();
+                float w  = (fr != null) ? fr.getRegionWidth()  : 16f;
+                float h  = (fr != null) ? fr.getRegionHeight() : 16f;
+
+                tmpProject.set(nx + w * 0.5f, ny + h, 0f);
+                viewport.project(tmpProject);
+
+                float bw = 200f, bh = 64f;
+                float bx = tmpProject.x - bw * 0.5f;
+                float by = tmpProject.y + 14f;
+
+                bx = MathUtils.clamp(bx, 4f, uiCamera.viewportWidth  - bw - 1f);
+                by = MathUtils.clamp(by, 4f, uiCamera.viewportHeight - bh - 4f);
+
+                batch.draw(dialogueBoxTex, bx, by, bw, bh);
+
+                float pad = 21f;
+                speechFont.setColor(Color.WHITE);
+                speechFont.draw(batch, activeSpeech, bx + pad, by + bh - pad,
+                    bw - pad * 2f, com.badlogic.gdx.utils.Align.left, true);
+            }
+        }
+
+        if (giftPopupView != null && giftPopupView.isVisible()) {
+            giftPopupView.render(batch);
+        }
+
         batch.end();
     }
 
@@ -524,12 +636,12 @@ public class PlayerMapView implements Screen {
 
     private boolean isMenuOpen() {
         return (inventoryMenuView != null && inventoryMenuView.isVisible())
-                || (cookingMenuView   != null && cookingMenuView.isVisible())
-                || (shopView != null && shopView.isVisible())
-                || (sellMenuView != null && sellMenuView.isVisible())
-                || (craftingMenuView  != null && craftingMenuView.isVisible())
-                || (cookingMenuView != null && cookingMenuView.isVisible())
-                || (npcQuestView != null && npcQuestView.isVisible());
+            || (cookingMenuView   != null && cookingMenuView.isVisible())
+            || (shopView          != null && shopView.isVisible())
+            || (sellMenuView      != null && sellMenuView.isVisible())
+            || (craftingMenuView  != null && craftingMenuView.isVisible())
+            || (npcQuestView      != null && npcQuestView.isVisible())
+            || (giftPopupView     != null && giftPopupView.isVisible());
     }
 
 

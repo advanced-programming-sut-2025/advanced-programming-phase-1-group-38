@@ -39,6 +39,10 @@ public class NpcCharacter {
         batch.draw(frame, x, y);
     }
 
+    public TextureRegion getCurrentFrame() {
+        return (currentAnim == null) ? null : currentAnim.getKeyFrame(animTime, looping);
+    }
+
     public String getMapPath() { return mapPath; }
     public float getX() { return x; }
     public float getY() { return y; }
