@@ -42,9 +42,11 @@ public class GameController {
     private OrthographicCamera camera;
     private String currentMapPath;
     private String previousMapPath;
+    private final String homeMapPath;
     private boolean roofVisible = true;
-    private final GameTime gameTime = new GameTime();
+    private final GameTime gameTime;
     private Weather weather;
+    private WorldController worldController;
 
     private Tile[][] tileGrid;
     private int lastUpdatedDay = -1;
@@ -56,14 +58,23 @@ public class GameController {
     private com.badlogic.gdx.math.Rectangle fridgeBounds;
     private Animation<TextureRegion> fridgeOpenAnim;
     private Animation<TextureRegion> fridgeCloseAnim;
-    TextureRegion frame;
+    private TextureRegion frame;
+    private float timeAccumulator = 0f;
+
+    private final TiledMap sharedNpcMap;
+    private final java.util.Map<String, TiledMap> mapCache = new java.util.HashMap<>();
+
 
     private static final int TILLED_TILE_ID = 89;
 
-    public GameController(String initialMapPath) {
+    public GameController(Player player, String initialMapPath, GameTime gameTime, TiledMap sharedNpcMap) {
+        this.player = player;
+        this.gameTime = gameTime;
         this.currentMapPath = initialMapPath;
-        GameAssetManager.getGameAssetManager().loadMap(initialMapPath);
-        this.map = GameAssetManager.getGameAssetManager().getMap(initialMapPath);
+        this.homeMapPath = initialMapPath;
+        this.sharedNpcMap = sharedNpcMap;
+        this.map = GameAssetManager.getGameAssetManager().loadFreshMap(currentMapPath);
+        mapCache.put(currentMapPath, this.map);
         int width = map.getProperties().get("width", Integer.class);
         int height = map.getProperties().get("height", Integer.class);
         tileGrid = new Tile[width][height];
@@ -78,7 +89,6 @@ public class GameController {
         loadFridgeAnimations();
         loadFridgeFromMap();
 
-        this.player = new Player(35 * TILE_SIZE, 24 * TILE_SIZE, 54);
         this.weather = new Weather(WeatherType.SUNNY);
         loadDoorsFromMap();
         loadRoofClickZones();
@@ -106,9 +116,13 @@ public class GameController {
         return currentMapPath;
     }
 
-    public void update(float delta) {
-        handleInput(delta);
-        player.update(delta);
+    // add an overload (keep your existing update(...) if you want)
+    public void update(float delta, boolean canAct) {
+        if (canAct) {
+            handleInput(delta);     // ← only the active player reads input & moves
+        }
+        player.update(delta);        // animations etc. (keep this)
+
         if (gameTime.getDay() != lastUpdatedDay) {
             for (int x = 0; x < tileGrid.length; x++) {
                 for (int y = 0; y < tileGrid[0].length; y++) {
@@ -129,7 +143,6 @@ public class GameController {
         if (playingFridgeAnim) {
             fridgeAnimTime += delta;
             Animation<TextureRegion> current = fridgeOpen ? fridgeOpenAnim : fridgeCloseAnim;
-
             if (fridgeAnimTime >= current.getAnimationDuration()) {
                 playingFridgeAnim = false;
             }
@@ -157,7 +170,7 @@ public class GameController {
     private void handleInput(float delta) {
         if (player.isActionLocked()) return;
 
-        float speed = 60f;
+        float speed = 100f;
         float newX = player.getX();
         float newY = player.getY();
         boolean moved = false;
@@ -167,7 +180,6 @@ public class GameController {
             if (canMoveTo(tentativeX, newY)) {
                 newX = tentativeX;
                 moved = true;
-                gameTime.advanceOneHour();
                 player.setAnimation("walk/left", "character/walk/left", 2, 0.2f, true);
 
             }
@@ -178,9 +190,7 @@ public class GameController {
                 moved = true;
                 player.setAnimation("walk/right", "character/walk/right", 2, 0.2f, true);
             }
-        }
-
-        if (Gdx.input.isKeyPressed(Input.Keys.UP)) {
+        } else if (Gdx.input.isKeyPressed(Input.Keys.UP)) {
             float tentativeY = newY + speed * delta;
             if (canMoveTo(newX, tentativeY)) {
                 newY = tentativeY;
@@ -199,6 +209,42 @@ public class GameController {
                 if (door.isPlayerInside(player.getX(), player.getY())) {
                     enterDoor(door);
                     break;
+                }
+            }
+        } else if (Gdx.input.isKeyJustPressed(Input.Keys.T)) {
+            if (worldController != null) {
+                var npc = worldController.npc().closestOn(currentMapPath, player.getX(), player.getY(), 32f);
+                if (npc != null) {
+                    int gained = worldController.npc().talk(this, npc, gameTime);
+                    // TODO: show toast if gained > 0 (first talk today), otherwise "already talked today"
+                    Gdx.app.log("Talk", "points=" + gained);
+                }
+            }
+        } else if (Gdx.input.isKeyJustPressed(Input.Keys.G)) {
+            if (worldController != null) {
+                ItemType held = player.getInventoryRenderer().getSelectedType();
+
+                // don’t gift tools
+                if (held == null || (held instanceof ToolType)) return;
+
+                var npc = worldController.npc().closestOn(currentMapPath, player.getX(), player.getY(), 32f);
+                if (npc == null) return;
+
+                int points = worldController.npc().gift(this, npc, held, gameTime);
+
+                // First gift of the day should be 50 (normal) or 200 (favorite). Otherwise 0.
+                if (points >= 50) {
+                    int removed = player.getInventory().remove(held, 1);
+                    Gdx.app.log("Gift", "points=" + points + " removed=" + removed + " item=" + held);
+
+                    // If removed==false, you likely have an equals/hashCode mismatch for ItemType.
+                    // Optional fallback if you have a removeById or similar:
+                    // if (!removed) removed = player.getInventory().removeByTypeId(held.getId(), 1);
+
+                    // TODO: show toast: npc.getName() + " +"+points
+                } else {
+                    // TODO: show toast: "Already gifted today" or "They don't want this"
+                    Gdx.app.log("Gift", "points=0 (not consumed) item=" + held);
                 }
             }
         } else if (Gdx.input.justTouched() && camera != null) {
@@ -336,20 +382,17 @@ public class GameController {
     public void render(SpriteBatch batch) {
         player.render(batch);
 
-        // ⛔ Skip drawing fridge if roof is visible
         TiledMapTileLayer roofLayer = (TiledMapTileLayer) map.getLayers().get("RoofTiles");
         if (roofLayer != null && roofLayer.isVisible()) return;
 
-        // ✅ Draw fridge frame only if roof is hidden
+        if (fridgeBounds == null) return; // ← add this
+
         if (playingFridgeAnim) {
             Animation<TextureRegion> anim = fridgeOpen ? fridgeOpenAnim : fridgeCloseAnim;
             frame = anim.getKeyFrame(fridgeAnimTime, false);
         } else {
-            frame = fridgeOpen
-                ? fridgeOpenAnim.getKeyFrames()[4]
-                : fridgeOpenAnim.getKeyFrames()[0];
+            frame = fridgeOpen ? fridgeOpenAnim.getKeyFrames()[4] : fridgeOpenAnim.getKeyFrames()[0];
         }
-
         batch.draw(frame, fridgeBounds.x, fridgeBounds.y);
     }
 
@@ -437,6 +480,10 @@ public class GameController {
 
     public void dispose() {
         player.dispose();
+        for (TiledMap m : mapCache.values()) {
+            if (m != null && m != sharedNpcMap) m.dispose();
+        }
+        mapCache.clear();
     }
 
     public boolean canMoveTo(float newX, float newY) {
@@ -518,44 +565,49 @@ public class GameController {
 
     private void enterDoor(Door door) {
         if (door.targetMap.equals("same")) {
-            // ✅ Stay on the same map, just move the player
             player.setX(door.spawnX);
             player.setY(door.spawnY);
 
-//            // Optional: Play sound or animation
-//            Gdx.audio.newSound(Gdx.files.internal("sfx/door_open.wav")).play();
-
-            // Optional: Toggle roof if needed
             TiledMapTileLayer roofTiles = (TiledMapTileLayer) map.getLayers().get("RoofTiles");
             if (roofTiles != null) {
                 roofTiles.setVisible(false); // or true when exiting
             }
 
             return;
+
         }
 
         String targetMapPath = door.targetMap.equals("previousMap")
             ? previousMapPath
-            : "maps/" + door.targetMap;
+            : (door.targetMap.startsWith("maps/") ? door.targetMap : "maps/" + door.targetMap);
 
         if (targetMapPath == null) return;
 
-        GameAssetManager.getGameAssetManager().loadMap(targetMapPath);
-        TiledMap newMap = GameAssetManager.getGameAssetManager().getMap(targetMapPath);
+        // one shared NPC map; everything else is per-controller
+        TiledMap newMap;
+        if (targetMapPath.equals("maps/npcMap.tmx")) {
+            newMap = sharedNpcMap;
+        } else {
+            newMap = mapCache.get(targetMapPath);
+            if (newMap == null) {
+                newMap = GameAssetManager.getGameAssetManager().loadFreshMap(targetMapPath);
+                mapCache.put(targetMapPath, newMap);
+            }
+        }
 
         previousMapPath = currentMapPath;
-        currentMapPath = targetMapPath;
-
+        currentMapPath  = targetMapPath;
         player.setX(door.spawnX);
         player.setY(door.spawnY);
 
-        map.dispose();
-        map = newMap;
+        this.map = newMap;
+
         doors.clear();
         roofClickZones.clear();
         loadDoorsFromMap();
         loadRoofClickZones();
     }
+
 
     private void loadRoofClickZones() {
         MapLayer roofLayer = map.getLayers().get("Roof");
@@ -618,5 +670,13 @@ public class GameController {
 
     public Player getPlayer() {
         return player;
+    }
+
+    public String getHomeMapPath() {                      // ← getter
+        return homeMapPath;
+    }
+
+    public void setWorldController(WorldController wc) {
+        this.worldController = wc;
     }
 }

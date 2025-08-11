@@ -76,6 +76,7 @@ public class GameAssetManager {
         createFont(16);
         createFont(14);
         assetManager.load("black.png", Texture.class);
+        assetManager.finishLoadingAsset("black.png");
 
     }
 
@@ -128,6 +129,11 @@ public class GameAssetManager {
         return assetManager.isLoaded(mapPath, TiledMap.class)
             ? assetManager.get(mapPath, TiledMap.class)
             : null;
+    }
+
+    public TiledMap loadFreshMap(String mapPath) {
+        TmxMapLoader loader = new TmxMapLoader(new InternalFileHandleResolver());
+        return loader.load(mapPath); // never null if the file exists and dependencies resolve
     }
 
     public Texture getTexture(String path) {

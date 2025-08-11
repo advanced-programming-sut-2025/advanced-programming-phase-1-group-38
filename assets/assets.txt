@@ -704,9 +704,13 @@ maps/Fences.png
 maps/Fences.tsx
 maps/Grass.png
 maps/Grass.tsx
+maps/Grass_Hill_Tiles_v2.png
+maps/Grass_Hill_Tiles_v2.tsx
 maps/OutdoorMap1.tmx
 maps/OutdoorMap2.tmx
 maps/OutdoorMapp1.tmx
+maps/Paths.png
+maps/Paths.tsx
 maps/Tilled Dirt.png
 maps/Tilled Dirt.tsx
 maps/Water.png
@@ -714,10 +718,15 @@ maps/Water.tsx
 maps/Wooden House.png
 maps/Wooden House.tsx
 maps/greenhouse.tmx
+maps/npcMap.tmx
 menu2.png
 menu3.png
 menu5.png
 menuuu.png
+npc/robin/1.png
+npc/robin/2.png
+npc/robin/3.png
+npc/robin/4.png
 pixelFont-7-8x14-sproutLands.ttf
 pixelFont.ttf
 player.png
