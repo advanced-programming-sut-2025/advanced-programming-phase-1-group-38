@@ -360,6 +360,29 @@ public class GiftPopupView {
             selected = Math.min(old, flat.size() - 1);
         }
 
+        // GiftPopupView.giveSelected() – PLAYER mode, after recordGift(...) and notifications
+        boolean isFlower = isFlowerItem(t);
+
+        if (isFlower) {
+            boolean unlocked = world.playerFriends().tryUnlockLevel3WithFlower(a, b);
+            long now2 = System.currentTimeMillis();
+
+            if (unlocked) {
+                world.pushNotification(b,
+                    new Notification(a, b, "Flower received: Friendship Level 3 unlocked!", now2, true), true);
+                world.pushNotification(a,
+                    new Notification(a, b, "Level 3 unlocked with a flower!", now2, true), false);
+            } else {
+                // Optional hint if they aren't yet at 300 points of Lv2
+                int pts = world.playerFriends().points(a, b);
+                if (world.playerFriends().level(a, b) == 2 &&
+                    pts < 3 * PlayerFriendService.POINTS_PER_LEVEL) {
+                    world.pushNotification(a,
+                        new Notification(a, b, "Flower given. Fill Level 2 points to unlock Level 3.", now2, true), false);
+                }
+            }
+        }
+
     }
 
     // GiftPopupView.java (add near the top or as a private static helper)
@@ -369,16 +392,32 @@ public class GiftPopupView {
         return "aeiou".indexOf(c) >= 0 ? "an " : "a ";
     }
 
-
+    private boolean isFlowerItem(ItemType t) {
+        return (t instanceof CropType ct) && ct == CropType.CORN;
+    }
 
     private void toast(String s) { toastText = s; toastTimer = 1.6f; }
 
 
+    // GiftPopupView.java
     public void openForPlayer(GameController other) {
         this.mode = Mode.PLAYER;
         this.targetPlayer = other;
         this.npc = null;
+
+        // NEW: require friendship level >= 1 to gift a player
+        String a = world.playerIdOf(gc);
+        String b = world.playerIdOf(other);
+        if (world.playerFriends().level(a, b) < 1) {
+            long now = System.currentTimeMillis();
+            world.pushNotification(a,
+                new Notification(a, b, "Reach friendship Level 1 to gift this player.", now, true), false);
+            visible = false;   // keep closed
+            return;
+        }
+
         rebuildList();
         visible = true;
     }
+
 }

@@ -67,7 +67,12 @@ public class WorldController {
         currentPlayerIndex = (currentPlayerIndex + 1) % controllers.length;
         turnsIntoHour++;
         if (turnsIntoHour >= playersPerHour) {
+            int beforeDay = sharedTime.getDay();
             sharedTime.advanceOneHour();
+            int afterDay = sharedTime.getDay();
+            if (afterDay != beforeDay) {
+                playerFriends().endOfDayDecay(beforeDay);
+                }
             turnsIntoHour = 0;
         }
     }

@@ -170,6 +170,7 @@ fridge/fridge5.png
 full_star.png
 gift.png
 gold_coin.png
+hug.png
 i18n/MyGame.properties
 i18n/MyGame_de.properties
 i18n/MyGame_fr.properties
@@ -835,6 +836,7 @@ recipes/Triple_Shot_Espresso.png
 recipes/Tropical_Curry.png
 recipes/Trout_Soup.png
 recipes/Vegetable_Medley.png
+ring.png
 seeds/carrot.png
 seeds/corn.png
 tools/scythe.png
