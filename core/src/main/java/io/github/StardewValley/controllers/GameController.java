@@ -48,6 +48,7 @@ public class GameController {
     private final GameTime gameTime;
     private Weather weather;
     private WorldController worldController;
+    private static final int EC_WATER = 1;
 
     private Tile[][] tileGrid;
     private int lastUpdatedDay = -1;
@@ -66,7 +67,6 @@ public class GameController {
     private final java.util.Map<String, TiledMap> mapCache = new java.util.HashMap<>();
 
     private GiftPopupView giftPopup;
-
 
     private static final int TILLED_TILE_ID = 89;
 
@@ -127,13 +127,15 @@ public class GameController {
         player.update(delta);        // animations etc. (keep this)
 
         if (gameTime.getDay() != lastUpdatedDay) {
+            boolean inGreenhouse = isGreenhouseMap();
             for (int x = 0; x < tileGrid.length; x++) {
                 for (int y = 0; y < tileGrid[0].length; y++) {
-                    tileGrid[x][y].updateDaily();
+                    tileGrid[x][y].updateDaily(inGreenhouse);
                 }
             }
             lastUpdatedDay = gameTime.getDay();
         }
+
         for (MachineInstance m : machines) m.update(delta);
 
 
@@ -257,22 +259,77 @@ public class GameController {
             }
 
 
-
-
             int tileX = (int) (world.x / TILE_SIZE);
             int tileY = (int) (world.y / TILE_SIZE);
+
+            // after: int tileX = ..., int tileY = ...;
+            Tile gameTile = getTileAt(tileX, tileY);
+            ItemType held = player.getInventoryRenderer().getSelectedType();
+
+            // --- Greenhouse-safe: direct "clicked tile" harvest before any Grass layer logic ---
+            if (held instanceof ToolType t && t == ToolType.SCYTHE) {
+                Tile clicked = getTileAt(tileX, tileY);
+                if (clicked != null && clicked.getContent() instanceof Crop c && !c.isHarvested()) {
+                    if (c.isDead() || c.isFullyGrown()) {
+                        if (!player.hasEnergy(EC_HARVEST)) return;
+                        player.consumeEnergy(EC_HARVEST);
+
+                        boolean dead = c.isDead();
+                        c.harvest();
+                        if (!dead && c.isFullyGrown()) {
+                            player.getInventory().add(c.getCropType(), 1);
+                            if (player.getSkills().get(Skill.FARMING).addXp(5)) {
+                                player.addMaxEnergy(10);
+                            }
+                        }
+                        clicked.setContent(null);
+
+                        String dir = player.getFacingDirection();
+                        player.setAnimation("pickaxe_" + dir, "character/pickaxe/" + dir, 2, 0.1f, false);
+                        player.setActionCooldown(0.3f);
+                        return; // handled; skip rest of click checks
+                    }
+                }
+            }
+
+            if (held instanceof ToolType) {
+                ToolType tool = (ToolType) held;
+
+                // ----- WATERING -----
+                if (tool == ToolType.WATERCAN && gameTile != null && gameTile.getContent() instanceof Crop) {
+                    Crop crop = (Crop) gameTile.getContent();
+                    if (!crop.isDead() && !player.isActionLocked()) {
+                        if (!player.hasEnergy(EC_WATER)) return;
+                        crop.water();
+                        player.consumeEnergy(EC_WATER);
+
+                        String direction = player.getFacingDirection();
+                        // Use your watering animation folders
+                        player.setAnimation("watercan_" + direction, "character/watercan/" + direction, 2, 0.12f, false);
+                        player.setActionCooldown(0.25f);
+
+                        // OPTIONAL: swap ground to a "wet dirt" tile id for visuals (if you have one)
+                        // TiledMapTileLayer grassLayer = (TiledMapTileLayer) map.getLayers().get("Grass");
+                        // if (grassLayer != null) {
+                        //     TiledMapTileLayer.Cell c = grassLayer.getCell(tileX, tileY);
+                        //     if (c != null) c.setTile(map.getTileSets().getTile(WET_TILLED_TILE_ID));
+                        // }
+                    }
+                    return; // handled watering
+                }
+            }
+
 
             TiledMapTileLayer grassLayer = (TiledMapTileLayer) map.getLayers().get("Grass");
             if (grassLayer == null) return;
 
-            ItemType held = player.getInventoryRenderer().getSelectedType();
 //            if (!(held instanceof ToolType) || held != ToolType.SCYTHE) return;
             if (!(held instanceof ToolType)) return;
             ToolType tool = (ToolType) held;
 
             TiledMapTileLayer.Cell cell = grassLayer.getCell(tileX, tileY);
             if (cell == null) return;
-            Tile gameTile = getTileAt(tileX, tileY);
+
             if (gameTile == null || gameTile.getContent() != null) return;
 
             List<Integer> grassIds = Arrays.asList(
@@ -373,24 +430,36 @@ public class GameController {
     }
 
 
+    // GameController.java
     public boolean plantCrop(int tileX, int tileY, CropType type) {
         Tile tile = getTileAt(tileX, tileY);
-        if (tile == null || tile.getContent() != null || type == null) return false;
+        if (tile == null || type == null) return false;
+        if (tile.getContent() != null) return false;
 
+        if (isGreenhouseMap()) {
+            // block walls/collision only
+            TiledMapTileLayer collision = (TiledMapTileLayer) map.getLayers().get("Collision");
+            if (collision != null) {
+                TiledMapTileLayer.Cell c = collision.getCell(tileX, tileY);
+                if (c != null && c.getTile() != null) return false;
+            }
+            Crop crop = new Crop(type);
+            crop.setAutoWaterForever(true);    // ← mark it greenhouse-style
+            tile.setContent(crop);
+            return true;
+        }
+
+        // normal rule: must be tilled
         TiledMapTileLayer grassLayer = (TiledMapTileLayer) map.getLayers().get("Grass");
         if (grassLayer == null) return false;
-
         TiledMapTileLayer.Cell cell = grassLayer.getCell(tileX, tileY);
         if (cell == null || cell.getTile() == null) return false;
-
         int tileId = cell.getTile().getId();
-
-        if (tileId != TILLED_TILE_ID) return false; // ⛔ Not dirt tile
+        if (tileId != TILLED_TILE_ID) return false;
 
         tile.setContent(new Crop(type));
         return true;
     }
-
 
 
     private boolean harvestNearestCrop(float mx, float my) {
@@ -403,7 +472,6 @@ public class GameController {
         Tile      cropTile    = null;
         float     bestD2      = HARVEST_RANGE * HARVEST_RANGE;
 
-        // quick search window (5×5 tiles around cursor)
         int cx = (int)(mx / TILE_SIZE);
         int cy = (int)(my / TILE_SIZE);
 
@@ -413,20 +481,20 @@ public class GameController {
                 if (tile == null || !(tile.getContent() instanceof Crop)) continue;
 
                 Crop crop = (Crop) tile.getContent();
-                if (!crop.isFullyGrown() || crop.isHarvested()) continue;
+                if (crop.isHarvested()) continue;
 
-                // centre‑point of the sprite we drew
+                // ✅ now allow dead OR fully grown
+                if (!(crop.isDead() || crop.isFullyGrown())) continue;
+
                 float cxWorld = tile.getWorldX() + TILE_SIZE * 0.5f;
                 float cyWorld = tile.getWorldY() + TILE_SIZE * 0.5f;
+                float dx = mx - cxWorld, dy = my - cyWorld;
+                float d2 = dx*dx + dy*dy;
 
-                float dx = mx - cxWorld;
-                float dy = my - cyWorld;
-                float d2 = dx*dx + dy*dy;           // squared distance
-
-                if (d2 < bestD2) {                  // keep the closest
-                    bestD2       = d2;
-                    nearestCrop  = crop;
-                    cropTile     = tile;
+                if (d2 < bestD2) {
+                    bestD2 = d2;
+                    nearestCrop = crop;
+                    cropTile = tile;
                 }
             }
         }
@@ -434,12 +502,25 @@ public class GameController {
         if (nearestCrop != null) {
             if (!player.hasEnergy(EC_HARVEST)) return false;
             player.consumeEnergy(EC_HARVEST);
+
+            boolean dead = nearestCrop.isDead();
             nearestCrop.harvest();
-            player.getInventory().add(nearestCrop.getCropType(), 1);
-            cropTile.setContent(null);
-            if (player.getSkills().get(Skill.FARMING).addXp(5)) {
-                player.addMaxEnergy(10);
+
+            // Only add to inventory if not dead and fully grown
+            if (!dead && nearestCrop.isFullyGrown()) {
+                player.getInventory().add(nearestCrop.getCropType(), 1);
+                if (player.getSkills().get(Skill.FARMING).addXp(5)) {
+                    player.addMaxEnergy(10);
+                }
             }
+
+            // Clear the tile content in both cases
+            cropTile.setContent(null);
+
+            String direction = player.getFacingDirection();
+            player.setActionCooldown(0.3f);
+            // a little snappier swing for scythe is usually “scythe” anim
+            player.setAnimation("pickaxe_" + direction, "character/pickaxe/" + direction, 2, 0.1f, false);
             return true;
         }
         return false;
@@ -687,6 +768,15 @@ public class GameController {
     public com.badlogic.gdx.utils.Array<FloatingIcon> getFloatingIcons() {
         return floatingIcons;
     }
+
+    private boolean isGreenhouseMap() {
+        String p = (currentMapPath == null) ? "" : currentMapPath.toLowerCase();
+        if (p.contains("greenhouse")) return true; // works for Greenhouse.tmx / greenhouse.tmx
+
+        Boolean prop = map.getProperties().get("isGreenhouse", Boolean.class);
+        return prop != null && prop;
+    }
+
 
     public void updateFloatingIcons(float dt) {
         for (int i = floatingIcons.size - 1; i >= 0; i--) {

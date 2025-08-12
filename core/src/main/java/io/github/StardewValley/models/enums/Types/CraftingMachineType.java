@@ -1,6 +1,8 @@
 package io.github.StardewValley.models.enums.Types;
 
-public enum CraftingMachineType implements MaterialTypes {
+import io.github.StardewValley.models.ItemType;
+
+public enum CraftingMachineType implements MaterialTypes, ItemType {
     CHERRY_BOMB("Cherry Bomb", 50),
     BOMB("Bomb", 50),
     MEGA_BOMB("Mega Bomb", 50),
@@ -43,5 +45,25 @@ public enum CraftingMachineType implements MaterialTypes {
 
     public Integer getPrice() {
         return this.price;
+    }
+
+    @Override
+    public String id() {
+        return this.productName;
+    }
+
+    @Override
+    public String iconPath() {
+        return "";
+    }
+
+    @Override
+    public int maxStack() {
+        return 0;
+    }
+
+    @Override
+    public boolean stackable() {
+        return ItemType.super.stackable();
     }
 }

@@ -3,6 +3,7 @@ package io.github.StardewValley.controllers;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.MathUtils;
 import io.github.StardewValley.models.*;
+import io.github.StardewValley.models.Artisan.ArtisanProductType;
 import io.github.StardewValley.models.NpcQuestService;
 
 import java.util.ArrayList;
@@ -161,14 +162,14 @@ public class NpcController {
 //        }
 
         // Gus -> assets/npc/gus/1.png..4.png
-//        {
-//            float[] p = px.apply(34, 9);
-//            NpcCharacter gus = new NpcCharacter("gus", "Gus", npcMapPath, p[0], p[1]);
-//            gus.setAnimation("idle", "npc/gus/", 4, 0.18f, true);
-//            addNpc(gus);
-//            social.setFavorites("gus", setOf(CropType.CORN));
-//            social.setSendableGifts("gus", java.util.Arrays.asList(CropType.CORN));
-//        }
+        {
+            float[] p = px.apply(12, 28);
+            NpcCharacter abigail = new NpcCharacter("abigail", "Abigail", npcMapPath, p[0], p[1]);
+            abigail.setAnimation("idle", "npc/abigail/", 4, 0.18f, true);
+            addNpc(abigail);
+            setFavorites("abigail", setOf(MaterialType.Stone, MaterialType.IronOre, ArtisanProductType.COFFEE));
+            setSendableGifts("abigail", java.util.Arrays.asList(MaterialType.Stone, ArtisanProductType.COFFEE));
+        }
 
         // Robin -> assets/npc/robin/1.png..4.png
         {

@@ -4,10 +4,7 @@ package io.github.StardewValley.views;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.Screen;
-import com.badlogic.gdx.graphics.Color;
-import com.badlogic.gdx.graphics.GL20;
-import com.badlogic.gdx.graphics.OrthographicCamera;
-import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.*;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
@@ -206,6 +203,18 @@ public class PlayerMapView implements Screen {
         speechFont = GameAssetManager.getGameAssetManager().getSmallFont();
         dialogueBoxTex = GameAssetManager.getGameAssetManager().getTexture("dialogue/dialogue_box.png");
 
+        // 2x8 white strip for a raindrop (drawn tinted by batch color = white)
+        com.badlogic.gdx.graphics.Pixmap pm = new com.badlogic.gdx.graphics.Pixmap(2, 8, com.badlogic.gdx.graphics.Pixmap.Format.RGBA8888);
+        pm.setColor(1,1,1,0.95f);
+        pm.fillRectangle(0,0,2,8);
+        rainTex = new com.badlogic.gdx.graphics.Texture(pm);
+        pm.dispose();
+
+        Pixmap spm = new Pixmap(4, 4, Pixmap.Format.RGBA8888);
+        spm.setColor(1, 1, 1, 0.95f);
+        spm.fillCircle(2, 2, 2);
+        snowTex = new Texture(spm);
+        spm.dispose();
     }
 
     @Override
@@ -388,6 +397,79 @@ public class PlayerMapView implements Screen {
             controller.updateFloatingIcons(delta);
         }
 
+        // --- Rain update ---
+        boolean raining = rainEnabled();
+        boolean snowing = snowEnabled();
+
+        if (!raining && !snowing) {
+            raindrops.clear();
+        }
+
+        if (raining) {
+            float zoom = camera.zoom;
+            int target = (int)(rainTargetCount / Math.max(0.5f, Math.min(1.5f, 1f/zoom)));
+
+            float viewW = camera.viewportWidth  * camera.zoom;
+            float viewH = camera.viewportHeight * camera.zoom;
+            float left  = camera.position.x - viewW * 0.5f;
+            float right = camera.position.x + viewW * 0.5f;
+            float bottom= camera.position.y - viewH * 0.5f;
+            float top   = camera.position.y + viewH * 0.5f;
+
+            while (raindrops.size < target) {
+                Raindrop d = new Raindrop();
+                d.x = left + rng.nextFloat() * viewW;
+                d.y = top + rng.nextFloat() * 40f;
+                d.vx = -10f + rng.nextFloat() * 10f;
+                d.vy = -80f - rng.nextFloat() * 60f;
+                d.maxLife = 1.2f + rng.nextFloat() * 0.8f;
+                d.life = 0f;
+                raindrops.add(d);
+            }
+
+            for (int i = raindrops.size - 1; i >= 0; i--) {
+                Raindrop d = raindrops.get(i);
+                d.x += d.vx * delta;
+                d.y += d.vy * delta;
+                d.life += delta;
+
+                boolean offScreen = d.y < bottom - 24f || d.x < left - 24f || d.x > right + 24f;
+                if (offScreen || d.life > d.maxLife) raindrops.removeIndex(i);
+            }
+        }
+
+        if (snowing) {
+            int target = 80;
+            float viewW = camera.viewportWidth * camera.zoom;
+            float viewH = camera.viewportHeight * camera.zoom;
+            float left = camera.position.x - viewW * 0.5f;
+            float right = camera.position.x + viewW * 0.5f;
+            float bottom = camera.position.y - viewH * 0.5f;
+            float top = camera.position.y + viewH * 0.5f;
+
+            while (raindrops.size < target) {
+                Raindrop d = new Raindrop();
+                d.x = left + rng.nextFloat() * viewW;
+                d.y = top + rng.nextFloat() * 40f;
+                d.vx = -15f + rng.nextFloat() * 30f;
+                d.vy = -30f - rng.nextFloat() * 20f;
+                d.maxLife = 4f + rng.nextFloat() * 2f;
+                d.life = 0f;
+                raindrops.add(d);
+            }
+
+            for (int i = raindrops.size - 1; i >= 0; i--) {
+                Raindrop d = raindrops.get(i);
+                d.x += d.vx * delta;
+                d.y += d.vy * delta;
+                d.life += delta;
+
+                if (d.y < bottom - 10f || d.x < left - 10f || d.x > right + 10f || d.life > d.maxLife) {
+                    raindrops.removeIndex(i);
+                }
+            }
+        }
+
         TiledMap newMap = controller.getMap();
         if (newMap != map) {
             this.map = newMap;
@@ -411,18 +493,45 @@ public class PlayerMapView implements Screen {
         batch.setProjectionMatrix(camera.combined);
         batch.begin();
 
+        // --- Rain draw (world space) ---
+
+        if (raining) {
+            batch.setColor(0.8f, 0.9f, 1f, 0.85f);
+            for (Raindrop d : raindrops) batch.draw(rainTex, d.x, d.y, 1f, 6f);
+            batch.setColor(Color.WHITE);
+        } else if (snowing) {
+            batch.setColor(1f, 1f, 1f, 0.95f);
+            for (Raindrop d : raindrops) batch.draw(snowTex, d.x, d.y, 4f, 4f);
+            batch.setColor(Color.WHITE);
+        }
+
+
+
+
         for (int x = 0; x < tiles.length; x++) {
             for (int y = 0; y < tiles[0].length; y++) {
                 Tile tile = tiles[x][y];
-                if (tile.hasCrop()) {
-                    String spritePath = tile.getCrop().getCurrentSpritePath();
-                    Texture texture = GameAssetManager.getGameAssetManager().getTexture(spritePath);
-                    float drawX = tile.getWorldX();
-                    float drawY = tile.getWorldY();
-                    batch.draw(texture, drawX + TILE_SIZE / 2f - texture.getWidth() / 2f, drawY + 3);
+                if (!tile.hasCrop()) continue;
+
+                Crop c = tile.getCrop();
+                String spritePath = c.getCurrentSpritePath();
+                Texture tex = GameAssetManager.getGameAssetManager().getTexture(spritePath);
+
+                float baseX = tile.getWorldX();
+                float baseY = tile.getWorldY();
+
+                if (c.isDead()) {
+                    // draw dead crop at fixed size centered in the tile
+                    float dx = baseX + (TILE_SIZE - 10) * 0.5f;
+                    float dy = baseY + (TILE_SIZE - 14) * 0.5f;
+                    batch.draw(tex, dx, dy + 2, 10, 15);
+                } else {
+                    // alive: draw exactly one tile in size (consistent visuals)
+                    batch.draw(tex, baseX, baseY + 2, TILE_SIZE, TILE_SIZE);
                 }
             }
         }
+
 
         // ---------- DEBUG OVERLAYS (world space) ----------
         if (debugDraw) {
@@ -766,6 +875,31 @@ public class PlayerMapView implements Screen {
         }
     }
 
+    // --- Rain system ---
+    private static class Raindrop {
+        float x, y;      // world coords
+        float vx, vy;    // velocity
+        float life, maxLife;
+    }
+
+    private com.badlogic.gdx.utils.Array<Raindrop> raindrops = new com.badlogic.gdx.utils.Array<>();
+    private com.badlogic.gdx.graphics.Texture rainTex; // 2x8 white pixel strip
+    private com.badlogic.gdx.graphics.Texture snowTex;
+    private final com.badlogic.gdx.math.RandomXS128 rng = new com.badlogic.gdx.math.RandomXS128();
+    private int rainTargetCount = 350;   // tune density
+    private boolean rainEnabled() {
+        var t = controller.getWeather().getWeatherType();
+        // include STORMY if you want rain there too:
+        return t == WeatherType.RAINY /* || t == WeatherType.STORMY */;
+    }
+
+    private boolean snowEnabled() {
+        var t = controller.getWeather().getWeatherType();
+        return t == WeatherType.SNOWY;
+    }
+
+
+
     @Override public void resize(int width, int height) {
         viewport.update(width, height);
         uiCamera.setToOrtho(false, width, height);
@@ -787,5 +921,7 @@ public class PlayerMapView implements Screen {
         weatherTexture.dispose();
         shapeRenderer.dispose();
         if (notifTex != null) notifTex.dispose();
+        if (rainTex != null) rainTex.dispose();
+        if (snowTex != null) snowTex.dispose();
     }
 }

@@ -273,8 +273,9 @@ public class GiftPopupView {
             giveSelected();
         }
 
-        if (Gdx.input.isKeyJustPressed(Input.Keys.G)) {
+        if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
             close();
+            return;
         }
     }
 

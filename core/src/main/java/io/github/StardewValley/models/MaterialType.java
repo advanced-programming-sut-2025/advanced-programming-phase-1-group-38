@@ -9,7 +9,7 @@ public enum MaterialType implements MaterialTypes, ItemType {
     CopperOre("Copper Ore", "copper_ore.png", 999),
     IronOre("Iron Ore", "iron_ore.png", 999),
     IronBar("Iron Bar", "iron_bar.png", 999),
-
+    GoldBar("Gold Ore", "items/Gold_Bar.png", 0),
     ;
 
     private final String name;

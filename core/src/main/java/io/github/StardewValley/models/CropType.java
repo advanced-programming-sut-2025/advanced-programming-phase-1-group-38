@@ -8,28 +8,50 @@ public enum CropType implements ItemType {
     CORN(
         "Corn",
         new String[]{
-            "crops/corn/sign.png",
             "crops/corn/0.png",
             "crops/corn/1.png",
             "crops/corn/2.png",
             "crops/corn/3.png",
             "crops/corn/4.png"
         },
-        new int[]{1, 2, 2, 2, 2},
+        new int[]{2, 3, 3, 3},
         "CORN_SEED", "crops/corn/cornTexture.png", 35, 0
     ),
 
     CARROT(
         "Carrot",
         new String[]{
-            "crops/carrot/sign.png",
             "crops/carrot/0.png",
             "crops/carrot/1.png",
             "crops/carrot/2.png",
             "crops/carrot/3.png",
         },
-        new int[]{1, 2, 2, 3},
+        new int[]{1, 1, 1},
         "CARROT_SEED", "crops/carrot/carrotTexture.png", 50, 0
+    ),
+
+    PUMPKIN(
+        "Pumpkin",
+        new String[]{
+            "crops/pumpkin/0.png",
+            "crops/pumpkin/1.png",
+            "crops/pumpkin/2.png",
+            "crops/pumpkin/3.png",
+        },
+        new int[]{2, 3, 4},
+        "PUMPKIN_SEED", "crops/pumpkin/pumpkinTexture.png", 320, 0
+    ),
+
+    WHEAT(
+        "Wheat",
+        new String[]{
+            "crops/wheat/0.png",
+            "crops/wheat/1.png",
+            "crops/wheat/2.png",
+            "crops/wheat/3.png",
+        },
+        new int[]{1, 1, 1},
+        "WHEAT", "crops/wheat/wheatTexture.png", 25, 0
     );
 
     private final String id;

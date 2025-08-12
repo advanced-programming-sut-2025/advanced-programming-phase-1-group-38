@@ -47,9 +47,9 @@ public class Tile {
         return hasCrop() ? (Crop) content : null;
     }
 
-    public void updateDaily() {
-        if (hasCrop()) {
-            getCrop().updateDaily();
-        }
+    public void updateDaily() { updateDaily(false); }
+
+    public void updateDaily(boolean autoWater) {
+        if (hasCrop()) getCrop().updateDaily(autoWater);
     }
 }
