@@ -58,7 +58,7 @@ public class Player {
         inventory.add(SeedType.CORN_SEED, 20);
         inventory.add(SeedType.CARROT_SEED, 20);
         inventory.add(CropType.CORN, 10);
-        inventory.add(MaterialType.Wood, 80);
+        inventory.add(MaterialType.Wood, 1000);
         inventory.add(ArtisanProductType.COFFEE, 20);
     }
 

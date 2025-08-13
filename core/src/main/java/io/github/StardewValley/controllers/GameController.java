@@ -50,6 +50,8 @@ public class GameController {
     private WorldController worldController;
     private static final int EC_WATER = 1;
 
+    private boolean greenhouseUnlocked = false;
+
     private Tile[][] tileGrid;
     private int lastUpdatedDay = -1;
 
@@ -210,13 +212,28 @@ public class GameController {
                 player.setAnimation("walk/down", "character/walk/down", 2, 0.2f, true);
             }
         } else if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) {
-            for (Door door : doors) {
-                if (door.isPlayerInside(player.getX(), player.getY())) {
-                    enterDoor(door);
-                    break;
-                }
+        for (Door door : doors) {
+            if (!door.isPlayerInside(player.getX(), player.getY())) continue;
+
+            // resolve target path same way enterDoor() does
+            String targetMapPath = door.targetMap.equals("previousMap")
+                ? previousMapPath
+                : (door.targetMap.startsWith("maps/") ? door.targetMap : "maps/" + door.targetMap);
+
+            boolean isGreenhouseTarget = (targetMapPath != null &&
+                targetMapPath.toLowerCase().contains("greenhouse"));
+
+            if (isGreenhouseTarget && !isGreenhouseUnlocked()) {
+                // ask UI to open unlock popup
+                if (doorHook != null) doorHook.onTryEnterGreenhouse(door);
+                break; // stop here; don't enter yet
             }
-        } else if (Gdx.input.isKeyJustPressed(Input.Keys.T)) {
+
+            // normal enter (already unlocked or not greenhouse)
+            enterDoor(door);
+            break;
+        }
+    } else if (Gdx.input.isKeyJustPressed(Input.Keys.T)) {
             if (worldController != null) {
                 var npc = worldController.npc().closestOn(currentMapPath, player.getX(), player.getY(), 32f);
                 if (npc != null) {
@@ -777,6 +794,18 @@ public class GameController {
         return prop != null && prop;
     }
 
+    public boolean isGreenhouseUnlocked() { return greenhouseUnlocked; }
+    public void setGreenhouseUnlocked(boolean v) { greenhouseUnlocked = v; }
+
+    // UI hook so the view can show the unlock popup instead of entering
+    public interface DoorHook {
+        void onTryEnterGreenhouse(Door door);
+    }
+    private DoorHook doorHook;
+    public void setDoorHook(DoorHook hook) { this.doorHook = hook; }
+
+    // Allow UI to actually enter after unlocking
+    public void enterDoorFromUI(Door door) { enterDoor(door); }
 
     public void updateFloatingIcons(float dt) {
         for (int i = floatingIcons.size - 1; i >= 0; i--) {

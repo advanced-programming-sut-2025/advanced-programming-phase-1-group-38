@@ -41,6 +41,8 @@ public class PlayerMapView implements Screen {
     private WorldController worldController;
     private int playerIndex;
 
+    private GreenhouseUnlockPopupView greenhousePopup;
+
     private PlayerChatOverlay chatOverlay;
 
     private String activeSpeech = null;
@@ -202,6 +204,13 @@ public class PlayerMapView implements Screen {
 
         speechFont = GameAssetManager.getGameAssetManager().getSmallFont();
         dialogueBoxTex = GameAssetManager.getGameAssetManager().getTexture("dialogue/dialogue_box.png");
+
+        greenhousePopup = new GreenhouseUnlockPopupView(controller);
+
+        controller.setDoorHook(door -> {
+            if (!controller.isGreenhouseUnlocked()) greenhousePopup.open(door);
+            else controller.enterDoorFromUI(door);
+        });
 
         // 2x8 white strip for a raindrop (drawn tinted by batch color = white)
         com.badlogic.gdx.graphics.Pixmap pm = new com.badlogic.gdx.graphics.Pixmap(2, 8, com.badlogic.gdx.graphics.Pixmap.Format.RGBA8888);
@@ -794,6 +803,10 @@ public class PlayerMapView implements Screen {
 
         if (giftPopupView != null && giftPopupView.isVisible()) {
             giftPopupView.render(batch);
+        }
+
+        if (greenhousePopup != null && greenhousePopup.isVisible()) {
+            greenhousePopup.render(batch);
         }
 
         batch.end();
