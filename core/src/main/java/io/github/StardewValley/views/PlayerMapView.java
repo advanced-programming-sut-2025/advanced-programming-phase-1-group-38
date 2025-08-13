@@ -8,6 +8,7 @@ import com.badlogic.gdx.graphics.*;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.maps.tiled.TiledMap;
@@ -20,6 +21,7 @@ import io.github.StardewValley.Main;
 import io.github.StardewValley.controllers.GameController;
 import io.github.StardewValley.controllers.WorldController;
 import io.github.StardewValley.models.*;
+import io.github.StardewValley.models.farming.Tree;
 
 import static io.github.StardewValley.controllers.GameController.TILE_SIZE;
 
@@ -514,30 +516,38 @@ public class PlayerMapView implements Screen {
             batch.setColor(Color.WHITE);
         }
 
-
-
-
-        for (int x = 0; x < tiles.length; x++) {
-            for (int y = 0; y < tiles[0].length; y++) {
+        for (int y = 0; y < tiles[0].length; y++) {
+            for (int x = 0; x < tiles.length; x++) {
                 Tile tile = tiles[x][y];
-                if (!tile.hasCrop()) continue;
 
-                Crop c = tile.getCrop();
-                String spritePath = c.getCurrentSpritePath();
-                Texture tex = GameAssetManager.getGameAssetManager().getTexture(spritePath);
+                // ----- Crops -----
+                if (tile.hasCrop()) {
+                    Crop c = tile.getCrop();
+                    String spritePath = c.getCurrentSpritePath();
+                    Texture tex = GameAssetManager.getGameAssetManager().getTexture(spritePath);
 
-                float baseX = tile.getWorldX();
-                float baseY = tile.getWorldY();
+                    float baseX = tile.getWorldX();
+                    float baseY = tile.getWorldY();
 
-                if (c.isDead()) {
-                    // draw dead crop at fixed size centered in the tile
-                    float dx = baseX + (TILE_SIZE - 10) * 0.5f;
-                    float dy = baseY + (TILE_SIZE - 14) * 0.5f;
-                    batch.draw(tex, dx, dy + 2, 10, 15);
-                } else {
-                    // alive: draw exactly one tile in size (consistent visuals)
-                    batch.draw(tex, baseX, baseY + 2, TILE_SIZE, TILE_SIZE);
+                    if (c.isDead()) {
+                        float dx = baseX + (TILE_SIZE - 10) * 0.5f;
+                        float dy = baseY + (TILE_SIZE - 14) * 0.5f;
+                        batch.draw(tex, dx, dy + 2, 10, 15);
+                    } else {
+                        batch.draw(tex, baseX, baseY + 2, TILE_SIZE, TILE_SIZE);
+                    }
                 }
+
+                // ----- Trees -----
+                if (tile.getContent() instanceof Tree tree) {
+                    TextureRegion fr = tree.getRenderFrame();
+                    float baseX = tile.getWorldX();
+                    float baseY = tile.getWorldY();
+                    float drawW = TILE_SIZE;
+                    float drawH = TILE_SIZE * 2f; // adjust to your art
+                    batch.draw(fr, baseX, baseY, drawW, drawH);
+                }
+
             }
         }
 

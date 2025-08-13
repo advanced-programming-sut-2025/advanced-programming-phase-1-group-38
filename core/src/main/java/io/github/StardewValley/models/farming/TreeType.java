@@ -1,68 +1,135 @@
 package io.github.StardewValley.models.farming;
 
-import io.github.StardewValley.models.enums.Seasons;
+import io.github.StardewValley.models.ItemType;
+import io.github.StardewValley.models.farming.SeedType;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.stream.Collectors;
+public enum TreeType implements ItemType {
 
-public enum TreeType {
-    APRICOT("Apricot", TreeSaplingType.APRICOT_SAPLING, "7-7-7-7", 28, FruitType.APRICOT, 1, List.of(Seasons.SPRING), false),
-    CHERRY("Cherry", TreeSaplingType.CHERRY_SAPLING, "7-7-7-7", 28, FruitType.CHERRY, 1, List.of(Seasons.SPRING), false),
-    BANANA("Banana", TreeSaplingType.BANANA_SAPLING, "7-7-7-7", 28, FruitType.BANANA, 1, List.of(Seasons.SUMMER), false),
-    MANGO("Mango", TreeSaplingType.MANGO_SAPLING, "7-7-7-7", 28, FruitType.MANGO, 1, List.of(Seasons.SUMMER), false),
-    ORANGE("Orange", TreeSaplingType.ORANGE_SAPLING, "7-7-7-7", 28, FruitType.ORANGE, 1, List.of(Seasons.SUMMER), false),
-    PEACH("Peach", TreeSaplingType.PEACH_SAPLING, "7-7-7-7", 28, FruitType.PEACH, 1, List.of(Seasons.SUMMER), false),
-    APPLE("Apple", TreeSaplingType.APPLE_SAPLING, "7-7-7-7", 28, FruitType.APPLE, 1, List.of(Seasons.FALL), false),
-    POMEGRANATE("Pomegranate", TreeSaplingType.POMEGRANATE_SAPLING, "7-7-7-7", 28, FruitType.POMEGRANATE, 1, List.of(Seasons.FALL), false),
-       FORAGING_TREE("Foraging Tree", null, "7-7-7-7", 0, null, 0, List.of(Seasons.SPECIAL), true);
+//    OAK(
+//        "Oak",
+//        new String[]{ "trees/oak/0.png","trees/oak/1.png","trees/oak/2.png","trees/oak/3.png" },
+//        new int[]{2,3,4},
+//        null,
+//        SyrupType.OAK_RESIN,
+//        8,
+//        "OAK_SAPLING",
+//        "trees/oak/icon.png",
+//        0,
+//        "oak"            // ← animKey (matches tree/*/oak/)
+//    ),
+//
+//    MAPLE(
+//        "Maple",
+//        new String[]{ "trees/maple/0.png","trees/maple/1.png","trees/maple/2.png","trees/maple/3.png" },
+//        new int[]{2,3,4},
+//        null,
+//        SyrupType.MAPLE_SYRUP,
+//        7,
+//        "MAPLE_SAPLING",
+//        "trees/maple/icon.png",
+//        0,
+//        "maple"
+//    ),
+//
+//    ORANGE_TREE(
+//        "Orange Tree",
+//        new String[]{ "trees/orange/0.png","trees/orange/1.png","trees/orange/2.png","trees/orange/3.png" },
+//        new int[]{3,3,4},
+//        FruitType.ORANGE,
+//        null,
+//        5,
+//        "ORANGE_SAPLING",
+//        "trees/orange/icon.png",
+//        0,
+//        "orange"
+//    );
 
-    private final String name;
-    private final TreeSourceType source;
-    private final List<Integer> stages;
-    private final int totalHarvestTime;
-    private final TreeProductType product;
-    private final int harvestCycle;
-    private final List<Seasons> seasons;
-    private final boolean isForage;
+    APPLE(
+        "Apple Tree",
+        new String[]{
+            "trees/grow/apple/0.png", "trees/grow/apple/1.png", "trees/grow/apple/2.png", "trees/grow/apple/3.png"
+        },
+        new int[]{1,1,1},
+        FruitType.APPLE,    // or null if you don't have it
+        null,
+        6,
+        "APPLE_SAPLING",
+        "apple.png",
+        0,
+        "apple"             // <── animation key (matches tree/chop/apple/* etc.)
+    );
 
-    TreeType(String name, TreeSourceType source, String stagesStr, int totalHarvestTime,
-             TreeProductType product, int harvestCycle, List<Seasons> seasons,
-             boolean isForage) {
-        this.name = name;
-        this.source = source;
-        this.stages = Arrays.stream(stagesStr.split("-"))
-            .map(Integer::parseInt)
-            .collect(Collectors.toList());
-        this.totalHarvestTime = totalHarvestTime;
-        this.product = product;
-        this.harvestCycle = harvestCycle;
-        this.seasons = seasons;
-        this.isForage = isForage;
+    // ---- data ----
+    private final String id;
+    private final String[] stageSprites;
+    private final int[] stageDays;
+    private final FruitType fruit;
+    private final SyrupType syrup;
+    private final int woodYield;
+    private final String saplingId;
+    private final String icon;
+    private final int maxStack;
+    private final String animKey;   // ← NEW
+
+    private SeedType sapling;
+
+    TreeType(
+        String id,
+        String[] stageSprites,
+        int[] stageDays,
+        FruitType fruit,
+        SyrupType syrup,
+        int woodYield,
+        String saplingId,
+        String icon,
+        int maxStack,
+        String animKey                 // ← NEW
+    ) {
+        this.id = id;
+        this.stageSprites = stageSprites;
+        this.stageDays = stageDays;
+        this.fruit = fruit;
+        this.syrup = syrup;
+        this.woodYield = woodYield;
+        this.saplingId = saplingId;
+        this.icon = icon;
+        this.maxStack = maxStack;
+        this.animKey = animKey;      // ← NEW
     }
 
-    public String getName() { return name; }
-    public TreeSourceType getSource() { return source; }
-    public List<Integer> getStages() { return stages; }
-    public int getTotalHarvestTime() { return totalHarvestTime; }
-    public TreeProductType getProduct() { return product; }
-    public int getHarvestCycle() { return harvestCycle; }
-    public List<Seasons> getSeasons() { return seasons; }
-    public boolean isForage() { return isForage; }
-    public boolean growsIn(Seasons season) {
-        return seasons.contains(season);
+    // ---- ItemType ----
+    @Override public String id() { return id; }
+    @Override public String iconPath() { return icon != null ? icon : stageSprites[stageSprites.length - 1]; }
+    @Override public int maxStack() { return maxStack; }
+
+    // ---- growth API ----
+    public String[] stageSprites() { return stageSprites; }
+    public int[] stageDays()       { return stageDays; }
+    public int stageCount()        { return stageDays.length; }
+
+    public String getSpriteForDay(int daysGrown) {
+        int daySum = 0;
+        for (int i = 0; i < stageDays.length; i++) {
+            daySum += stageDays[i];
+            if (daysGrown < daySum) return stageSprites[i];
+        }
+        return stageSprites[stageSprites.length - 1];
     }
 
-    public boolean producesFruit() {
-        return product instanceof FruitType;
-    }
+    public int totalGrowthDays() { int s = 0; for (int d : stageDays) s += d; return s; }
 
-    public boolean producesSyrup() {
-        return product instanceof SyrupType;
-    }
+    // ---- products ----
+    public FruitType fruitType()   { return fruit; }
+    public SyrupType syrupType()   { return syrup; }
+    public boolean producesFruit() { return fruit != null; }
+    public boolean producesSyrup() { return syrup != null; }
+    public int woodYield()         { return woodYield; }
 
-    @Override
-    public String toString() {
-        return name;
-    }
+    // ---- sapling linkage ----
+    public String saplingId()      { return saplingId; }
+    public SeedType saplingType()  { return sapling; }
+    public void bindSapling(SeedType s) { this.sapling = s; }
+
+    // ---- animations ----
+    public String animKey()        { return animKey; }   // ← NEW
 }

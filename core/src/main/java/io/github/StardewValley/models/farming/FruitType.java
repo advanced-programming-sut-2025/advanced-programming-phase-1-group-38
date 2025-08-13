@@ -1,46 +1,18 @@
 package io.github.StardewValley.models.farming;
 
-import io.github.StardewValley.models.enums.Types.MaterialTypes;
+import io.github.StardewValley.models.ItemType;
 
-public enum FruitType implements TreeProductType, MaterialTypes {
-    APRICOT("Apricot", 59, true, 38),
-    CHERRY("Cherry", 80, true, 38),
-    BANANA("Banana", 150, true, 75),
-    MANGO("Mango", 130, true, 100),
-    ORANGE("Orange", 100, true, 38),
-    PEACH("Peach", 140, true, 38),
-    APPLE("Apple", 100, true, 38),
-    POMEGRANATE("Pomegranate", 140, true, 38),
-    COMMON_MUSHROOM("Common Mushroom", 40, true, 38);
+public enum FruitType implements ItemType {
+    APPLE("APPLE", "trees/apple.png", 0, 80);
+//    ORANGE("ORANGE", "trees/fruit/orange.png", 0, 70);
 
-    private final String name;
-    private final int baseSellPrice;
-    private final boolean isEdible;
-    private final int energy;
-
-    FruitType(String name, int baseSellPrice, boolean isEdible, int energy) {
-        this.name = name;
-        this.baseSellPrice = baseSellPrice;
-        this.isEdible = isEdible;
-        this.energy = energy;
+    private final String id, icon;
+    private final int maxStack, sellPrice;
+    FruitType(String id, String icon, int maxStack, int sellPrice) {
+        this.id = id; this.icon = icon; this.maxStack = maxStack; this.sellPrice = sellPrice;
     }
-
-    @Override
-    public boolean isTool() {
-        return false;
-    }
-
-    @Override
-    public String getName() { return name; }
-    @Override
-    public int getBaseSellPrice() { return baseSellPrice; }
-    @Override
-    public boolean isEdible() { return isEdible; }
-    @Override
-    public int getEnergy() { return energy; }
-
-    @Override
-    public String toString() {
-        return name;
-    }
+    @Override public String id() { return id; }
+    @Override public String iconPath() { return icon; }
+    @Override public int maxStack() { return maxStack; }
+    public int sellPrice() { return sellPrice; }
 }

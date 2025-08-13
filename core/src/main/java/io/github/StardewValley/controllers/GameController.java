@@ -19,6 +19,9 @@ import io.github.StardewValley.models.*;
 import io.github.StardewValley.models.Artisan.MachineInstance;
 import io.github.StardewValley.models.Artisan.MachineType;
 import io.github.StardewValley.models.enums.Skill;
+import io.github.StardewValley.models.farming.Tree;
+import io.github.StardewValley.models.farming.TreeSaplingType;
+import io.github.StardewValley.models.farming.TreeType;
 import io.github.StardewValley.views.GiftPopupView;
 
 import java.util.ArrayList;
@@ -33,28 +36,27 @@ public class GameController {
     private static final int EC_UNTILL = 1;
     private static final int EC_PLANT = 1;
     private static final int EC_HARVEST = 1;
+    private static final int EC_WATER = 1;
+    private static final int TILLED_TILE_ID = 89;
     private final List<MachineInstance> machines = new ArrayList<>();
-    public List<MachineInstance> getMachines() { return machines; }
     private final Player player;
     private final List<Door> doors = new ArrayList<>();
     private final List<RectangleMapObject> roofClickZones = new ArrayList<>();
-
+    private final String homeMapPath;
+    private final GameTime gameTime;
+    private final TiledMap sharedNpcMap;
+    private final java.util.Map<String, TiledMap> mapCache = new java.util.HashMap<>();
+    private final com.badlogic.gdx.utils.Array<FloatingIcon> floatingIcons = new com.badlogic.gdx.utils.Array<>();
     private TiledMap map;
     private OrthographicCamera camera;
     private String currentMapPath;
     private String previousMapPath;
-    private final String homeMapPath;
     private boolean roofVisible = true;
-    private final GameTime gameTime;
     private Weather weather;
     private WorldController worldController;
-    private static final int EC_WATER = 1;
-
     private boolean greenhouseUnlocked = false;
-
     private Tile[][] tileGrid;
     private int lastUpdatedDay = -1;
-
     private boolean fridgeOpen = false;
     private boolean playingFridgeAnim = false;
     private float fridgeAnimTime = 0f;
@@ -64,13 +66,8 @@ public class GameController {
     private Animation<TextureRegion> fridgeCloseAnim;
     private TextureRegion frame;
     private float timeAccumulator = 0f;
-
-    private final TiledMap sharedNpcMap;
-    private final java.util.Map<String, TiledMap> mapCache = new java.util.HashMap<>();
-
     private GiftPopupView giftPopup;
-
-    private static final int TILLED_TILE_ID = 89;
+    private DoorHook doorHook;
 
     public GameController(Player player, String initialMapPath, GameTime gameTime, TiledMap sharedNpcMap) {
         this.player = player;
@@ -97,6 +94,10 @@ public class GameController {
         this.weather = new Weather(WeatherType.SUNNY);
         loadDoorsFromMap();
         loadRoofClickZones();
+    }
+
+    public List<MachineInstance> getMachines() {
+        return machines;
     }
 
     public Tile getTileAt(int tileX, int tileY) {
@@ -126,17 +127,49 @@ public class GameController {
         if (canAct) {
             handleInput(delta);     // ← only the active player reads input & moves
         }
-        player.update(delta);        // animations etc. (keep this)
+        player.update(delta);
+
+        for (int x = 0; x < tileGrid.length; x++) {
+            for (int y = 0; y < tileGrid[0].length; y++) {
+                var t = tileGrid[x][y];
+                if (t.getContent() instanceof Tree tree) {
+                    tree.updateRealtime(delta);
+                }
+            }
+        }// animations etc. (keep this)
+
+        // award wood + clear tile after chop animation finishes
+        for (int x = 0; x < tileGrid.length; x++) {
+            for (int y = 0; y < tileGrid[0].length; y++) {
+                var t = tileGrid[x][y];
+                if (t.getContent() instanceof Tree tree && tree.needsChopPayout()) {
+                    int wood = tree.getType().woodYield();
+                    player.getInventory().add(MaterialType.Wood, wood);
+
+                    spawnFloatingIcon(MaterialType.Wood.iconPath(),
+                        t.getWorldX() + TILE_SIZE / 2f, t.getWorldY() + TILE_SIZE, 0.9f);
+
+                    // remove the tree from the tile completely
+                    t.setContent(null);
+                }
+            }
+        }
 
         if (gameTime.getDay() != lastUpdatedDay) {
             boolean inGreenhouse = isGreenhouseMap();
             for (int x = 0; x < tileGrid.length; x++) {
                 for (int y = 0; y < tileGrid[0].length; y++) {
-                    tileGrid[x][y].updateDaily(inGreenhouse);
+                    var t = tileGrid[x][y];
+                    if (t.getContent() instanceof Crop c) {
+                        c.updateDaily(inGreenhouse);
+                    } else if (t.getContent() instanceof Tree tree) {
+                        tree.updateDaily(inGreenhouse);   // ← pass it through
+                    }
                 }
             }
             lastUpdatedDay = gameTime.getDay();
         }
+
 
         for (MachineInstance m : machines) m.update(delta);
 
@@ -164,15 +197,17 @@ public class GameController {
         MachineInstance best = null;
         float best2 = radius * radius;
         for (MachineInstance m : machines) {
-            float cx = m.tileX * TILE_SIZE + TILE_SIZE/2f;
-            float cy = m.tileY * TILE_SIZE + TILE_SIZE/2f;
+            float cx = m.tileX * TILE_SIZE + TILE_SIZE / 2f;
+            float cy = m.tileY * TILE_SIZE + TILE_SIZE / 2f;
             float dx = worldX - cx, dy = worldY - cy;
-            float d2 = dx*dx + dy*dy;
-            if (d2 <= best2) { best2 = d2; best = m; }
+            float d2 = dx * dx + dy * dy;
+            if (d2 <= best2) {
+                best2 = d2;
+                best = m;
+            }
         }
         return best;
     }
-
 
     private void handleInput(float delta) {
         if (player.isActionLocked()) return;
@@ -212,28 +247,28 @@ public class GameController {
                 player.setAnimation("walk/down", "character/walk/down", 2, 0.2f, true);
             }
         } else if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) {
-        for (Door door : doors) {
-            if (!door.isPlayerInside(player.getX(), player.getY())) continue;
+            for (Door door : doors) {
+                if (!door.isPlayerInside(player.getX(), player.getY())) continue;
 
-            // resolve target path same way enterDoor() does
-            String targetMapPath = door.targetMap.equals("previousMap")
-                ? previousMapPath
-                : (door.targetMap.startsWith("maps/") ? door.targetMap : "maps/" + door.targetMap);
+                // resolve target path same way enterDoor() does
+                String targetMapPath = door.targetMap.equals("previousMap")
+                    ? previousMapPath
+                    : (door.targetMap.startsWith("maps/") ? door.targetMap : "maps/" + door.targetMap);
 
-            boolean isGreenhouseTarget = (targetMapPath != null &&
-                targetMapPath.toLowerCase().contains("greenhouse"));
+                boolean isGreenhouseTarget = (targetMapPath != null &&
+                    targetMapPath.toLowerCase().contains("greenhouse"));
 
-            if (isGreenhouseTarget && !isGreenhouseUnlocked()) {
-                // ask UI to open unlock popup
-                if (doorHook != null) doorHook.onTryEnterGreenhouse(door);
-                break; // stop here; don't enter yet
+                if (isGreenhouseTarget && !isGreenhouseUnlocked()) {
+                    // ask UI to open unlock popup
+                    if (doorHook != null) doorHook.onTryEnterGreenhouse(door);
+                    break; // stop here; don't enter yet
+                }
+
+                // normal enter (already unlocked or not greenhouse)
+                enterDoor(door);
+                break;
             }
-
-            // normal enter (already unlocked or not greenhouse)
-            enterDoor(door);
-            break;
-        }
-    } else if (Gdx.input.isKeyJustPressed(Input.Keys.T)) {
+        } else if (Gdx.input.isKeyJustPressed(Input.Keys.T)) {
             if (worldController != null) {
                 var npc = worldController.npc().closestOn(currentMapPath, player.getX(), player.getY(), 32f);
                 if (npc != null) {
@@ -291,19 +326,13 @@ public class GameController {
                         if (!player.hasEnergy(EC_HARVEST)) return;
                         player.consumeEnergy(EC_HARVEST);
 
-                        boolean dead = c.isDead();
-                        c.harvest();
-                        if (!dead && c.isFullyGrown()) {
-                            player.getInventory().add(c.getCropType(), 1);
-                            if (player.getSkills().get(Skill.FARMING).addXp(5)) {
-                                player.addMaxEnergy(10);
-                            }
-                        }
-                        clicked.setContent(null);
+                        boolean didHarvest = harvestCropOnTile(c, clicked);
 
-                        String dir = player.getFacingDirection();
-                        player.setAnimation("pickaxe_" + dir, "character/pickaxe/" + dir, 2, 0.1f, false);
-                        player.setActionCooldown(0.3f);
+                        if (didHarvest) {
+                            String dir = player.getFacingDirection();
+                            player.setAnimation("pickaxe_" + dir, "character/pickaxe/" + dir, 2, 0.1f, false);
+                            player.setActionCooldown(0.3f);
+                        }
                         return; // handled; skip rest of click checks
                     }
                 }
@@ -313,27 +342,84 @@ public class GameController {
                 ToolType tool = (ToolType) held;
 
                 // ----- WATERING -----
-                if (tool == ToolType.WATERCAN && gameTile != null && gameTile.getContent() instanceof Crop) {
-                    Crop crop = (Crop) gameTile.getContent();
-                    if (!crop.isDead() && !player.isActionLocked()) {
-                        if (!player.hasEnergy(EC_WATER)) return;
-                        crop.water();
-                        player.consumeEnergy(EC_WATER);
+                if (tool == ToolType.WATERCAN && gameTile != null) {
+                    Object content = gameTile.getContent();
 
-                        String direction = player.getFacingDirection();
-                        // Use your watering animation folders
-                        player.setAnimation("watercan_" + direction, "character/watercan/" + direction, 2, 0.12f, false);
-                        player.setActionCooldown(0.25f);
-
-                        // OPTIONAL: swap ground to a "wet dirt" tile id for visuals (if you have one)
-                        // TiledMapTileLayer grassLayer = (TiledMapTileLayer) map.getLayers().get("Grass");
-                        // if (grassLayer != null) {
-                        //     TiledMapTileLayer.Cell c = grassLayer.getCell(tileX, tileY);
-                        //     if (c != null) c.setTile(map.getTileSets().getTile(WET_TILLED_TILE_ID));
-                        // }
+                    if (content instanceof Crop crop) {
+                        if (!crop.isDead() && !player.isActionLocked()) {
+                            if (!player.hasEnergy(EC_WATER)) return;
+                            crop.water();
+                            player.consumeEnergy(EC_WATER);
+                            String direction = player.getFacingDirection();
+                            player.setAnimation("watercan_" + direction, "character/watercan/" + direction, 2, 0.12f, false);
+                            player.setActionCooldown(0.25f);
+                        }
+                        return;
+                    } else if (content instanceof Tree tree) {
+                        if (!tree.isDead() && !player.isActionLocked()) {
+                            if (!player.hasEnergy(EC_WATER)) return;
+                            tree.water();  // sets wateredToday=true
+                            player.consumeEnergy(EC_WATER);
+                            String direction = player.getFacingDirection();
+                            player.setAnimation("watercan_" + direction, "character/watercan/" + direction, 2, 0.12f, false);
+                            player.setActionCooldown(0.25f);
+                        }
+                        return;
                     }
-                    return; // handled watering
                 }
+
+            }
+
+            // --- Trees: shake for fruit / chop for wood ---
+            if (gameTile != null && gameTile.getContent() instanceof Tree tree) {
+                // what tool are we holding?
+                ToolType tool = (held instanceof ToolType) ? (ToolType) held : null;
+
+                // 1) Shake fruit (allow with scythe or empty hand)
+                boolean canShakeWithThis = (tool == null || tool == ToolType.SCYTHE);
+                if (canShakeWithThis && tree.canShakeFruit()) {
+                    if (!player.hasEnergy(EC_HARVEST)) return;
+                    player.consumeEnergy(EC_HARVEST);
+
+                    ItemType fruit = tree.collectFruit();
+                    if (fruit != null) {
+                        player.getInventory().add(fruit, 1);
+                    }
+
+                    // quick shake animation reuse (pickaxe swing looks ok as a “shake”)
+                    String dir = player.getFacingDirection();
+                    player.setAnimation("pickaxe_" + dir, "character/pickaxe/" + dir, 2, 0.10f, false);
+                    player.setActionCooldown(0.25f);
+                    return;
+                }
+
+                // 2) Chop tree (use AXE if you have it; otherwise reuse PICKAXE)
+                boolean isChopTool =
+                    tool == ToolType.AXE || tool == ToolType.PICKAXE; // change if you have a dedicated AXE
+                if (isChopTool && tree.isMature() && !tree.isChopped()) {
+                    // pick an energy cost for chopping (separate from harvest)
+                    final int EC_CHOP = 4;
+                    if (!player.hasEnergy(EC_CHOP)) return;
+                    player.consumeEnergy(EC_CHOP);
+
+                    // was: tree.chopDown(); ... gameTile.setContent(null); (remove these)
+
+// trigger the animated chop (payout later)
+                    tree.playChop();
+
+// energy, animation, cooldown (keep these)
+                    String dir = player.getFacingDirection();
+                    player.setAnimation("pickaxe_" + dir, "character/pickaxe/" + dir, 2, 0.11f, false);
+                    player.setActionCooldown(0.3f);
+
+// optional XP stays here (or move to payout time if you prefer)
+                    if (player.getSkills().get(Skill.FORAGING).addXp(5)) player.addMaxEnergy(5);
+
+                    return;
+                }
+
+                // If we clicked a tree but didn’t match any action, just stop further ground edits.
+                return;
             }
 
 
@@ -398,16 +484,26 @@ public class GameController {
             int tileY = (int) (player.getY() / TILE_SIZE);
 
             ItemType selectedItem = player.getInventoryRenderer().getSelectedType();
-            if (selectedItem instanceof SeedType) {
-                SeedType seed = (SeedType) selectedItem;
+
+            // 1) regular seeds → crops (unchanged)
+            if (selectedItem instanceof SeedType seed) {
                 if (!player.hasEnergy(EC_PLANT)) return;
                 if (plantCrop(tileX, tileY, seed.product())) {
                     player.consumeEnergy(EC_PLANT);
                     player.getInventory().remove(seed, 1);
-                    if (player.getSkills().get(Skill.FARMING).addXp(3)) {
-                        player.addMaxEnergy(10);
-                    }
+                    if (player.getSkills().get(Skill.FARMING).addXp(3)) player.addMaxEnergy(10);
                 }
+                return;
+            }
+
+            if (selectedItem instanceof TreeSaplingType sapling) {
+                if (!player.hasEnergy(EC_PLANT)) return;
+                if (plantTree(tileX, tileY, sapling.growsInto())) {
+                    player.consumeEnergy(EC_PLANT);
+                    player.getInventory().remove(sapling, 1);
+                    if (player.getSkills().get(Skill.FARMING).addXp(4)) player.addMaxEnergy(10);
+                }
+                return;
             }
         }
 
@@ -446,7 +542,6 @@ public class GameController {
         batch.draw(frame, fridgeBounds.x, fridgeBounds.y);
     }
 
-
     // GameController.java
     public boolean plantCrop(int tileX, int tileY, CropType type) {
         Tile tile = getTileAt(tileX, tileY);
@@ -478,6 +573,54 @@ public class GameController {
         return true;
     }
 
+    // Returns true if something was harvested (so caller can play anim/cooldown)
+    private boolean harvestCropOnTile(Crop crop, Tile tile) {
+        boolean wasDead = crop.isDead();
+        boolean wasMature = crop.isFullyGrown();
+
+        // Will the plant stay (regrow) or be removed?
+        boolean removeTile = crop.harvestAndMaybeRegrow();
+
+        // reward only if it was mature and not dead
+        if (!wasDead && wasMature) {
+            player.getInventory().add(crop.getCropType(), 1);
+            if (player.getSkills().get(Skill.FARMING).addXp(5)) {
+                player.addMaxEnergy(10);
+            }
+        }
+
+        if (removeTile) {
+            tile.setContent(null);
+        }
+
+        return (wasDead || wasMature); // true means we actually harvested something
+    }
+
+    // GameController.java
+    public boolean plantTree(int tileX, int tileY, TreeType type) {
+        Tile tile = getTileAt(tileX, tileY);
+        if (tile == null || type == null) return false;
+        if (tile.getContent() != null) return false;
+
+        // block walls/collision only (trees don’t care about tilled dirt)
+        TiledMapTileLayer collision = (TiledMapTileLayer) map.getLayers().get("Collision");
+        if (collision != null) {
+            TiledMapTileLayer.Cell c = collision.getCell(tileX, tileY);
+            if (c != null && c.getTile() != null) return false;
+        }
+
+        // block obvious structure layers too
+        for (String layerName : new String[]{"House", "Water", "Quarry"}) {
+            TiledMapTileLayer top = (TiledMapTileLayer) map.getLayers().get(layerName);
+            if (top != null) {
+                var cell = top.getCell(tileX, tileY);
+                if (cell != null && cell.getTile() != null) return false;
+            }
+        }
+
+        tile.setContent(new Tree(type));
+        return true;
+    }
 
     private boolean harvestNearestCrop(float mx, float my) {
         ItemType held = player.getInventoryRenderer().getSelectedType();
@@ -485,12 +628,12 @@ public class GameController {
             return false;
         }
 
-        Crop      nearestCrop = null;
-        Tile      cropTile    = null;
-        float     bestD2      = HARVEST_RANGE * HARVEST_RANGE;
+        Crop nearestCrop = null;
+        Tile cropTile = null;
+        float bestD2 = HARVEST_RANGE * HARVEST_RANGE;
 
-        int cx = (int)(mx / TILE_SIZE);
-        int cy = (int)(my / TILE_SIZE);
+        int cx = (int) (mx / TILE_SIZE);
+        int cy = (int) (my / TILE_SIZE);
 
         for (int ty = cy - 2; ty <= cy + 2; ty++) {
             for (int tx = cx - 2; tx <= cx + 2; tx++) {
@@ -506,7 +649,7 @@ public class GameController {
                 float cxWorld = tile.getWorldX() + TILE_SIZE * 0.5f;
                 float cyWorld = tile.getWorldY() + TILE_SIZE * 0.5f;
                 float dx = mx - cxWorld, dy = my - cyWorld;
-                float d2 = dx*dx + dy*dy;
+                float d2 = dx * dx + dy * dy;
 
                 if (d2 < bestD2) {
                     bestD2 = d2;
@@ -520,29 +663,18 @@ public class GameController {
             if (!player.hasEnergy(EC_HARVEST)) return false;
             player.consumeEnergy(EC_HARVEST);
 
-            boolean dead = nearestCrop.isDead();
-            nearestCrop.harvest();
+            boolean didHarvest = harvestCropOnTile(nearestCrop, cropTile);
 
-            // Only add to inventory if not dead and fully grown
-            if (!dead && nearestCrop.isFullyGrown()) {
-                player.getInventory().add(nearestCrop.getCropType(), 1);
-                if (player.getSkills().get(Skill.FARMING).addXp(5)) {
-                    player.addMaxEnergy(10);
-                }
+            if (didHarvest) {
+                String direction = player.getFacingDirection();
+                player.setActionCooldown(0.3f);
+                player.setAnimation("pickaxe_" + direction, "character/pickaxe/" + direction, 2, 0.1f, false);
             }
 
-            // Clear the tile content in both cases
-            cropTile.setContent(null);
-
-            String direction = player.getFacingDirection();
-            player.setActionCooldown(0.3f);
-            // a little snappier swing for scythe is usually “scythe” anim
-            player.setAnimation("pickaxe_" + direction, "character/pickaxe/" + direction, 2, 0.1f, false);
-            return true;
+            return didHarvest;
         }
         return false;
     }
-
 
     public float getPlayerX() {
         return player.getX();
@@ -568,16 +700,17 @@ public class GameController {
         float height = player.getHeight();
 
         int[][] corners = {
-            { (int) (newX / TILE_SIZE), (int) (newY / TILE_SIZE) },
-            { (int) ((newX + width - 1) / TILE_SIZE), (int) (newY / TILE_SIZE) },
-            { (int) (newX / TILE_SIZE), (int) ((newY + height - 1) / TILE_SIZE) },
-            { (int) ((newX + width - 1) / TILE_SIZE), (int) ((newY + height - 1) / TILE_SIZE) }
+            {(int) (newX / TILE_SIZE), (int) (newY / TILE_SIZE)},
+            {(int) ((newX + width - 1) / TILE_SIZE), (int) (newY / TILE_SIZE)},
+            {(int) (newX / TILE_SIZE), (int) ((newY + height - 1) / TILE_SIZE)},
+            {(int) ((newX + width - 1) / TILE_SIZE), (int) ((newY + height - 1) / TILE_SIZE)}
         };
 
         for (int[] corner : corners) {
             int tileX = corner[0];
             int tileY = corner[1];
-            if (tileX < 0 || tileY < 0 || tileX >= collisionLayer.getWidth() || tileY >= collisionLayer.getHeight()) return false;
+            if (tileX < 0 || tileY < 0 || tileX >= collisionLayer.getWidth() || tileY >= collisionLayer.getHeight())
+                return false;
             TiledMapTileLayer.Cell cell = collisionLayer.getCell(tileX, tileY);
             if (cell != null && cell.getTile() != null) return false;
         }
@@ -670,7 +803,7 @@ public class GameController {
         }
 
         previousMapPath = currentMapPath;
-        currentMapPath  = targetMapPath;
+        currentMapPath = targetMapPath;
         player.setX(door.spawnX);
         player.setY(door.spawnY);
 
@@ -681,7 +814,6 @@ public class GameController {
         loadDoorsFromMap();
         loadRoofClickZones();
     }
-
 
     private void loadRoofClickZones() {
         MapLayer roofLayer = map.getLayers().get("Roof");
@@ -737,13 +869,13 @@ public class GameController {
         return cell != null && cell.getTile() != null;
     }
 
-    public void setGiftPopup(GiftPopupView v) {  // <-- add this
-        this.giftPopup = v;
-    }
     public GiftPopupView getGiftPopup() {        // <-- add this
         return giftPopup;
     }
 
+    public void setGiftPopup(GiftPopupView v) {  // <-- add this
+        this.giftPopup = v;
+    }
 
     public void setCamera(OrthographicCamera camera) {
         this.camera = camera;
@@ -760,18 +892,6 @@ public class GameController {
     public void setWorldController(WorldController wc) {
         this.worldController = wc;
     }
-
-
-    public static class FloatingIcon {
-        public float x, y;          // world coordinates
-        public float age = 0f;      // seconds elapsed
-        public float life = 1.0f;   // seconds total
-        public String texKey;       // texture key in GameAssetManager (e.g., "gift.png")
-        public float rise = 24f;    // how many world units to rise over life
-        public float size = 16f;    // draw size (world units)
-    }
-
-    private final com.badlogic.gdx.utils.Array<FloatingIcon> floatingIcons = new com.badlogic.gdx.utils.Array<>();
 
     public void spawnFloatingIcon(String texKey, float worldX, float worldY, float lifeSec) {
         FloatingIcon e = new FloatingIcon();
@@ -794,18 +914,22 @@ public class GameController {
         return prop != null && prop;
     }
 
-    public boolean isGreenhouseUnlocked() { return greenhouseUnlocked; }
-    public void setGreenhouseUnlocked(boolean v) { greenhouseUnlocked = v; }
-
-    // UI hook so the view can show the unlock popup instead of entering
-    public interface DoorHook {
-        void onTryEnterGreenhouse(Door door);
+    public boolean isGreenhouseUnlocked() {
+        return greenhouseUnlocked;
     }
-    private DoorHook doorHook;
-    public void setDoorHook(DoorHook hook) { this.doorHook = hook; }
+
+    public void setGreenhouseUnlocked(boolean v) {
+        greenhouseUnlocked = v;
+    }
+
+    public void setDoorHook(DoorHook hook) {
+        this.doorHook = hook;
+    }
 
     // Allow UI to actually enter after unlocking
-    public void enterDoorFromUI(Door door) { enterDoor(door); }
+    public void enterDoorFromUI(Door door) {
+        enterDoor(door);
+    }
 
     public void updateFloatingIcons(float dt) {
         for (int i = floatingIcons.size - 1; i >= 0; i--) {
@@ -813,6 +937,20 @@ public class GameController {
             e.age += dt;
             if (e.age >= e.life) floatingIcons.removeIndex(i);
         }
+    }
+
+    // UI hook so the view can show the unlock popup instead of entering
+    public interface DoorHook {
+        void onTryEnterGreenhouse(Door door);
+    }
+
+    public static class FloatingIcon {
+        public float x, y;          // world coordinates
+        public float age = 0f;      // seconds elapsed
+        public float life = 1.0f;   // seconds total
+        public String texKey;       // texture key in GameAssetManager (e.g., "gift.png")
+        public float rise = 24f;    // how many world units to rise over life
+        public float size = 16f;    // draw size (world units)
     }
 
 }

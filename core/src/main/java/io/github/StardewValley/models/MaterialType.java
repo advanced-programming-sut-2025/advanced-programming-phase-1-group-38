@@ -3,12 +3,12 @@ package io.github.StardewValley.models;
 import io.github.StardewValley.models.enums.Types.MaterialTypes;
 
 public enum MaterialType implements MaterialTypes, ItemType {
-    Wood("Wood", "wood.png", 999),
-    Stone("Stone", "stone.png", 999),
-    Coal("Coal", "coal.png", 999),
-    CopperOre("Copper Ore", "copper_ore.png", 999),
-    IronOre("Iron Ore", "iron_ore.png", 999),
-    IronBar("Iron Bar", "iron_bar.png", 999),
+    Wood("Wood", "wood.png", 0),
+    Stone("Stone", "stone.png", 0),
+    Coal("Coal", "coal.png", 0),
+    CopperOre("Copper Ore", "copper_ore.png", 0),
+    IronOre("Iron Ore", "iron_ore.png", 0),
+    IronBar("Iron Bar", "iron_bar.png", 0),
     GoldBar("Gold Ore", "items/Gold_Bar.png", 0),
     ;
 

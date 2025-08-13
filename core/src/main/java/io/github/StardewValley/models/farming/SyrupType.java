@@ -1,38 +1,20 @@
 package io.github.StardewValley.models.farming;
 
-public enum SyrupType implements TreeProductType {
-    OAK_RESIN("Oak Resin", 150, false, 0),
-    MAPLE_SYRUP("Maple Syrup", 200, false, 0),
-    PINE_TAR("Pine Tar", 100, false, 0),
-    SAP("Sap", 2, false, 0),
-    MYSTIC_SYRUP("Mystic Syrup", 1000, true, 500);
+import io.github.StardewValley.models.ItemType;
 
-    private final String name;
-    private final int baseSellPrice;
-    private final boolean isEdible;
-    private final int energy;
+public enum SyrupType implements ItemType {
+//    MAPLE_SYRUP("MAPLE_SYRUP", "items/syrup/maple_syrup.png", 0, 120),
+//    OAK_RESIN  ("OAK_RESIN",   "items/syrup/oak_resin.png",   0, 90),
+//    PINE_TAR   ("PINE_TAR",    "items/syrup/pine_tar.png",    0, 80);
+    ;
 
-    SyrupType(String name, int baseSellPrice, boolean isEdible, int energy) {
-        this.name = name;
-        this.baseSellPrice = baseSellPrice;
-        this.isEdible = isEdible;
-        this.energy = energy;
+    private final String id, icon;
+    private final int maxStack, sellPrice;
+    SyrupType(String id, String icon, int maxStack, int sellPrice) {
+        this.id = id; this.icon = icon; this.maxStack = maxStack; this.sellPrice = sellPrice;
     }
-
-    @Override
-    public String getName() { return name; }
-
-    @Override
-    public int getBaseSellPrice() { return baseSellPrice; }
-
-    @Override
-    public boolean isEdible() { return isEdible; }
-
-    @Override
-    public int getEnergy() { return energy; }
-
-    @Override
-    public String toString() {
-        return name;
-    }
+    @Override public String id() { return id; }
+    @Override public String iconPath() { return icon; }
+    @Override public int maxStack() { return maxStack; }
+    public int sellPrice() { return sellPrice; }
 }
