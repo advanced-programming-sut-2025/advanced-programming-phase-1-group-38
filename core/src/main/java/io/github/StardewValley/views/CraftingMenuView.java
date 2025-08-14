@@ -22,7 +22,12 @@ public class CraftingMenuView {
     private final Texture leftArrow;
     private final Texture rightArrow;
     private final Texture craftButton;
-
+    public interface OnCraftListener {
+        boolean consumeMaterials(java.util.List<io.github.StardewValley.models.ItemStack> mats);
+        boolean giveToPlayer(io.github.StardewValley.models.ItemStack result);
+    }
+    private OnCraftListener onCraft;
+    public void setOnCraft(OnCraftListener l) { this.onCraft = l; }
     private boolean visible = false;
 
     private int selected = 0;
@@ -36,6 +41,8 @@ public class CraftingMenuView {
 
     private String feedback = null;
     private float feedbackTimer = 0f;
+
+
 
     public CraftingMenuView(Inventory inventory, List<SimpleCraftingRecipe> recipes) {
         this.inventory = inventory;
@@ -113,6 +120,8 @@ public class CraftingMenuView {
             small.draw(batch, fb, panelX + (panelW - fb.width)/2f, panelY - 10);
             if (feedbackTimer <= 0f) feedback = null;
         }
+        // ... بعد از set selected به اول صفحه
+        clampSelectedToPage();
     }
 
     private void handleInput() {
@@ -134,6 +143,8 @@ public class CraftingMenuView {
 
         // craft
         if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) tryCraftSelected();
+        // craft با Enter همان است...
+        clampSelectedToPage();
     }
 
     private void drawGrid(SpriteBatch batch, float panelX, float panelY, float panelW, float panelH) {
@@ -204,18 +215,68 @@ public class CraftingMenuView {
 
     private void tryCraftSelected() {
         if (recipes.isEmpty()) return;
+
         SimpleCraftingRecipe r = recipes.get(selected);
         if (!canCraft(r)) {
             feedback = "Not enough materials!";
             feedbackTimer = 1.6f;
             return;
         }
-        for (Map.Entry<ItemType, Integer> e : r.getIngredients().entrySet()) {
-            inventory.remove(e.getKey(), e.getValue());
+
+        // 1) کم‌کردن مواد: اگر کال‌بک ست شده بود، از اون استفاده کن
+        boolean consumed = true;
+        if (onCraft != null) {
+            // تبدیل Map<ItemType,Integer> به List<ItemStack> برای کال‌بک
+            java.util.ArrayList<io.github.StardewValley.models.ItemStack> mats = new java.util.ArrayList<>();
+            for (Map.Entry<ItemType, Integer> e : r.getIngredients().entrySet()) {
+                mats.add(new io.github.StardewValley.models.ItemStack(e.getKey(), e.getValue()));
+            }
+            consumed = onCraft.consumeMaterials(mats);
+        } else {
+            // مسیر قدیمی: از inventory داخلی کم کن
+            for (Map.Entry<ItemType, Integer> e : r.getIngredients().entrySet()) {
+                inventory.remove(e.getKey(), e.getValue());
+            }
         }
-        inventory.add(r.getOutput(), r.getOutputQty());
+
+        if (!consumed) {
+            feedback = "Inventory changed / failed";
+            feedbackTimer = 1.6f;
+            return;
+        }
+
+        // 2) ساخت خروجی
+        io.github.StardewValley.models.ItemStack result = new io.github.StardewValley.models.ItemStack(
+                r.getOutput(), r.getOutputQty()
+        );
+        if (result.getAmount() <= 0) {
+            feedback = "Recipe returned nothing";
+            feedbackTimer = 1.6f;
+            return;
+        }
+
+        // 3) دادن خروجی: ترجیح با کال‌بک؛ اگر نبود، روی inventory داخلی
+        if (onCraft != null) {
+            boolean ok = onCraft.giveToPlayer(result);
+            if (!ok) {
+                feedback = "Inventory full";
+                feedbackTimer = 1.6f;
+                return;
+            }
+        } else {
+            inventory.add(result.getType(), result.getAmount());
+        }
+
         feedback = "Crafted: " + r.getName();
         feedbackTimer = 1.6f;
+    }
+
+    private void clampSelectedToPage() {
+        int start = page * PER_PAGE;
+        int end = Math.min(recipes.size(), start + PER_PAGE) - 1;
+        if (recipes.isEmpty()) { selected = 0; return; }
+        if (selected < start) selected = start;
+        if (selected > end)   selected = end;
     }
 
     private boolean canCraft(SimpleCraftingRecipe r) {

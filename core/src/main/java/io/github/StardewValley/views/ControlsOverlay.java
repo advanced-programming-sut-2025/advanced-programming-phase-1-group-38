@@ -32,17 +32,16 @@ public class ControlsOverlay {
         px = new Texture(pm); pm.dispose();
 
         // Keybinds (مطابق کد فعلی پروژه)
-        lines.put("WASD / Arrow Keys", "حرکت");
-        lines.put("Mouse Left",        "اکشن / استفاده از ابزار / تعامل");
-        lines.put("Mouse Wheel",       "چرخش اسلات هات‌بار");
-        lines.put("E یا ESC",          "باز/بستن Inventory");
-        lines.put("B",                 "باز/بستن Crafting");
-        lines.put("C (فقط داخل خانه)", "باز/بستن Cooking");
-        lines.put("F",                 "باز/بستن Journal");
-        lines.put("K",                 "باز/بستن Shop");
-        lines.put("R",                 "دیباگ‌اورلی (کادر/رنج برداشت)");
-        lines.put("Click روی آیکن Sell", "باز/بستن Sell Menu (کنار Trash)");
-        lines.put("H",                 "نمایش/مخفی‌سازی همین راهنما");
+        lines.put("WASD / Arrow Keys", "");
+        lines.put("Mouse Left",        "");
+        lines.put("Mouse Wheel",       "");
+        lines.put("E یا ESC",          "Inventory");
+        lines.put("B",                 "Crafting");
+        lines.put("C (in house)", "Cooking");
+        lines.put("F",                 "Journal");
+        lines.put("K",                 "Shop");
+        lines.put("R",                 "");
+        lines.put("H",                 "help");
     }
 
     public void toggle() { visible = !visible; }

@@ -88,10 +88,20 @@ public class PlayerMapView implements Screen {
     private Texture notifTex;
     private Sprite  notifSprite;
 
+    private boolean placing = false;
+    private io.github.StardewValley.models.Artisan.MachineType placingType = null;
+    private com.badlogic.gdx.graphics.Texture ghostTex;
+    private MachineMenuView machineMenu;
+
+    // Placement mode
+    private boolean placingMachine = false;
+    private io.github.StardewValley.models.Artisan.MachineType pendingMachine = null;
+    private int hoverTx = -1, hoverTy = -1;
+
     private final ShapeRenderer shapeRenderer = new ShapeRenderer();
     private boolean debugDraw = false;          // press F3 to toggle
 
-    private enum Panel { NONE, INVENTORY, CRAFTING, SHOP, SELL, COOKING, JOURNAL, CONTROLS, QUEST, GIFT, CHAT }
+    private enum Panel { NONE, INVENTORY, CRAFTING, SHOP, SELL, COOKING, JOURNAL, CONTROLS, QUEST, GIFT, CHAT , MACHINE }
     private Panel activePanel = Panel.NONE;
 
     public PlayerMapView(WorldController worldController, int playerIndex) {
@@ -136,6 +146,48 @@ public class PlayerMapView implements Screen {
                 SimpleRecipeBook.getBasicRecipes()
 
         );
+        craftingMenuView.setOnCraft(new CraftingMenuView.OnCraftListener() {
+            @Override
+            public boolean consumeMaterials(java.util.List<io.github.StardewValley.models.ItemStack> mats) {
+                Inventory inv = controller.getPlayer().getInventory();
+                for (io.github.StardewValley.models.ItemStack need : mats) {
+                    inv.remove(need.getType(), need.getAmount());
+                }
+                // ← مواد کم شد؛ UI رو تلنگر بزن که اعداد have/need فوراً آپدیت شن
+                if (inventoryMenuView != null) inventoryMenuView.onInventoryChanged();
+                if (inventoryRenderer != null)  inventoryRenderer.onInventoryChanged();
+                return true;
+            }
+
+            @Override
+            public boolean giveToPlayer(io.github.StardewValley.models.ItemStack result) {
+                Inventory inv = controller.getPlayer().getInventory();
+
+                int before = inv.getTotalQty(result.getType());
+                int left   = inv.add(result.getType(), result.getAmount());
+                int after  = inv.getTotalQty(result.getType());
+
+                Gdx.app.log("CRAFT", "Added " + result.getType().id() + " x" + result.getAmount()
+                        + " | before=" + before + " after=" + after + " | leftover=" + left);
+
+                // فوکوس روی همون آیتم و رفرش UI
+                int idx = inv.indexOfFirst(result.getType());
+                if (idx >= 0) {
+                    if (inventoryRenderer != null) {
+                        inventoryRenderer.setSelectedIndex(idx);
+                        inventoryRenderer.onInventoryChanged();
+                    }
+                    if (inventoryMenuView != null && inventoryMenuView.isVisible()) {
+                        inventoryMenuView.setSelectedIndex(idx);
+                        inventoryMenuView.onInventoryChanged();
+                    }
+                } else {
+                    // fallback ساده
+                    if (inventoryRenderer != null) inventoryRenderer.onInventoryChanged();
+                    if (inventoryMenuView != null)  inventoryMenuView.onInventoryChanged();
+                }
+                return left == 0; // true اگر جا شد
+            }        });
 
         inventoryMenuView.setOnOpenSellMenu(() -> Gdx.app.postRunnable(() -> {
             if (activePanel == Panel.INVENTORY) {
@@ -150,6 +202,8 @@ public class PlayerMapView implements Screen {
             controller.getPlayer().getFridgeInventory(),
             controller.getPlayer().getAllCookingRecipes()
         );
+
+        machineMenu = new MachineMenuView(controller);
 
         Gdx.input.setInputProcessor(new InventoryScrollHandler(inventoryRenderer, inventoryMenuView, cookingMenuView));
 
@@ -210,6 +264,7 @@ public class PlayerMapView implements Screen {
 
     @Override
     public void render(float delta) {
+        controller.updateMachines(delta);
         if (!uiOpen() && Gdx.input.isKeyJustPressed(Input.Keys.N)) {
             worldController.endTurnAndAdvanceIfRoundDone();
             int newIndex = worldController.getCurrentPlayerIndex();
@@ -293,6 +348,37 @@ public class PlayerMapView implements Screen {
                     inventoryRenderer.setSelectedIndex(selected);
                 }
             );
+        }
+
+        // ورود به حالت گذاشتن دستگاه
+        if (!uiOpen() && Gdx.input.isKeyJustPressed(Input.Keys.P)) {
+            ItemType sel = inventoryRenderer.getSelectedType();
+            if (sel instanceof io.github.StardewValley.models.Artisan.MachineType mt
+                    && controller.getPlayer().getInventory().getTotalQty(sel) > 0) {
+                placingMachine = true;
+                pendingMachine = mt;
+            }
+        }
+
+
+        if (!uiOpen() && !placingMachine && Gdx.input.isButtonJustPressed(Input.Buttons.LEFT)) {
+            Vector3 w = camera.unproject(new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0));
+            int tx = (int)(w.x / TILE_SIZE);
+            int ty = (int)(w.y / TILE_SIZE);
+
+            var pm = controller.getMachineAt(controller.getCurrentMapPath(), tx, ty);
+            if (pm != null) {
+                togglePanel(Panel.MACHINE, true,
+                        () -> machineMenu.open(pm),
+                        () -> machineMenu.close()
+                );
+            }
+        }
+
+        // بستن منوی ماشین با E
+        if (machineMenu != null && machineMenu.isVisible() && Gdx.input.isKeyJustPressed(Input.Keys.E)) {
+            machineMenu.close();
+            activePanel = Panel.NONE;   // تا uiOpen() هم false بشه
         }
 
         if (Gdx.input.isKeyJustPressed(Input.Keys.B)) {
@@ -410,6 +496,45 @@ public class PlayerMapView implements Screen {
 
         batch.setProjectionMatrix(camera.combined);
         batch.begin();
+        controller.renderMachines(batch);
+        // ----- Placement ghost -----
+        if (placingMachine && pendingMachine != null) {
+            Vector3 w = camera.unproject(new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0));
+            hoverTx = (int)(w.x / TILE_SIZE);
+            hoverTy = (int)(w.y / TILE_SIZE);
+
+            boolean ok = controller.canPlaceMachineAt(controller.getCurrentMapPath(), hoverTx, hoverTy);
+
+            // آیکن دستگاه به صورت نیمه‌شفاف
+            Texture ghost = GameAssetManager.getGameAssetManager().getTexture(pendingMachine.iconPath());
+            float gw = TILE_SIZE * 0.9f, gh = TILE_SIZE * 0.9f;
+            float gx = hoverTx * TILE_SIZE + (TILE_SIZE - gw) / 2f;
+            float gy = hoverTy * TILE_SIZE;
+            batch.setColor(1f, 1f, 1f, ok ? 0.85f : 0.35f);
+            batch.draw(ghost, gx, gy, gw, gh);
+            batch.setColor(1f, 1f, 1f, 1f);
+
+            if (ok && Gdx.input.isButtonJustPressed(Input.Buttons.LEFT)) {
+                boolean placed = controller.placeMachine(
+                        pendingMachine,
+                        controller.getCurrentMapPath(),
+                        hoverTx, hoverTy,
+                        controller.getPlayer().getInventory()
+                );
+                if (placed) {
+                    if (inventoryMenuView != null) inventoryMenuView.onInventoryChanged();
+                    if (inventoryRenderer  != null) inventoryRenderer.onInventoryChanged();
+                    placingMachine = false; pendingMachine = null;
+                }
+            }
+
+
+
+            // لغو
+            if (Gdx.input.isButtonJustPressed(Input.Buttons.RIGHT) || Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
+                placingMachine = false; pendingMachine = null;
+            }
+        }
 
         for (int x = 0; x < tiles.length; x++) {
             for (int y = 0; y < tiles[0].length; y++) {
@@ -591,6 +716,14 @@ public class PlayerMapView implements Screen {
             journalOverlay.render(batch, big, small, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
         }
 
+        // جای مناسبی بین بقیه‌ی UIها (مثلاً قبل از batch.end())
+        if (machineMenu != null && machineMenu.isVisible()) {
+            float w = 300f, h = 160f;
+            float x = (uiCamera.viewportWidth  - w) / 2f;
+            float y = (uiCamera.viewportHeight - h) / 2f;
+            machineMenu.render(batch, x, y, w, h);
+        }
+
         if (controlsOverlay.isVisible() && !isMenuOpen()) {
             BitmapFont big   = GameAssetManager.getGameAssetManager().getBigFont();
             BitmapFont small = GameAssetManager.getGameAssetManager().getSmallFont();
@@ -713,6 +846,7 @@ public class PlayerMapView implements Screen {
             case CONTROLS   -> { if (!controlsOverlay.isVisible())    activePanel = Panel.NONE; }
             case QUEST      -> { if (!npcQuestView.isVisible())       activePanel = Panel.NONE; }
             case GIFT       -> { if (!giftPopupView.isVisible())      activePanel = Panel.NONE; }
+            case MACHINE -> { if (machineMenu == null || !machineMenu.isVisible()) activePanel = Panel.NONE; }
             case CHAT       -> { if (chatOverlay == null || !chatOverlay.isVisible()) activePanel = Panel.NONE; }
             default -> {}
         }
@@ -763,6 +897,16 @@ public class PlayerMapView implements Screen {
 
         for (Player p : others) {
             p.render(batch);
+        }
+    }
+
+    // داخل کلاس PlayerMapView، بیرون از هر متدی
+    private void forceInventoryUiRefresh() {
+        if (inventoryMenuView != null) {
+            inventoryMenuView.setSelectedIndex(inventoryMenuView.getSelectedIndex());
+        }
+        if (inventoryRenderer != null) {
+            inventoryRenderer.setSelectedIndex(inventoryRenderer.getSelectedIndex());
         }
     }
 

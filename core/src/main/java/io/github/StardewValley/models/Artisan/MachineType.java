@@ -11,6 +11,7 @@ public enum MachineType implements ItemType {
     OIL_MAKER("Oil Maker", "items/oil_maker.png"),
     MAYO_MACHINE("Mayonnaise Machine", "items/mayo_machine.png"),
     DEHYDRATOR("Dehydrator", "items/dehydrator.png"),
+    FURNACE        ("Furnace",        "items/furnace.png"),
     CHARCOAL_KILN("Charcoal Kiln", "items/charcoal_kiln.png");
 
     private final String id;

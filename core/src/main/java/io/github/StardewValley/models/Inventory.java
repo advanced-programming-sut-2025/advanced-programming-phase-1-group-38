@@ -15,6 +15,7 @@ public class Inventory {
         }
     }
 
+
     public int add(ItemType type, int amount) {
         for (Stack s : slots) {
             if (s.getType() == type && s.canAcceptMore()) {
@@ -99,6 +100,14 @@ public class Inventory {
             if (amount == 0) break;   // removed everything we needed
         }
         return amount;               // leftover (0 = success)
+    }
+    // Inventory.java
+    public int indexOfFirst(ItemType type) {
+        for (int i = 0; i < slots.size(); i++) {
+            Stack s = slots.get(i);
+            if (s.getType() == type && s.getQty() > 0) return i;
+        }
+        return -1;
     }
 
 

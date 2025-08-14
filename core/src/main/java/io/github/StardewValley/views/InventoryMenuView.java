@@ -28,6 +28,7 @@ public class InventoryMenuView {
     private final Inventory inventory;
     private boolean visible = false;
     private final Texture sellBinTex;
+    private boolean needsRebuild = false;
 
     private float binX, binY, binW = 65, binH = 55;
     private final Texture panelBg;
@@ -74,6 +75,10 @@ public class InventoryMenuView {
     }
 
     public void render(SpriteBatch batch) {
+        if (needsRebuild) {
+            rebuildGridFromModel();
+            needsRebuild = false;
+        }
         if (feedbackTimer > 0f) {
             feedbackTimer -= Gdx.graphics.getDeltaTime();
             if (feedbackTimer <= 0f) {
@@ -191,6 +196,23 @@ public class InventoryMenuView {
             fontRed.setColor(1f, 0.5f, 0.5f, 1f); // soft red tone
             fontRed.draw(batch, feedbackLayout, x - feedbackLayout.width / 2, y + 20);
         }
+    }
+
+    public void onInventoryChanged() {
+        needsRebuild = true;
+    }
+
+    private void rebuildGridFromModel() {
+        int itemCount  = inventory.size();
+        int totalRows  = (itemCount + COLS - 1) / COLS;
+        int maxScroll  = Math.max(0, totalRows - ROWS);
+
+        // انتخاب و اسکرول رو در محدوده نگه دار
+        selected     = MathUtils.clamp(selected, 0, Math.max(0, itemCount - 1));
+        scrollOffset = MathUtils.clamp(scrollOffset, 0, maxScroll);
+
+        // مطمئن شو اسلات انتخاب‌شده در دید هست
+        ensureSelectedVisible();
     }
 
 

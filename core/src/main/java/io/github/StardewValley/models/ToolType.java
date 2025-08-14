@@ -1,8 +1,11 @@
 package io.github.StardewValley.models;
 
 public enum ToolType implements ItemType {
-    SCYTHE ("scythe",  "tools/scythe.png"),
-    PICKAXE("pickaxe", "tools/scythe.png");
+    SCYTHE   ("scythe",    "tools/scythe.png"),
+    PICKAXE  ("pickaxe",   "tools/scythe.png"),
+    // --- NEW ---
+    MILK_PAIL("milk_pail", "tools/milk_pail.png"),
+    SHEAR    ("shear",     "tools/shears.png");
 
     private final String id;
     private final String iconPath;
@@ -14,5 +17,5 @@ public enum ToolType implements ItemType {
 
     @Override public String id()        { return id; }
     @Override public String iconPath()  { return iconPath; }
-    @Override public int    maxStack()  { return 1; }   // tools are never stackable
+    @Override public int    maxStack()  { return 1; }
 }

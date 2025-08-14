@@ -3,6 +3,8 @@ package io.github.StardewValley.models;
 import com.badlogic.gdx.graphics.g2d.Animation;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import io.github.StardewValley.models.enums.Types.CraftingMachineType;
+import io.github.StardewValley.models.enums.Types.MaterialType;
 
 import java.util.*;
 
@@ -57,6 +59,13 @@ public class Player {
         inventory.add(SeedType.CARROT_SEED, 20);
         inventory.add(CropType.CORN, 10);
         inventory.add(MaterialType.Wood, 80);
+        inventory.add(MaterialType.Stone, 80);
+        inventory.add(MaterialType.Coal, 80);
+        inventory.add(MaterialType.CopperOre, 80);
+        inventory.add(MaterialType.CopperBar, 80);
+        inventory.add(MaterialType.IronOre, 80);
+        inventory.add(MaterialType.GoldOre, 80);
+        inventory.add(MaterialType.IronBar, 80);
     }
 
     public void render(SpriteBatch batch) {
