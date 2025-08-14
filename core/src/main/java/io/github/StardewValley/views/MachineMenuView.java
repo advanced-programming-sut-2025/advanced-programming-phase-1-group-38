@@ -76,8 +76,6 @@ public class MachineMenuView {
         // حالا سریع تمام کن
         machine.cheatFinish();
 
-        // درجا منطق دستگاه‌ها را به‌روزرسانی کن تا DONE شود
-        controller.updateMachines(0f);
 
         // UI را تازه کن
         refreshIO();
