@@ -4,13 +4,8 @@ package io.github.StardewValley.views;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.Screen;
-import com.badlogic.gdx.graphics.Color;
-import com.badlogic.gdx.graphics.GL20;
-import com.badlogic.gdx.graphics.OrthographicCamera;
-import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.graphics.g2d.BitmapFont;
-import com.badlogic.gdx.graphics.g2d.Sprite;
-import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.graphics.*;
+import com.badlogic.gdx.graphics.g2d.*;
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.maps.tiled.TiledMap;
@@ -23,6 +18,7 @@ import io.github.StardewValley.Main;
 import io.github.StardewValley.controllers.GameController;
 import io.github.StardewValley.controllers.WorldController;
 import io.github.StardewValley.models.*;
+import io.github.StardewValley.models.farming.Tree;
 
 import static io.github.StardewValley.controllers.GameController.TILE_SIZE;
 
@@ -36,13 +32,15 @@ public class PlayerMapView implements Screen {
     private GameController controller;
     private SpriteBatch batch;
     private CraftingMenuView craftingMenuView;
-    private JournalOverlay journalOverlay = new JournalOverlay();
+    private JournalOverlay journalOverlay;
     private ShopView shopView;
     private SellMenuView sellMenuView;
     private ControlsOverlay controlsOverlay = new ControlsOverlay();
 
     private WorldController worldController;
     private int playerIndex;
+
+    private GreenhouseUnlockPopupView greenhousePopup;
 
     private PlayerChatOverlay chatOverlay;
 
@@ -153,7 +151,37 @@ public class PlayerMapView implements Screen {
 
         Gdx.input.setInputProcessor(new InventoryScrollHandler(inventoryRenderer, inventoryMenuView, cookingMenuView));
 
-        shopView = new ShopView(controller.getPlayer().getInventory(), ShopCatalog.basicGeneralStore(), controller.getPlayer().getGameEconomy());
+        shopView = new ShopView(
+            controller.getPlayer().getInventory(),
+            new java.util.ArrayList<>(),                       // start empty
+            controller.getPlayer().getGameEconomy()
+        );
+
+        shopView.setPurchaseListener((shopType, entry, qty) -> {
+            if (qty <= 0) return false;
+
+            int priceEach = entry.getPrice();
+            long total = (long) priceEach * qty;
+            var econ = controller.getPlayer().getGameEconomy();
+            if (econ.getGold() < total) return false;
+            econ.addGold(-(int) total);
+
+            ItemType item = entry.getItemType();
+            boolean isTool = (item instanceof ToolType);
+
+            var inv = controller.getPlayer().getInventory();
+            if (isTool) {
+                int sel = controller.getPlayer().getInventoryRenderer().getSelectedIndex();
+                ItemType old = inv.get(sel);                 // now resolves
+                if (old instanceof ToolType) inv.add(old, 1);
+                inv.set(sel, item, 1);                       // now resolves
+            } else {
+                inv.add(item, qty);
+            }
+            return true;
+        });
+
+
         sellMenuView = new SellMenuView(controller.getPlayer().getInventory(), controller.getPlayer().getGameEconomy());
 
         npcQuestView = new NpcQuestPopupView(worldController, controller);
@@ -191,7 +219,7 @@ public class PlayerMapView implements Screen {
 
         tiles = controller.getTiles();
 
-        notifTex = new Texture(Gdx.files.internal("gift.png")); // pick any 32x32 bell icon
+        notifTex = new Texture(Gdx.files.internal("notification_bell.png")); // pick any 32x32 bell icon
         notifSprite = new Sprite(notifTex);
         notifSprite.setSize(32f, 32f);
 
@@ -203,9 +231,30 @@ public class PlayerMapView implements Screen {
             true                   // looping
         );
 
+        journalOverlay = new JournalOverlay(worldController, controller);
+
         speechFont = GameAssetManager.getGameAssetManager().getSmallFont();
         dialogueBoxTex = GameAssetManager.getGameAssetManager().getTexture("dialogue/dialogue_box.png");
 
+        greenhousePopup = new GreenhouseUnlockPopupView(controller);
+
+        controller.setDoorHook(door -> {
+            if (!controller.isGreenhouseUnlocked()) greenhousePopup.open(door);
+            else controller.enterDoorFromUI(door);
+        });
+
+        // 2x8 white strip for a raindrop (drawn tinted by batch color = white)
+        com.badlogic.gdx.graphics.Pixmap pm = new com.badlogic.gdx.graphics.Pixmap(2, 8, com.badlogic.gdx.graphics.Pixmap.Format.RGBA8888);
+        pm.setColor(1,1,1,0.95f);
+        pm.fillRectangle(0,0,2,8);
+        rainTex = new com.badlogic.gdx.graphics.Texture(pm);
+        pm.dispose();
+
+        Pixmap spm = new Pixmap(4, 4, Pixmap.Format.RGBA8888);
+        spm.setColor(1, 1, 1, 0.95f);
+        spm.fillCircle(2, 2, 2);
+        snowTex = new Texture(spm);
+        spm.dispose();
     }
 
     @Override
@@ -388,6 +437,79 @@ public class PlayerMapView implements Screen {
             controller.updateFloatingIcons(delta);
         }
 
+        // --- Rain update ---
+        boolean raining = rainEnabled();
+        boolean snowing = snowEnabled();
+
+        if (!raining && !snowing) {
+            raindrops.clear();
+        }
+
+        if (raining) {
+            float zoom = camera.zoom;
+            int target = (int)(rainTargetCount / Math.max(0.5f, Math.min(1.5f, 1f/zoom)));
+
+            float viewW = camera.viewportWidth  * camera.zoom;
+            float viewH = camera.viewportHeight * camera.zoom;
+            float left  = camera.position.x - viewW * 0.5f;
+            float right = camera.position.x + viewW * 0.5f;
+            float bottom= camera.position.y - viewH * 0.5f;
+            float top   = camera.position.y + viewH * 0.5f;
+
+            while (raindrops.size < target) {
+                Raindrop d = new Raindrop();
+                d.x = left + rng.nextFloat() * viewW;
+                d.y = top + rng.nextFloat() * 40f;
+                d.vx = -10f + rng.nextFloat() * 10f;
+                d.vy = -80f - rng.nextFloat() * 60f;
+                d.maxLife = 1.2f + rng.nextFloat() * 0.8f;
+                d.life = 0f;
+                raindrops.add(d);
+            }
+
+            for (int i = raindrops.size - 1; i >= 0; i--) {
+                Raindrop d = raindrops.get(i);
+                d.x += d.vx * delta;
+                d.y += d.vy * delta;
+                d.life += delta;
+
+                boolean offScreen = d.y < bottom - 24f || d.x < left - 24f || d.x > right + 24f;
+                if (offScreen || d.life > d.maxLife) raindrops.removeIndex(i);
+            }
+        }
+
+        if (snowing) {
+            int target = 80;
+            float viewW = camera.viewportWidth * camera.zoom;
+            float viewH = camera.viewportHeight * camera.zoom;
+            float left = camera.position.x - viewW * 0.5f;
+            float right = camera.position.x + viewW * 0.5f;
+            float bottom = camera.position.y - viewH * 0.5f;
+            float top = camera.position.y + viewH * 0.5f;
+
+            while (raindrops.size < target) {
+                Raindrop d = new Raindrop();
+                d.x = left + rng.nextFloat() * viewW;
+                d.y = top + rng.nextFloat() * 40f;
+                d.vx = -15f + rng.nextFloat() * 30f;
+                d.vy = -30f - rng.nextFloat() * 20f;
+                d.maxLife = 4f + rng.nextFloat() * 2f;
+                d.life = 0f;
+                raindrops.add(d);
+            }
+
+            for (int i = raindrops.size - 1; i >= 0; i--) {
+                Raindrop d = raindrops.get(i);
+                d.x += d.vx * delta;
+                d.y += d.vy * delta;
+                d.life += delta;
+
+                if (d.y < bottom - 10f || d.x < left - 10f || d.x > right + 10f || d.life > d.maxLife) {
+                    raindrops.removeIndex(i);
+                }
+            }
+        }
+
         TiledMap newMap = controller.getMap();
         if (newMap != map) {
             this.map = newMap;
@@ -405,24 +527,117 @@ public class PlayerMapView implements Screen {
         Gdx.gl.glClearColor(0.74f, 0.91f, 0.95f, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
+        int hour = controller.getGameTime().getHour();
+        Color worldTint = (hour >= 18)
+            ? new Color(0.35f, 0.45f, 0.75f, 1f)  // dusk-ish
+            : Color.WHITE;
+
+// 1) tint the map renderer's batch
+        Batch mapBatch = mapRenderer.getBatch();
+        mapBatch.setColor(worldTint);
+
         mapRenderer.setView(camera);
         mapRenderer.render();
 
-        batch.setProjectionMatrix(camera.combined);
-        batch.begin();
 
-        for (int x = 0; x < tiles.length; x++) {
-            for (int y = 0; y < tiles[0].length; y++) {
-                Tile tile = tiles[x][y];
-                if (tile.hasCrop()) {
-                    String spritePath = tile.getCrop().getCurrentSpritePath();
-                    Texture texture = GameAssetManager.getGameAssetManager().getTexture(spritePath);
-                    float drawX = tile.getWorldX();
-                    float drawY = tile.getWorldY();
-                    batch.draw(texture, drawX + TILE_SIZE / 2f - texture.getWidth() / 2f, drawY + 3);
+        // PlayerMapView.render(...) — after handling other input, before world update or right after mapRenderer.render()
+        if (!uiOpen() && Gdx.input.justTouched() && camera != null) {
+            Vector3 world = camera.unproject(new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0));
+
+            for (var b : worldController.npc().getSellBinsOn(controller.getCurrentMapPath())) {
+                if (b.bounds.contains(world.x, world.y)) {
+                    // open your separate SellMenuView
+                    if (!sellMenuView.isVisible()) sellMenuView.toggle();
+                    activePanel = Panel.SELL;
+                    return; // stop processing this click
                 }
             }
+
+            for (var s : worldController.npc().getShopsOn(controller.getCurrentMapPath())) {
+                if (!s.bounds.contains(world.x, world.y)) continue;
+                if (!s.type.isOpen(hour)) {
+                    controller.spawnFloatingIcon("shops/closed.png",
+                        s.bounds.x + s.bounds.width / 2f,
+                        s.bounds.y + s.bounds.height - 60, 1.0f);
+                    break;
+                }
+
+// Get the persistent Shop instance for the day
+                io.github.StardewValley.models.Shop shop = worldController.getLiveShop(s.type);
+
+// Build products *from that instance* so stock persists
+                shopView.setCatalog(io.github.StardewValley.models.ShopCatalog.productsFor(shop));
+                shopView.setTitle(s.type.name().replace('_',' '));
+
+                if (!shopView.isVisible()) shopView.toggle();
+                activePanel = Panel.SHOP;
+                break;
+            }
         }
+
+        batch.setProjectionMatrix(camera.combined);
+        batch.begin();
+        batch.setColor(worldTint);
+
+        for (var b : worldController.npc().getSellBinsOn(controller.getCurrentMapPath())) {
+            if (b.texturePath == null) continue;
+            var tex = GameAssetManager.getGameAssetManager().getTexture(b.texturePath);
+            batch.draw(tex, b.bounds.x, b.bounds.y, b.bounds.width, b.bounds.height);
+        }
+
+        for (var s : worldController.npc().getShopsOn(controller.getCurrentMapPath())) {
+            if (s.texturePath == null) continue; // hotspot only
+            var tex = GameAssetManager.getGameAssetManager().getTexture(s.texturePath);
+            batch.draw(tex, s.bounds.x, s.bounds.y, s.bounds.width, s.bounds.height);
+        }
+
+        // --- Rain draw (world space) ---
+
+        if (raining) {
+            batch.setColor(0.8f, 0.9f, 1f, 0.85f);
+            for (Raindrop d : raindrops) batch.draw(rainTex, d.x, d.y, 1f, 6f);
+            batch.setColor(Color.WHITE);
+        } else if (snowing) {
+            batch.setColor(1f, 1f, 1f, 0.95f);
+            for (Raindrop d : raindrops) batch.draw(snowTex, d.x, d.y, 4f, 4f);
+            batch.setColor(Color.WHITE);
+        }
+
+        for (int y = 0; y < tiles[0].length; y++) {
+            for (int x = 0; x < tiles.length; x++) {
+                Tile tile = tiles[x][y];
+
+                // ----- Crops -----
+                if (tile.hasCrop()) {
+                    Crop c = tile.getCrop();
+                    String spritePath = c.getCurrentSpritePath();
+                    Texture tex = GameAssetManager.getGameAssetManager().getTexture(spritePath);
+
+                    float baseX = tile.getWorldX();
+                    float baseY = tile.getWorldY();
+
+                    if (c.isDead()) {
+                        float dx = baseX + (TILE_SIZE - 10) * 0.5f;
+                        float dy = baseY + (TILE_SIZE - 14) * 0.5f;
+                        batch.draw(tex, dx, dy + 2, 10, 15);
+                    } else {
+                        batch.draw(tex, baseX, baseY + 2, TILE_SIZE, TILE_SIZE);
+                    }
+                }
+
+                // ----- Trees -----
+                if (tile.getContent() instanceof Tree tree) {
+                    TextureRegion fr = tree.getRenderFrame();
+                    float baseX = tile.getWorldX();
+                    float baseY = tile.getWorldY();
+                    float drawW = TILE_SIZE * 2f;
+                    float drawH = TILE_SIZE * 2f; // adjust to your art
+                    batch.draw(fr, baseX, baseY, drawW, drawH);
+                }
+
+            }
+        }
+
 
         // ---------- DEBUG OVERLAYS (world space) ----------
         if (debugDraw) {
@@ -502,13 +717,12 @@ public class PlayerMapView implements Screen {
             batch.draw(tex, e.x - e.size * 0.5f, e.y + yOff, e.size, e.size);
         }
         batch.setColor(com.badlogic.gdx.graphics.Color.WHITE);
-
         batch.end();
 
         batch.setProjectionMatrix(uiCamera.combined);
         batch.begin();
+        batch.setColor(worldTint);
 
-        int hour = controller.getGameTime().getHour();
         float angle = 90 - ((hour - 9) * (180f / 13f));// 9am–10pm mapped to 180°
 
         clockPointer.setRotation(angle);
@@ -545,6 +759,8 @@ public class PlayerMapView implements Screen {
 
 // چون می‌خوایم با ShapeRenderer بکشیم، اول Batch رو ببندیم
         batch.end();
+
+        batch.setColor(Color.WHITE);
 
         shapeRenderer.setProjectionMatrix(uiCamera.combined);
         Gdx.gl.glEnable(GL20.GL_BLEND);
@@ -687,6 +903,11 @@ public class PlayerMapView implements Screen {
             giftPopupView.render(batch);
         }
 
+        if (greenhousePopup != null && greenhousePopup.isVisible()) {
+            greenhousePopup.render(batch);
+        }
+
+        batch.setColor(Color.WHITE);
         batch.end();
 
         syncActivePanel();
@@ -766,6 +987,31 @@ public class PlayerMapView implements Screen {
         }
     }
 
+    // --- Rain system ---
+    private static class Raindrop {
+        float x, y;      // world coords
+        float vx, vy;    // velocity
+        float life, maxLife;
+    }
+
+    private com.badlogic.gdx.utils.Array<Raindrop> raindrops = new com.badlogic.gdx.utils.Array<>();
+    private com.badlogic.gdx.graphics.Texture rainTex; // 2x8 white pixel strip
+    private com.badlogic.gdx.graphics.Texture snowTex;
+    private final com.badlogic.gdx.math.RandomXS128 rng = new com.badlogic.gdx.math.RandomXS128();
+    private int rainTargetCount = 350;   // tune density
+    private boolean rainEnabled() {
+        var t = controller.getWeather().getWeatherType();
+        // include STORMY if you want rain there too:
+        return t == WeatherType.RAINY /* || t == WeatherType.STORMY */;
+    }
+
+    private boolean snowEnabled() {
+        var t = controller.getWeather().getWeatherType();
+        return t == WeatherType.SNOWY;
+    }
+
+
+
     @Override public void resize(int width, int height) {
         viewport.update(width, height);
         uiCamera.setToOrtho(false, width, height);
@@ -787,5 +1033,7 @@ public class PlayerMapView implements Screen {
         weatherTexture.dispose();
         shapeRenderer.dispose();
         if (notifTex != null) notifTex.dispose();
+        if (rainTex != null) rainTex.dispose();
+        if (snowTex != null) snowTex.dispose();
     }
 }
