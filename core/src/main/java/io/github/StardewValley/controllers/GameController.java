@@ -715,6 +715,19 @@ public class GameController {
             if (cell != null && cell.getTile() != null) return false;
         }
 
+        if (worldController != null) {
+            // player’s proposed AABB
+            com.badlogic.gdx.math.Rectangle playerRect =
+                new com.badlogic.gdx.math.Rectangle(newX, newY, width, height);
+
+            var shops = worldController.npc().getShopsOn(currentMapPath);
+            for (var s : shops) {
+                if (s.bounds.overlaps(playerRect)) {
+                    return false; // blocked by a shop building
+                }
+            }
+        }
+
         return true;
     }
 

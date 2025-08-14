@@ -154,7 +154,37 @@ public class PlayerMapView implements Screen {
 
         Gdx.input.setInputProcessor(new InventoryScrollHandler(inventoryRenderer, inventoryMenuView, cookingMenuView));
 
-        shopView = new ShopView(controller.getPlayer().getInventory(), ShopCatalog.basicGeneralStore(), controller.getPlayer().getGameEconomy());
+        shopView = new ShopView(
+            controller.getPlayer().getInventory(),
+            new java.util.ArrayList<>(),                       // start empty
+            controller.getPlayer().getGameEconomy()
+        );
+
+        shopView.setPurchaseListener((shopType, entry, qty) -> {
+            if (qty <= 0) return false;
+
+            int priceEach = entry.getPrice();
+            long total = (long) priceEach * qty;
+            var econ = controller.getPlayer().getGameEconomy();
+            if (econ.getGold() < total) return false;
+            econ.addGold(-(int) total);
+
+            ItemType item = entry.getItemType();
+            boolean isTool = (item instanceof ToolType);
+
+            var inv = controller.getPlayer().getInventory();
+            if (isTool) {
+                int sel = controller.getPlayer().getInventoryRenderer().getSelectedIndex();
+                ItemType old = inv.get(sel);                 // now resolves
+                if (old instanceof ToolType) inv.add(old, 1);
+                inv.set(sel, item, 1);                       // now resolves
+            } else {
+                inv.add(item, qty);
+            }
+            return true;
+        });
+
+
         sellMenuView = new SellMenuView(controller.getPlayer().getInventory(), controller.getPlayer().getGameEconomy());
 
         npcQuestView = new NpcQuestPopupView(worldController, controller);
@@ -501,8 +531,41 @@ public class PlayerMapView implements Screen {
         mapRenderer.setView(camera);
         mapRenderer.render();
 
+        // PlayerMapView.render(...) — after handling other input, before world update or right after mapRenderer.render()
+        if (!uiOpen() && Gdx.input.justTouched() && camera != null) {
+            Vector3 world = camera.unproject(new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0));
+
+            for (var s : worldController.npc().getShopsOn(controller.getCurrentMapPath())) {
+                if (!s.bounds.contains(world.x, world.y)) continue;
+                int hour = controller.getGameTime().getHour();
+                if (!s.type.isOpen(hour)) {
+                    controller.spawnFloatingIcon("shops/closed.png",
+                        s.bounds.x + s.bounds.width / 2f,
+                        s.bounds.y + s.bounds.height - 60, 1.0f);
+                    break;
+                }
+
+// Get the persistent Shop instance for the day
+                io.github.StardewValley.models.Shop shop = worldController.getLiveShop(s.type);
+
+// Build products *from that instance* so stock persists
+                shopView.setCatalog(io.github.StardewValley.models.ShopCatalog.productsFor(shop));
+                shopView.setTitle(s.type.name().replace('_',' '));
+
+                if (!shopView.isVisible()) shopView.toggle();
+                activePanel = Panel.SHOP;
+                break;
+            }
+        }
+
         batch.setProjectionMatrix(camera.combined);
         batch.begin();
+
+        for (var s : worldController.npc().getShopsOn(controller.getCurrentMapPath())) {
+            if (s.texturePath == null) continue; // hotspot only
+            var tex = GameAssetManager.getGameAssetManager().getTexture(s.texturePath);
+            batch.draw(tex, s.bounds.x, s.bounds.y, s.bounds.width, s.bounds.height);
+        }
 
         // --- Rain draw (world space) ---
 

@@ -22,6 +22,7 @@ public class NpcController {
     private final java.util.Map<String, java.util.Map<String, Integer>> dialogueCooldownHour = new java.util.HashMap<>();
     private int absHour(GameTime t) { return t.getDay() * 24 + t.getHour(); }
     private final java.util.Map<String, java.util.Set<ItemType>> favsByNpc = new java.util.HashMap<>();
+    private final java.util.List<ShopSpot> shopSpots = new java.util.ArrayList<>();
 
 
     public NpcController(NpcSocialService social, NpcQuestService quests, PlayerIdProvider pid) {
@@ -180,6 +181,13 @@ public class NpcController {
             setFavorites("robin", setOf(FoodType.SPAGHETTI, MaterialType.Wood, MaterialType.IronBar));
             setSendableGifts("robin", java.util.Arrays.asList(MaterialType.Wood, MaterialType.IronBar));
         }
+
+        addManualShop(
+            npcMapPath,
+            io.github.StardewValley.models.enums.Types.ShopType.BLACKSMITH,
+            2, 33, 2, 2,
+            "shops/blacksmith.png"
+        );
     }
 
     // --- expose list for the UI
@@ -261,6 +269,39 @@ public class NpcController {
         dialogueCooldownHour
                 .computeIfAbsent(npc.id, k -> new java.util.HashMap<>())
                 .put(playerId, unlockAt);
+    }
+
+    public static final class ShopSpot {
+        public final String mapPath;
+        public final com.badlogic.gdx.math.Rectangle bounds; // world pixels
+        public final io.github.StardewValley.models.enums.Types.ShopType type;
+        public final String texturePath; // may be null if hotspot only
+        public ShopSpot(String mapPath,
+                        io.github.StardewValley.models.enums.Types.ShopType type,
+                        com.badlogic.gdx.math.Rectangle bounds,
+                        String texturePath) {
+            this.mapPath = mapPath;
+            this.type = type;
+            this.bounds = bounds;
+            this.texturePath = texturePath;
+        }
+    }
+
+    public void addManualShop(String mapPath,
+                              io.github.StardewValley.models.enums.Types.ShopType type,
+                              int tileX, int tileY, int tilesW, int tilesH,
+                              String texturePath) {
+        float px = tileX * io.github.StardewValley.controllers.GameController.TILE_SIZE;
+        float py = tileY * io.github.StardewValley.controllers.GameController.TILE_SIZE;
+        float w  = tilesW * io.github.StardewValley.controllers.GameController.TILE_SIZE;
+        float h  = tilesH * io.github.StardewValley.controllers.GameController.TILE_SIZE;
+        shopSpots.add(new ShopSpot(mapPath, type, new com.badlogic.gdx.math.Rectangle(px, py, w * 5, h * 3), texturePath));
+    }
+
+    public java.util.List<ShopSpot> getShopsOn(String mapPath) {
+        java.util.List<ShopSpot> out = new java.util.ArrayList<>();
+        for (ShopSpot s : shopSpots) if (mapPath.equals(s.mapPath)) out.add(s);
+        return out;
     }
 
 }

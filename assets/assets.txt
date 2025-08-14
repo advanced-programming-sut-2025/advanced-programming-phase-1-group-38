@@ -860,6 +860,10 @@ seeds/carrot.png
 seeds/corn.png
 seeds/pumpkin.png
 seeds/wheat.png
+shops/Blacksmith.png
+shops/buy.png
+shops/closed.png
+shops/sell.png
 tools/axe/basic.png
 tools/axe/copper.png
 tools/axe/gold.png

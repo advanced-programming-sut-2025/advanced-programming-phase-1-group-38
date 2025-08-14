@@ -1,21 +1,22 @@
 package io.github.StardewValley.models;
 
-public class ShopProduct {
-    private final ItemType item;
-    private final int price;
-    private int stock; // -1 for infinite
+import io.github.StardewValley.models.enums.Shop.ShopEntry;
 
-    public ShopProduct(ItemType item, int price, int stock) {
-        this.item = item;
-        this.price = price;
-        this.stock = stock;
+public class ShopProduct {
+    private final Shop shop;
+    private final ShopEntry entry;
+
+    public ShopProduct(Shop shop, ShopEntry entry) {
+        this.shop = shop;
+        this.entry = entry;
     }
 
-    public ItemType getItem() { return item; }
-    public int getPrice() { return price; }
-    public int getStock() { return stock; }
-    public boolean isOutOfStock() { return stock == 0; }
+    public ShopEntry getEntry() { return entry; }
+    public ItemType getItem() { return entry.getItemType(); }
+    public int getPrice() { return entry.getPrice(); }
+    public io.github.StardewValley.models.enums.Types.ShopType getShopType() { return shop.getShopType(); }
 
-    /** reduce stock; no-op if infinite */
-    public void take(int qty) { if (stock > 0) stock = Math.max(0, stock - qty); }
+    public int getStock() { return shop.getAvailableStock(entry); }   // <-- entry, not name
+    public boolean isOutOfStock() { return getStock() == 0; }
+    public void take(int qty) { shop.purchase(entry, qty); }          // <-- entry, not name
 }

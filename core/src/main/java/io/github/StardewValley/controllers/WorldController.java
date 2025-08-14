@@ -4,6 +4,7 @@ package io.github.StardewValley.controllers;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.maps.tiled.TiledMap;
 import io.github.StardewValley.models.*;
+import io.github.StardewValley.models.enums.Types.ShopType;
 import io.github.StardewValley.views.NpcWorldSlice;
 import io.github.StardewValley.views.PlayerWorldSlice;
 
@@ -21,6 +22,7 @@ public class WorldController {
     private final NpcController npcController;
     private final Map<GameController, String> playerIds = new HashMap<>();
     private final PlayerFriendService playerFriends = new PlayerFriendService();
+    private final Map<ShopType, Shop> liveShops = new HashMap<>();
 
     private int currentPlayerIndex = 0;
     private int turnsIntoHour = 0;
@@ -39,6 +41,13 @@ public class WorldController {
 
         this.npcController = new NpcController(social, quests, pid);
         npcController.bootstrapDefaults("maps/npcMap.tmx");
+
+        String npcMapPath = npcSlice.getMapId(); // "maps/npcMap.tmx"
+
+//// Add more as you add catalogs:
+//        npcController.addManualShop(npcMapPath,
+//            io.github.StardewValley.models.enums.Types.ShopType.PIERRE_STORE,
+//            20, 12, 2, 2, "shops/pierre.png");
 
         // players + controllers
         for (int i = 0; i < 4; i++) {
@@ -71,8 +80,12 @@ public class WorldController {
             sharedTime.advanceOneHour();
             int afterDay = sharedTime.getDay();
             if (afterDay != beforeDay) {
-                playerFriends().endOfDayDecay(beforeDay);
+                // ← add this block
+                for (io.github.StardewValley.models.Shop shop : liveShops.values()) {
+                    shop.resetStock();
                 }
+                playerFriends().endOfDayDecay(beforeDay);
+            }
             turnsIntoHour = 0;
         }
     }
@@ -197,6 +210,10 @@ public class WorldController {
             int points = (rating - 3) * 30 + 15;
             playerFriends().add(r.fromId, r.toId, points);
         }
+    }
+
+    public Shop getLiveShop(ShopType t) {
+        return liveShops.computeIfAbsent(t, Shop::new);
     }
 
     public void dispose() {
