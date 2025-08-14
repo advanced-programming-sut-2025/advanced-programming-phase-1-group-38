@@ -5,10 +5,7 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.*;
-import com.badlogic.gdx.graphics.g2d.BitmapFont;
-import com.badlogic.gdx.graphics.g2d.Sprite;
-import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.badlogic.gdx.graphics.g2d.*;
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.maps.tiled.TiledMap;
@@ -528,6 +525,15 @@ public class PlayerMapView implements Screen {
         Gdx.gl.glClearColor(0.74f, 0.91f, 0.95f, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
+        int hour = controller.getGameTime().getHour();
+        Color worldTint = (hour >= 18)
+            ? new Color(0.35f, 0.45f, 0.75f, 1f)  // dusk-ish
+            : Color.WHITE;
+
+// 1) tint the map renderer's batch
+        Batch mapBatch = mapRenderer.getBatch();
+        mapBatch.setColor(worldTint);
+
         mapRenderer.setView(camera);
         mapRenderer.render();
 
@@ -547,7 +553,6 @@ public class PlayerMapView implements Screen {
 
             for (var s : worldController.npc().getShopsOn(controller.getCurrentMapPath())) {
                 if (!s.bounds.contains(world.x, world.y)) continue;
-                int hour = controller.getGameTime().getHour();
                 if (!s.type.isOpen(hour)) {
                     controller.spawnFloatingIcon("shops/closed.png",
                         s.bounds.x + s.bounds.width / 2f,
@@ -570,6 +575,7 @@ public class PlayerMapView implements Screen {
 
         batch.setProjectionMatrix(camera.combined);
         batch.begin();
+        batch.setColor(worldTint);
 
         for (var b : worldController.npc().getSellBinsOn(controller.getCurrentMapPath())) {
             if (b.texturePath == null) continue;
@@ -709,13 +715,12 @@ public class PlayerMapView implements Screen {
             batch.draw(tex, e.x - e.size * 0.5f, e.y + yOff, e.size, e.size);
         }
         batch.setColor(com.badlogic.gdx.graphics.Color.WHITE);
-
         batch.end();
 
         batch.setProjectionMatrix(uiCamera.combined);
         batch.begin();
+        batch.setColor(worldTint);
 
-        int hour = controller.getGameTime().getHour();
         float angle = 90 - ((hour - 9) * (180f / 13f));// 9am–10pm mapped to 180°
 
         clockPointer.setRotation(angle);
@@ -752,6 +757,8 @@ public class PlayerMapView implements Screen {
 
 // چون می‌خوایم با ShapeRenderer بکشیم، اول Batch رو ببندیم
         batch.end();
+
+        batch.setColor(Color.WHITE);
 
         shapeRenderer.setProjectionMatrix(uiCamera.combined);
         Gdx.gl.glEnable(GL20.GL_BLEND);
@@ -898,6 +905,7 @@ public class PlayerMapView implements Screen {
             greenhousePopup.render(batch);
         }
 
+        batch.setColor(Color.WHITE);
         batch.end();
 
         syncActivePanel();
