@@ -5,6 +5,7 @@ import io.github.StardewValley.models.ItemType;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+/** محصولات صنایع‌دستی (قابل خوردن/فروش و بعضاً با واریانت آیکن). */
 public enum ArtisanProductType implements ItemType {
 
     HONEY             ("Honey","Honey.png",999, 350,  75,  true),
@@ -12,10 +13,14 @@ public enum ArtisanProductType implements ItemType {
     LARGE_CHEESE      ("Large Cheese","Cheese.png",999, 345, 100,  true),
     GOAT_CHEESE       ("Goat Cheese","Goat_Cheese.png",999, 400, 100,  true),
     LARGE_GOAT_CHEESE ("Large Goat Cheese","Goat_Cheese.png",999, 600, 100,  true),
+
     COFFEE            ("Coffee","Coffee.png",999, 150,  75,  true),
     BEER              ("Beer","Beer.png",999, 200,  50,  true),
     MEAD              ("Mead","Mead.png",999, 300, 100,  true),
     VINEGAR           ("Vinegar","Vinegar.png",999, 100,  13,  true),
+
+    OIL               ("Oil",       "Oil.png",        999, 100,  0,  true),
+    PALE_ALE          ("Pale Ale",  "Pale_Ale.png",   999, 300, 75,  true),
 
     TRUFFLE_OIL       ("Truffle Oil","Truffle_Oil.png",999, 1065,  0,  false),
     CLOTH             ("Cloth","Cloth.png",999, 470,   0,  false),
@@ -26,7 +31,6 @@ public enum ArtisanProductType implements ItemType {
     PINE_TAR          ("Pine Tar","Pine_Tar.png",999, 100,   0,  false),
 
     RAISINS           ("Raisins","Raisins.png",999, 600, 125,  true),
-
     DRIED_MUSHROOMS   ("Dried Mushrooms","Dried_Mushrooms.png",999, 250,  50,  true),
     DRIED_FRUIT       ("Dried Fruit","Dried_Fruit.png",999, 250,  75,  true),
 
@@ -69,7 +73,7 @@ public enum ArtisanProductType implements ItemType {
     GREEN_TEA       ("Green Tea",            "Green_Tea.png",           999, 100, 30, true),
     PINA_COLADA     ("Piña Colada",          "Pi%C3%B1a_Colada.png",    999, 300, 75, true);
 
-    private static final String BASE_PATH = "Artisan/";
+    private static final String BASE_PATH = "items/";
 
     private final String id;
     private final String iconFile;

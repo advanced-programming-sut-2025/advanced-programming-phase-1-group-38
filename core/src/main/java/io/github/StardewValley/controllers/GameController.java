@@ -18,7 +18,9 @@ import com.badlogic.gdx.utils.Array;
 import io.github.StardewValley.models.*;
 import io.github.StardewValley.models.Artisan.MachineInstance;
 import io.github.StardewValley.models.Artisan.MachineType;
+import io.github.StardewValley.models.Artisan.PlacedMachine;
 import io.github.StardewValley.models.enums.Skill;
+import io.github.StardewValley.models.enums.Types.MaterialType;
 import io.github.StardewValley.models.farming.Tree;
 import io.github.StardewValley.models.farming.TreeSaplingType;
 import io.github.StardewValley.models.farming.TreeType;
@@ -69,6 +71,8 @@ public class GameController {
     private DoorHook doorHook;
 
     public GameController(Player player, String initialMapPath, GameTime gameTime, TiledMap sharedNpcMap) {
+        this.lastGameDay  = gameTime.getDay();
+        this.lastGameHour = gameTime.getHour();
         this.player = player;
         this.gameTime = gameTime;
         this.currentMapPath = initialMapPath;
@@ -83,6 +87,7 @@ public class GameController {
         // Set all tiles as walkable by default
         for (int x = 0; x < width; x++) {
             for (int y = 0; y < height; y++) {
+                boolean walkable = !isBlockedByLayers(x, y);
                 tileGrid[x][y] = new Tile(true, x * TILE_SIZE, y * TILE_SIZE);
             }
         }
@@ -208,6 +213,93 @@ public class GameController {
         }
         return best;
     }
+
+
+    // فیلد:
+    private final java.util.Map<String, java.util.HashMap<Long, PlacedMachine>> machinesOnMap = new java.util.HashMap<>();
+    private static long key(int tx, int ty){ return (((long)tx)<<32) ^ (ty & 0xffffffffL); }
+
+    public java.util.Collection<PlacedMachine> getMachinesOn(String mapId){
+        return machinesOnMap.computeIfAbsent(mapId, k-> new java.util.HashMap<>()).values();
+    }
+
+    public PlacedMachine getMachineAt(String mapId, int tx, int ty){
+        var m = machinesOnMap.get(mapId);
+        return (m==null)? null : m.get(key(tx,ty));
+    }
+
+
+    public boolean placeMachine(MachineType type, String mapId, int tx, int ty, Inventory inv){
+        if (!canPlaceMachineAt(mapId, tx, ty)) return false;
+        if (!inv.contains(type, 1)) return false;
+        inv.remove(type, 1);
+        machinesOnMap
+                .computeIfAbsent(mapId, k-> new java.util.HashMap<>())
+                .put(key(tx,ty), new PlacedMachine(mapId, tx, ty, type));
+        return true;
+    }
+
+    public boolean canPlaceMachineAt(String mapId, int tx, int ty) {
+        if (tx < 0 || ty < 0 || tx >= tileGrid.length || ty >= tileGrid[0].length) return false;
+
+        if (getMachineAt(mapId, tx, ty) != null) return false;      // روی دستگاه دیگه نه
+        if (isBlockedByLayers(tx, ty)) return false;                // آب/خانه/کلاژن...
+        Tile t = tileGrid[tx][ty];
+        if (t.hasCrop()) return false;                              // روی محصول نه
+
+        return true;
+    }
+    private boolean isBlockedByLayers(int tx, int ty) {
+        String[] layers = { "Collision", "Water", "House", "Quarry", "Greenhouse" };
+        for (String ln : layers) {
+            TiledMapTileLayer L = (TiledMapTileLayer) map.getLayers().get(ln);
+            if (L != null) {
+                TiledMapTileLayer.Cell c = L.getCell(tx, ty);
+                if (c != null && c.getTile() != null) return true; // مسدود
+            }
+        }
+        return false;
+    }
+
+
+    // GameController.java — فیلدهای جدید
+    private int lastGameDay  = -1;
+    private int lastGameHour = -1;
+
+    public void updateMachines(float ignoredDelta) {
+        int d = gameTime.getDay();
+        int h = gameTime.getHour();
+
+        if (lastGameDay < 0) { // اولین بار
+            lastGameDay  = d;
+            lastGameHour = h;
+            return;
+        }
+
+        int hoursAdvanced = (d - lastGameDay) * 24 + (h - lastGameHour);
+        if (hoursAdvanced > 0) {
+            float gameSec = hoursAdvanced * 3600f;
+
+            for (var perMap : machinesOnMap.values()) {
+                for (var m : perMap.values()) {
+                    m.update(gameSec);          // ← ثانیهٔ *بازی* تزریق می‌شود
+                }
+            }
+            lastGameDay  = d;
+            lastGameHour = h;
+        }
+    }
+
+    // GameController.java
+    public void advanceMachinesGameHours(float hours) {
+        for (var perMap : machinesOnMap.values()) {
+            for (var m : perMap.values()) {
+                m.advanceGameHours(hours);
+            }
+        }
+    }
+
+
 
     private void handleInput(float delta) {
         if (player.isActionLocked()) return;
@@ -703,73 +795,28 @@ public class GameController {
     public boolean canMoveTo(float newX, float newY) {
         float width  = player.getWidth();
         float height = player.getHeight();
-
-        // Player AABB in world space
-        com.badlogic.gdx.math.Rectangle playerRect =
-            new com.badlogic.gdx.math.Rectangle(newX, newY, width, height);
-
-        // Layers
         TiledMapTileLayer collisionLayer = (TiledMapTileLayer) map.getLayers().get("Collision");
-        TiledMapTileLayer floorLayer     = (TiledMapTileLayer) map.getLayers().get("Floor");
+        com.badlogic.gdx.math.Rectangle playerRect =
+                new com.badlogic.gdx.math.Rectangle(newX, newY, width, height);
 
-        // --- 1) Tile-layer (TMX) blocking as before ---
+        if (collisionLayer == null) return true;
+
         int[][] corners = {
-            {(int)(newX / TILE_SIZE),                    (int)(newY / TILE_SIZE)},
-            {(int)((newX + width  - 1) / TILE_SIZE),     (int)(newY / TILE_SIZE)},
-            {(int)(newX / TILE_SIZE),                    (int)((newY + height - 1) / TILE_SIZE)},
-            {(int)((newX + width  - 1) / TILE_SIZE),     (int)((newY + height - 1) / TILE_SIZE)}
+                { (int) (newX / TILE_SIZE), (int) (newY / TILE_SIZE) },
+                { (int) ((newX + width - 1) / TILE_SIZE), (int) (newY / TILE_SIZE) },
+                { (int) (newX / TILE_SIZE), (int) ((newY + height - 1) / TILE_SIZE) },
+                { (int) ((newX + width - 1) / TILE_SIZE), (int) ((newY + height - 1) / TILE_SIZE) }
         };
 
-        for (int[] c : corners) {
-            int tx = c[0], ty = c[1];
+        for (int[] corner : corners) {
+            int tileX = corner[0];
+            int tileY = corner[1];
+            if (tileX < 0 || tileY < 0 || tileX >= collisionLayer.getWidth() || tileY >= collisionLayer.getHeight()) return false;
+            TiledMapTileLayer.Cell cell = collisionLayer.getCell(tileX, tileY);
+            if (cell != null && cell.getTile() != null) return false;
+            if (getMachineAt(currentMapPath, tileX, tileY) != null) return false;
 
-            if (tx < 0 || ty < 0 ||
-                tx >= collisionLayer.getWidth() || ty >= collisionLayer.getHeight()) {
-                return false; // outside map
-            }
-
-            TiledMapTileLayer.Cell col = collisionLayer.getCell(tx, ty);
-            if (col != null && col.getTile() != null) return false;
-
-            if (floorLayer != null) {
-                TiledMapTileLayer.Cell floor = floorLayer.getCell(tx, ty);
-                if (floor != null && floor.getTile() != null) return false;
-            }
         }
-
-        // --- 2) Game-logic blocking: crops/trees in your tileGrid ---
-        // Find all tiles touched by the proposed AABB and block if any has content
-        int minTx = (int)Math.floor(newX / TILE_SIZE);
-        int maxTx = (int)Math.floor((newX + width  - 1) / TILE_SIZE);
-        int minTy = (int)Math.floor(newY / TILE_SIZE);
-        int maxTy = (int)Math.floor((newY + height - 1) / TILE_SIZE);
-
-        for (int ty = minTy; ty <= maxTy; ty++) {
-            for (int tx = minTx; tx <= maxTx; tx++) {
-                Tile t = getTileAt(tx, ty);
-                if (t == null) return false; // off-map safety
-
-                Object content = t.getContent();
-                if (content == null) continue;
-
-                // Block on any crop or tree (adjust rules if you want exceptions)
-                if (content instanceof Crop crop) {
-                    // If you want to allow walking on harvested stubble, change to:
-                    // if (!crop.isHarvested()) return false;
-                    return false;
-                }
-                if (content instanceof io.github.StardewValley.models.farming.Tree tree) {
-                    // If you want to allow after it’s chopped, change to:
-                    // if (!tree.isChopped()) return false;
-                    return false;
-                }
-
-                // Any other occupied content also blocks
-                return false;
-            }
-        }
-
-        // --- 3) World objects (shops etc.) ---
         if (worldController != null) {
             var shops = worldController.npc().getShopsOn(currentMapPath);
             for (var s : shops) {
@@ -780,6 +827,10 @@ public class GameController {
         return true;
     }
 
+
+    public void renderMachines(SpriteBatch batch) {
+        for (var m : getMachinesOn(currentMapPath)) m.render(batch);
+    }
 
     private int getMapWidthInPixels() {
         return map.getProperties().get("width", Integer.class) * TILE_SIZE;

@@ -36,6 +36,17 @@ public class PlayerMapView implements Screen {
     private ShopView shopView;
     private SellMenuView sellMenuView;
     private ControlsOverlay controlsOverlay = new ControlsOverlay();
+    private boolean placing = false;
+    private io.github.StardewValley.models.Artisan.MachineType placingType = null;
+    private com.badlogic.gdx.graphics.Texture ghostTex;
+    private MachineMenuView machineMenu;
+
+    // Placement mode
+    private boolean placingMachine = false;
+    private io.github.StardewValley.models.Artisan.MachineType pendingMachine = null;
+    private int hoverTx = -1, hoverTy = -1;
+
+
 
     private WorldController worldController;
     private int playerIndex;
@@ -91,7 +102,7 @@ public class PlayerMapView implements Screen {
     private final ShapeRenderer shapeRenderer = new ShapeRenderer();
     private boolean debugDraw = false;          // press F3 to toggle
 
-    private enum Panel { NONE, INVENTORY, CRAFTING, SHOP, SELL, COOKING, JOURNAL, CONTROLS, QUEST, GIFT, CHAT }
+    private enum Panel { NONE, INVENTORY, CRAFTING, SHOP, SELL, COOKING, JOURNAL, CONTROLS, QUEST, GIFT, CHAT, MACHINE  }
     private Panel activePanel = Panel.NONE;
 
     public PlayerMapView(WorldController worldController, int playerIndex) {
@@ -136,6 +147,8 @@ public class PlayerMapView implements Screen {
                 SimpleRecipeBook.getBasicRecipes()
 
         );
+        machineMenu = new MachineMenuView(controller);
+
 
         inventoryMenuView.setOnOpenSellMenu(() -> Gdx.app.postRunnable(() -> {
             if (activePanel == Panel.INVENTORY) {
@@ -261,6 +274,7 @@ public class PlayerMapView implements Screen {
 
     @Override
     public void render(float delta) {
+        controller.updateMachines(delta);
         WeatherType wtNow = controller.getWeather().getWeatherType();
         if (wtNow != lastWeatherType) {
             lastWeatherType = wtNow;
@@ -353,6 +367,39 @@ public class PlayerMapView implements Screen {
                 }
             );
         }
+
+
+        // ورود به حالت گذاشتن دستگاه
+        if (!uiOpen() && Gdx.input.isKeyJustPressed(Input.Keys.P)) {
+            ItemType sel = inventoryRenderer.getSelectedType();
+            if (sel instanceof io.github.StardewValley.models.Artisan.MachineType mt
+                    && controller.getPlayer().getInventory().getTotalQty(sel) > 0) {
+                placingMachine = true;
+                pendingMachine = mt;
+            }
+        }
+
+
+        if (!uiOpen() && !placingMachine && Gdx.input.isButtonJustPressed(Input.Buttons.LEFT)) {
+            Vector3 w = camera.unproject(new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0));
+            int tx = (int)(w.x / TILE_SIZE);
+            int ty = (int)(w.y / TILE_SIZE);
+
+            var pm = controller.getMachineAt(controller.getCurrentMapPath(), tx, ty);
+            if (pm != null) {
+                togglePanel(Panel.MACHINE, true,
+                        () -> machineMenu.open(pm),
+                        () -> machineMenu.close()
+                );
+            }
+        }
+
+        // بستن منوی ماشین با E
+        if (machineMenu != null && machineMenu.isVisible() && Gdx.input.isKeyJustPressed(Input.Keys.E)) {
+            machineMenu.close();
+            activePanel = Panel.NONE;   // تا uiOpen() هم false بشه
+        }
+
 
         if (Gdx.input.isKeyJustPressed(Input.Keys.B)) {
             togglePanel(Panel.CRAFTING, true,
@@ -588,7 +635,45 @@ public class PlayerMapView implements Screen {
         batch.setProjectionMatrix(camera.combined);
         batch.begin();
         batch.setColor(worldTint);
+        controller.renderMachines(batch);
+        // ----- Placement ghost -----
+        if (placingMachine && pendingMachine != null) {
+            Vector3 w = camera.unproject(new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0));
+            hoverTx = (int)(w.x / TILE_SIZE);
+            hoverTy = (int)(w.y / TILE_SIZE);
 
+            boolean ok = controller.canPlaceMachineAt(controller.getCurrentMapPath(), hoverTx, hoverTy);
+
+            // آیکن دستگاه به صورت نیمه‌شفاف
+            Texture ghost = GameAssetManager.getGameAssetManager().getTexture(pendingMachine.iconPath());
+            float gw = TILE_SIZE * 0.9f, gh = TILE_SIZE * 0.9f;
+            float gx = hoverTx * TILE_SIZE + (TILE_SIZE - gw) / 2f;
+            float gy = hoverTy * TILE_SIZE;
+            batch.setColor(1f, 1f, 1f, ok ? 0.85f : 0.35f);
+            batch.draw(ghost, gx, gy, gw, gh);
+            batch.setColor(1f, 1f, 1f, 1f);
+
+            if (ok && Gdx.input.isButtonJustPressed(Input.Buttons.LEFT)) {
+                boolean placed = controller.placeMachine(
+                        pendingMachine,
+                        controller.getCurrentMapPath(),
+                        hoverTx, hoverTy,
+                        controller.getPlayer().getInventory()
+                );
+                if (placed) {
+                    if (inventoryMenuView != null) inventoryMenuView.onInventoryChanged();
+                    if (inventoryRenderer  != null) inventoryRenderer.onInventoryChanged();
+                    placingMachine = false; pendingMachine = null;
+                }
+            }
+
+
+
+            // لغو
+            if (Gdx.input.isButtonJustPressed(Input.Buttons.RIGHT) || Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
+                placingMachine = false; pendingMachine = null;
+            }
+        }
         for (var b : worldController.npc().getSellBinsOn(controller.getCurrentMapPath())) {
             if (b.texturePath == null) continue;
             var tex = GameAssetManager.getGameAssetManager().getTexture(b.texturePath);
@@ -826,6 +911,15 @@ public class PlayerMapView implements Screen {
 
         if (craftingMenuView.isVisible()) {
             craftingMenuView.render(batch);
+        }
+
+
+        // جای مناسبی بین بقیه‌ی UIها (مثلاً قبل از batch.end())
+        if (machineMenu != null && machineMenu.isVisible()) {
+            float w = 300f, h = 160f;
+            float x = (uiCamera.viewportWidth  - w) / 2f;
+            float y = (uiCamera.viewportHeight - h) / 2f;
+            machineMenu.render(batch, x, y, w, h);
         }
 
         if (sellMenuView.isVisible())      sellMenuView.render(batch);

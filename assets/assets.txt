@@ -217,6 +217,7 @@ items/Ancient_Seed.png
 items/Ancient_Seeds.png
 items/Angler.png
 items/Anvil.png
+items/Apple.png
 items/Aquamarine.png
 items/Artichoke_Dip.png
 items/Autumn%27s_Bounty.png

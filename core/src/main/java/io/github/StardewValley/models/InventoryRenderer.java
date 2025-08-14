@@ -23,6 +23,8 @@ public class InventoryRenderer {
     private int selected = 0;
     private int visibleRow = 0;
     private float animatedRow = 0f;
+    private boolean needsRebuild = false;
+
 
     private boolean inputEnabled = true;
 
@@ -34,6 +36,10 @@ public class InventoryRenderer {
     }
 
     public void render(SpriteBatch batch) {
+        if (needsRebuild) {
+            rebuildFromInventory();
+            needsRebuild = false;
+        }
         handleInput();
 
         animatedRow = MathUtils.lerp(animatedRow, visibleRow, Gdx.graphics.getDeltaTime() * LERP_SPEED);
@@ -117,6 +123,20 @@ public class InventoryRenderer {
         // Clamp selected index to inventory size
         selected = MathUtils.clamp(selected, 0, inventory.size() - 1);
     }
+    
+    public void onInventoryChanged() {
+        needsRebuild = true;
+    }
+
+    private void rebuildFromInventory() {
+        int rowCount = getRowCount();
+
+        selected   = MathUtils.clamp(selected, 0, Math.max(0, inventory.size() - 1));
+        visibleRow = MathUtils.clamp(visibleRow, 0, Math.max(0, rowCount - 1));
+
+        visibleRow = selected / COLS;
+    }
+
 
     public void dispose() {
         slotBg.dispose();

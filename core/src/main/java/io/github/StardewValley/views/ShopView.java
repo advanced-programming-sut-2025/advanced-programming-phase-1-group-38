@@ -8,6 +8,7 @@ import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import io.github.StardewValley.models.*;
 import io.github.StardewValley.models.enums.Shop.ShopEntry;
+import io.github.StardewValley.models.enums.Types.MaterialType;
 
 import java.util.ArrayList;
 import java.util.List;

@@ -3,6 +3,7 @@ package io.github.StardewValley.models;
 
 import io.github.StardewValley.models.Artisan.MachineType;
 import io.github.StardewValley.models.enums.Types.CraftingMachineType;
+import io.github.StardewValley.models.enums.Types.MaterialType;
 
 import java.util.*;
 

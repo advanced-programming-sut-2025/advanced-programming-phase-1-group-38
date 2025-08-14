@@ -9,6 +9,7 @@ import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import io.github.StardewValley.controllers.GameController;
 import io.github.StardewValley.models.*;
+import io.github.StardewValley.models.enums.Types.MaterialType;
 
 public class GreenhouseUnlockPopupView {
     private static final float W = 460f, H = 220f, P = 18f;

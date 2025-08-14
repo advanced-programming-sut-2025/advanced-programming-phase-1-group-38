@@ -5,6 +5,7 @@ import com.badlogic.gdx.math.MathUtils;
 import io.github.StardewValley.models.*;
 import io.github.StardewValley.models.Artisan.ArtisanProductType;
 import io.github.StardewValley.models.NpcQuestService;
+import io.github.StardewValley.models.enums.Types.MaterialType;
 
 import java.util.ArrayList;
 import java.util.List;

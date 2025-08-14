@@ -4,6 +4,7 @@ import com.badlogic.gdx.graphics.g2d.Animation;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import io.github.StardewValley.models.Artisan.ArtisanProductType;
+import io.github.StardewValley.models.enums.Types.MaterialType;
 import io.github.StardewValley.models.farming.TreeSaplingType;
 
 import java.util.*;
@@ -63,6 +64,13 @@ public class Player {
         inventory.add(MaterialType.Wood, 1000);
         inventory.add(ArtisanProductType.COFFEE, 20);
         inventory.add(TreeSaplingType.APPLE_SAPLING, 1);
+        inventory.add(MaterialType.Stone, 1000);
+        inventory.add(MaterialType.IronOre, 1000);
+        inventory.add(MaterialType.IronBar, 1000);
+        inventory.add(MaterialType.GoldBar, 1000);
+        inventory.add(MaterialType.Coal, 1000);
+        inventory.add(MaterialType.CopperOre, 1000);
+
     }
 
     public void render(SpriteBatch batch) {
