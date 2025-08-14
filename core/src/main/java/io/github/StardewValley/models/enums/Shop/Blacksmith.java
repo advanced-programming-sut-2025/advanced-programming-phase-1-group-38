@@ -1,5 +1,7 @@
 package io.github.StardewValley.models.enums.Shop;
 
+import io.github.StardewValley.models.ItemCatalog;
+import io.github.StardewValley.models.ItemType;
 import io.github.StardewValley.models.enums.Types.MaterialType;
 
 import java.util.HashMap;
@@ -12,7 +14,9 @@ public enum Blacksmith implements ShopEntry{
     IronOre(Type.STOCK, "Iron Ore", "A fairly common ore that can be smelted into bars.",
             150, MaterialType.IronOre, Integer.MAX_VALUE, 0, null),
     Coal(Type.STOCK, "Coal", "A combustible rock that is useful for crafting and smelting.",
-            150, MaterialType.Coal, Integer.MAX_VALUE, 0, null);
+            150, MaterialType.Coal, Integer.MAX_VALUE, 0, null),
+    Chicken(Type.STOCK, "Chicken", "A farm animal that produces egg.", 100, ItemCatalog.chickenCrate(), 10, 0, null),
+    Cow(Type.STOCK, "Cow", "A farm animal that produces milk.", 250, ItemCatalog.cowCrate(), 5, 0, null);
 //    GoldOre(Type.STOCK, "Gold Ore", "A precious ore that can be smelted into bars.",
 //            400, MaterialType.GoldOre, 10, 0, null),
 //    IridiumOre(Type.STOCK, "Iridium Ore", "A rare and valuable ore used for advanced crafts.",
@@ -27,13 +31,13 @@ public enum Blacksmith implements ShopEntry{
     private final String displayName;
     private final String description;
     private final Integer price;
-    private final MaterialType materialType;
+    private final ItemType materialType;
     private final int dailyLimit;
     private final int upgradeCost;
-    private final Map<MaterialType, Integer> ingredient;
+    private final Map<ItemType, Integer> ingredient;
 
     Blacksmith(Type type, String displayName, String description, Integer price,
-               MaterialType materialType, int dailyLimit, int upgradeCost, Map<MaterialType, Integer> ingredient) {
+               ItemType materialType, int dailyLimit, int upgradeCost, Map<ItemType, Integer> ingredient) {
         this.type = type;
         this.displayName = displayName;
         this.description = description;
@@ -54,16 +58,16 @@ public enum Blacksmith implements ShopEntry{
     @Override public String getDisplayName() { return displayName; }
     @Override public String getDescription() { return description; }
     @Override public int getPrice() { return price; }
-    public MaterialType getMaterialType() { return materialType; }
+    public ItemType getMaterialType() { return materialType; }
     @Override public int getDailyLimit() { return dailyLimit; }
 
     @Override
-    public MaterialType getItemType() {
+    public ItemType getItemType() {
         return this.materialType;
     }
 
     public int getUpgradeCost() { return upgradeCost; }
-    public Map<MaterialType, Integer> getIngredient() { return ingredient; }
+    public Map<ItemType, Integer> getIngredient() { return ingredient; }
 
     @Override
     public String toString() {
