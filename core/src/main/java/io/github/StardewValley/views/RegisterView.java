@@ -165,6 +165,18 @@ public class RegisterView implements Screen {
                 dialog.show(stage);
             }
         });
+
+        registerButton.addListener(new ClickListener() {
+            @Override public void clicked(InputEvent e, float x, float y) {
+                controller.handleRegister();   // now runs exactly once on click
+            }
+        });
+        backButton.addListener(new ClickListener() {
+            @Override public void clicked(InputEvent e, float x, float y) {
+                controller.handleBack();
+            }
+        });
+
     }
 
     private void addHover(final TextButton btn) {
@@ -183,7 +195,6 @@ public class RegisterView implements Screen {
             }
         });
     }
-
 
 
 
@@ -241,7 +252,6 @@ public class RegisterView implements Screen {
         ScreenUtils.clear(0, 0, 0, 1);
         stage.act(Math.min(Gdx.graphics.getDeltaTime(), 1 / 30f));
         stage.draw();
-        controller.handleRegister();
     }
 
     @Override public void resize(int width, int height) {

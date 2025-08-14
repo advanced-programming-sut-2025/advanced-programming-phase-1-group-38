@@ -5,6 +5,7 @@ import io.github.StardewValley.models.GameAssetManager;
 import io.github.StardewValley.models.SavaToJson;
 import io.github.StardewValley.models.User;
 import io.github.StardewValley.models.HashUtil;
+import io.github.StardewValley.models.enums.Gender;
 import io.github.StardewValley.views.AuthView;
 import io.github.StardewValley.views.MainMenu;
 import io.github.StardewValley.views.RegisterView;
@@ -17,63 +18,56 @@ public class RegisterController {
     }
 
     public void handleRegister() {
-        if (view.getRegisterButton().isPressed()) {
-            String username = view.getUsernameField().getText().trim();
-            String nickname = view.getNicknameField().getText().trim();
-            String email = view.getEmailField().getText().trim();
-            String password = view.getPasswordField().getText().trim();
-            String confirm = view.getConfirmPasswordField().getText().trim();
-            String gender = view.getSelectedGender().trim();
+        String username = view.getUsernameField().getText().trim();
+        String nickname = view.getNicknameField().getText().trim();
+        String email    = view.getEmailField().getText().trim();
+        String password = view.getPasswordField().getText().trim();
+        String confirm  = view.getConfirmPasswordField().getText().trim();
 
-            if (username.isEmpty() || password.isEmpty()) {
-                view.showError("Username and password are required.");
-                return;
-            }
+        // map localized gender safely:
+        Gender gender = mapSelectedGender(view.getSelectedGender());
 
-            if (!isValidEmail(email)) {
-                view.showError("Invalid email format.");
-                return;
-            }
+        if (username.isEmpty() || password.isEmpty()) { view.showError("Username and password are required."); return; }
+        if (!isValidEmail(email)) { view.showError("Invalid email format."); return; }
+        if (!password.equals(confirm)) { view.showError("Passwords do not match."); return; }
+        if (SavaToJson.userExists(username)) { view.showError("Username already exists."); return; }
+        if (!isStrongPassword(password)) { view.showError("Password must be 8+ chars, 1 uppercase, 1 number, 1 symbol."); return; }
 
-            if (!password.equals(confirm)) {
-                view.showError("Passwords do not match.");
-                return;
-            }
+        String hashedPassword = HashUtil.sha256(password);
+        User user = new User(username, hashedPassword, nickname, email, gender);
+        user.setHighestGold(0);
+        user.setTotalGamesPlayed(0);
 
-            if (SavaToJson.userExists(username)) {
-                view.showError("Username already exists.");
-                return;
-            }
+        view.showSecurityDialog(() -> {
+            String question = view.getSelectedQuestion().trim();
+            String answer   = view.getAnswerField().getText().trim();
+            user.setSecurityQuestion(question, answer);
 
-            if (!isStrongPassword(password)) {
-                view.showError("Password must be 8+ chars, 1 uppercase, 1 number, 1 symbol.");
-                return;
-            }
-
-            String hashedPassword = HashUtil.sha256(password);
-
-            // مرحلهٔ بعدی: گرفتن سؤال امنیتی از کاربر
-            view.showSecurityDialog(() -> {
-                String question = view.getSelectedQuestion().trim();
-                String answer = view.getAnswerField().getText().trim();
-
-                User user = new User(username, hashedPassword, nickname, email, User.parseGender(gender));
-                user.setSecurityQuestion(question, answer);
-                user.setHighestGold(0);
-                user.setTotalGamesPlayed(0);
-
+            try {
                 SavaToJson.registerUser(user);
                 User.setCurrentUser(user);
-
                 view.showSuccess("Registered successfully!");
-                // اگر بخواهی می‌تونی اینجا MainMenu رو فعال کنی
-                Main.getMain().setScreen(new MainMenu(new MainMenuController(), GameAssetManager.getGameAssetManager().getDefaultSkin()));            });
-        }
-
-        if (view.getBackButton().isPressed()) {
-            Main.getMain().setScreen(new AuthView(new AuthController(), GameAssetManager.getGameAssetManager().getAuthSkin()));
-        }
+                Main.getMain().setScreen(new MainMenu(new MainMenuController(), GameAssetManager.getGameAssetManager().getDefaultSkin()));
+            } catch (Exception ex) {
+                view.showError("Failed to save user: " + ex.getMessage());
+            }
+        });
     }
+
+    public void handleBack() {
+        Main.getMain().setScreen(new AuthView(new AuthController(), GameAssetManager.getGameAssetManager().getAuthSkin()));
+    }
+
+    private Gender mapSelectedGender(String uiValue) {
+        if (uiValue == null) return Gender.RATHER_NOT_SAY;
+        String v = uiValue.trim().toLowerCase(java.util.Locale.ROOT);
+
+        // whole-word match
+        if (v.matches(".*\\bfemale\\b.*") || v.matches(".*\\bwoman\\b.*")) return Gender.WOMAN;
+        if (v.matches(".*\\bmale\\b.*")   || v.matches(".*\\bman\\b.*"))   return Gender.MAN;
+        return Gender.RATHER_NOT_SAY;
+    }
+
 
     private boolean isValidEmail(String email) {
 

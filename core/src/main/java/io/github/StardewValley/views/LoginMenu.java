@@ -14,6 +14,7 @@ import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.scenes.scene2d.*;
 import com.badlogic.gdx.scenes.scene2d.actions.Actions;
 import com.badlogic.gdx.scenes.scene2d.ui.*;
+import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.scenes.scene2d.utils.Drawable;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Scaling;
@@ -23,6 +24,8 @@ import io.github.StardewValley.controllers.LoginController;
 import io.github.StardewValley.models.LanguageManager;
 import io.github.StardewValley.models.SavaToJson;
 import io.github.StardewValley.models.User;
+
+import java.util.function.Consumer;
 
 public class LoginMenu implements Screen {
 
@@ -100,6 +103,23 @@ public class LoginMenu implements Screen {
         addHover(loginButton);
         addHover(backButton);
         addHover(forgotButton);
+
+        loginButton.addListener(new ClickListener() {
+            @Override public void clicked(InputEvent e, float x, float y) {
+                controller.handleLogin();
+            }
+        });
+        backButton.addListener(new ClickListener() {
+            @Override public void clicked(InputEvent e, float x, float y) {
+                controller.handleBack();
+            }
+        });
+        forgotButton.addListener(new ClickListener() {
+            @Override public void clicked(InputEvent e, float x, float y) {
+                controller.handleForgot();
+            }
+        });
+
     }
 
     private Texture loadBackgroundTexture() {
@@ -143,7 +163,6 @@ public class LoginMenu implements Screen {
         ScreenUtils.clear(0, 0, 0, 1);
         stage.act(Math.min(Gdx.graphics.getDeltaTime(), 1 / 30f));
         stage.draw();
-        controller.handleLogin();
     }
 
     @Override public void resize(int w, int h) { stage.getViewport().update(w, h, true); bgImage.setSize(w, h); }
@@ -220,6 +239,45 @@ public class LoginMenu implements Screen {
         dialog.button(LanguageManager.t("button.cancel"), false);
         dialog.key(com.badlogic.gdx.Input.Keys.ESCAPE, false);
         dialog.show(stage);
+    }
+
+    public void promptSecurityQuestion(String question, Consumer<String> onAnswer) {
+        final TextField answerField = new TextField("", skin);
+        Dialog d = new Dialog(LanguageManager.t("dialog.resetPassword.title"), skin) {
+            @Override protected void result(Object obj) {
+                if (Boolean.TRUE.equals(obj)) {
+                    onAnswer.accept(answerField.getText().trim());
+                }
+            }
+        };
+        d.text(LanguageManager.t("label.securityQuestion") + ":\n" + question);
+        d.getContentTable().row().padTop(10);
+        d.getContentTable().add(answerField).width(280).row();
+        d.button(LanguageManager.t("button.submit"), true);
+        d.button(LanguageManager.t("button.cancel"), false);
+        d.key(com.badlogic.gdx.Input.Keys.ESCAPE, false);
+        d.show(stage);
+    }
+
+    public void promptNewPassword(Consumer<String> onNewPass) {
+        final TextField newPassword = new TextField("", skin);
+        newPassword.setPasswordMode(true);
+        newPassword.setPasswordCharacter('*');
+
+        Dialog d = new Dialog(LanguageManager.t("dialog.resetPassword.title"), skin) {
+            @Override protected void result(Object obj) {
+                if (Boolean.TRUE.equals(obj)) {
+                    onNewPass.accept(newPassword.getText().trim());
+                }
+            }
+        };
+        d.text(LanguageManager.t("placeholder.newPassword"));
+        d.getContentTable().row().padTop(10);
+        d.getContentTable().add(newPassword).width(280).row();
+        d.button(LanguageManager.t("button.submit"), true);
+        d.button(LanguageManager.t("button.cancel"), false);
+        d.key(com.badlogic.gdx.Input.Keys.ESCAPE, false);
+        d.show(stage);
     }
 
     private boolean isStrongPassword(String password) {

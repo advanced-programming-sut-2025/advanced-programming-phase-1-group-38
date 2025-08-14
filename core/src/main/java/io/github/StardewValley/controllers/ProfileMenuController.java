@@ -83,10 +83,7 @@ public class ProfileMenuController {
     // ------------------------------------------------------------------ //
     private void askSecurityAndDelete() {
         User me = User.getCurrentUser();
-        if (me == null) {
-            view.showError(LanguageManager.t("error.noUser"));
-            return;
-        }
+        if (me == null) { view.showError(LanguageManager.t("error.noUser")); return; }
 
         final TextField ans = new TextField("", view.getSkin());
         ans.setMessageText(LanguageManager.t("placeholder.answer"));
@@ -94,11 +91,12 @@ public class ProfileMenuController {
         Dialog d = new Dialog(LanguageManager.t("dialog.deleteAccountTitle"), view.getSkin()) {
             @Override protected void result(Object obj) {
                 if (Boolean.TRUE.equals(obj)) {
-                    if (me.getSecurityAnswer() == null || !me.getSecurityAnswer().equalsIgnoreCase(ans.getText().trim())) {
+                    String u = me.getUsername();
+                    if (!SavaToJson.verifySecurityAnswer(u, ans.getText().trim())) {
                         view.showError(LanguageManager.t("error.wrongAnswer"));
                         return;
                     }
-                    SavaToJson.deleteUser(me.getUsername());
+                    SavaToJson.deleteUser(u);
                     User.setCurrentUser(null);
                     Main.getMain().setScreen(new MainMenu(
                         new MainMenuController(),
@@ -107,7 +105,8 @@ public class ProfileMenuController {
             }
         };
 
-        d.text(me.getSecurityQuestion().toString());
+        String q = SavaToJson.getSecurityQuestion(me.getUsername());
+        d.text(q == null ? LanguageManager.t("error.noSecurityQuestion") : q);
         d.getContentTable().row();
         d.getContentTable().add(ans).width(300);
         d.button(LanguageManager.t("button.confirm"), true);
@@ -130,23 +129,19 @@ public class ProfileMenuController {
             @Override protected void result(Object obj) {
                 if (Boolean.TRUE.equals(obj)) {
                     String nu = f.getText().trim().toLowerCase();
-                    if (nu.isEmpty()) {
-                        view.showError(LanguageManager.t("error.emptyUsername"));
-                        return;
-                    }
-                    if (SavaToJson.userExists(nu)) {
-                        view.showError(LanguageManager.t("error.userExists"));
-                        return;
-                    }
+                    if (nu.isEmpty()) { view.showError(LanguageManager.t("error.emptyUsername")); usernameDialogOpen = false; return; }
+                    if (SavaToJson.userExists(nu)) { view.showError(LanguageManager.t("error.userExists")); usernameDialogOpen = false; return; }
 
                     User u = User.getCurrentUser();
                     String old = u.getUsername();
-                    u.setUsername(nu);
-
-                    SavaToJson.deleteUser(old);
-                    SavaToJson.registerUser(u);
-                    User.setCurrentUser(u);
-                    view.showSuccess(LanguageManager.t("success.usernameChanged"));
+                    try {
+                        SavaToJson.renameUser(old, nu);
+                        u.setUsername(nu); // keep UI copy in sync
+                        User.setCurrentUser(u);
+                        view.showSuccess(LanguageManager.t("success.usernameChanged"));
+                    } catch (Exception ex) {
+                        view.showError(ex.getMessage());
+                    }
                 }
                 usernameDialogOpen = false;
             }
@@ -175,20 +170,15 @@ public class ProfileMenuController {
             @Override protected void result(Object obj) {
                 if (Boolean.TRUE.equals(obj)) {
                     String nn = f.getText().trim();
-                    if (nn.isEmpty()) {
-                        view.showError(LanguageManager.t("error.emptyNickname"));
-                        return;
-                    }
-
+                    if (nn.isEmpty()) { view.showError(LanguageManager.t("error.emptyNickname")); nicknameDialogOpen = false; return; }
                     User u = User.getCurrentUser();
                     u.setNickname(nn);
-                    SavaToJson.save();
+                    SavaToJson.updateUser(u);
                     view.showSuccess(LanguageManager.t("success.nicknameChanged"));
                 }
                 nicknameDialogOpen = false;
             }
         };
-
         d.text(LanguageManager.t("dialog.enterNewNickname"));
         d.getContentTable().row();
         d.getContentTable().add(f).width(300);
@@ -198,9 +188,6 @@ public class ProfileMenuController {
         d.show(view.getStage());
     }
 
-    // ------------------------------------------------------------------ //
-    // Email (NEW)
-    // ------------------------------------------------------------------ //
     private void showChangeEmailDialog() {
         if (emailDialogOpen) return;
         emailDialogOpen = true;
@@ -213,18 +200,16 @@ public class ProfileMenuController {
                 if (Boolean.TRUE.equals(obj)) {
                     String em = f.getText().trim().toLowerCase();
                     if (!em.matches("[\\w.+-]+@[\\w.-]+\\.[a-zA-Z]{2,}")) {
-                        view.showError(LanguageManager.t("error.invalidEmail"));
-                        return;
+                        view.showError(LanguageManager.t("error.invalidEmail")); emailDialogOpen = false; return;
                     }
                     User u = User.getCurrentUser();
                     u.setEmail(em);
-                    SavaToJson.save();
+                    SavaToJson.updateUser(u);
                     view.showSuccess(LanguageManager.t("success.emailChanged"));
                 }
                 emailDialogOpen = false;
             }
         };
-
         d.text(LanguageManager.t("dialog.enterNewEmail"));
         d.getContentTable().row();
         d.getContentTable().add(f).width(300);
@@ -233,6 +218,7 @@ public class ProfileMenuController {
         d.key(Input.Keys.ESCAPE, false);
         d.show(view.getStage());
     }
+
 
     // ------------------------------------------------------------------ //
     // Password (unchanged, but triggers info refresh)
@@ -248,16 +234,17 @@ public class ProfileMenuController {
         Dialog d = new Dialog(LanguageManager.t("dialog.changePasswordTitle"), view.getSkin()) {
             @Override protected void result(Object obj) {
                 if (Boolean.TRUE.equals(obj)) {
-                    if (!User.getCurrentUser().getPassword().equals(oldP.getText())) {
+                    String u = User.getCurrentUser().getUsername();
+                    if (!SavaToJson.verifyLogin(u, oldP.getText())) {
                         view.showError(LanguageManager.t("error.invalidPassword"));
                         return;
                     }
-                    if (newP.getText().length() < 4) {
+                    String np = newP.getText();
+                    if (!np.matches("(?=.*[A-Z])(?=.*\\d)(?=.*[@#$%^&+=!()_.*]).{8,}")) {
                         view.showError(LanguageManager.t("error.weakPassword"));
                         return;
                     }
-                    User.getCurrentUser().setPassword(newP.getText());
-                    SavaToJson.save();
+                    SavaToJson.updatePassword(u, np); // raw; store hashes
                     view.showSuccess(LanguageManager.t("success.passwordChanged"));
                 }
             }
@@ -270,4 +257,5 @@ public class ProfileMenuController {
         d.key(Input.Keys.ESCAPE, false);
         d.show(view.getStage());
     }
+
 }

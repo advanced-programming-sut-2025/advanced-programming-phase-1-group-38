@@ -6,72 +6,86 @@ import io.github.StardewValley.views.AuthView;
 import io.github.StardewValley.views.LoginMenu;
 import io.github.StardewValley.views.MainMenu;
 
-
 public class LoginController {
     private LoginMenu view;
 
-    public void setView(LoginMenu view) {
-        this.view = view;
-    }
+    public void setView(LoginMenu view) { this.view = view; }
 
-    public Result checkSecurityAnswer(String userAnswer) {
-        User user = App.getLoggedInUser();
-
-        if (user == null)
-            return new Result(false, "No user is currently logged in.");
-
-        if (user.getSecurityQuestion() == null)
-            return new Result(false, "Security question is not set.");
-
-        String correctAnswer = user.getSecurityQuestion().getAnswer();
-
-        if (correctAnswer.equalsIgnoreCase(userAnswer)) {
-            return new Result(true, "Correct answer.");
-        } else {
-            return new Result(false, "Incorrect answer.");
-        }
-    }
-
+    // Call this when “Login” is clicked (ideally wire a ClickListener in LoginMenu like you did in RegisterView)
     public void handleLogin() {
-        if (view.getLoginButton().isPressed()) {
-            String username = view.getUsernameField().getText().trim();
-            String password = view.getPasswordField().getText().trim();
+        String username = view.getUsernameField().getText().trim();
+        String password = view.getPasswordField().getText().trim();
 
-            if (username.isEmpty() || password.isEmpty()) {
-                view.showError("Username and password are required.");
-                return;
-            }
-
-            if (!SavaToJson.userExists(username)) {
-                view.showError("User not found.");
-                return;
-            }
-
-            if (!SavaToJson.validateLogin(username, password)) {
-                view.showError("Incorrect password.");
-                return;
-            }
-
-            User.setCurrentUser(SavaToJson.getUser(username));
-
-            view.showSuccess("Login successful.");
-
-            Main.getMain().setScreen(new MainMenu(
-                new MainMenuController(),
-                GameAssetManager.getGameAssetManager().getDefaultSkin())
-            );
+        if (username.isEmpty() || password.isEmpty()) {
+            view.showError("Username and password are required.");
+            return;
+        }
+        if (!SavaToJson.userExists(username)) {
+            view.showError("User not found.");
+            return;
+        }
+        if (!SavaToJson.verifyLogin(username, password)) {
+            view.showError("Incorrect password.");
+            return;
         }
 
-        if (view.getBackButton().isPressed()) {
-            Main.getMain().setScreen(new AuthView(
-                new AuthController(),
-                GameAssetManager.getGameAssetManager().getAuthSkin())
-            );
+        // Load a fresh copy from disk and set as current
+        User.setCurrentUser(SavaToJson.getUser(username));
+        view.showSuccess("Login successful.");
+
+        Main.getMain().setScreen(new MainMenu(
+            new MainMenuController(),
+            GameAssetManager.getGameAssetManager().getDefaultSkin())
+        );
+    }
+
+    // “Forgot password?” flow
+    public void handleForgot() {
+        String username = view.getUsernameField().getText().trim();
+        if (username.isEmpty()) {
+            view.showError("Enter your username first.");
+            return;
+        }
+        if (!SavaToJson.userExists(username)) {
+            view.showError("User not found.");
+            return;
         }
 
-
-        if (view.getForgotButton().isPressed()) {
-            view.promptSecurityQuestion();
+        String question = SavaToJson.getSecurityQuestion(username);
+        if (question == null) {
+            view.showError("No security question set for this user.");
+            return;
         }
+
+        // Ask UI to show the question and collect the answer (your view already has a dialog)
+        view.promptSecurityQuestion(question, userAnswer -> {
+            boolean ok = SavaToJson.verifySecurityAnswer(username, userAnswer);
+            if (!ok) {
+                view.showError("Incorrect answer.");
+                return;
+            }
+            // At this point you can allow password reset UI
+            view.showSuccess("Answer verified. You can reset your password now.");
+            view.promptNewPassword(newPass -> {
+                if (newPass == null || newPass.isEmpty()) {
+                    view.showError("Password cannot be empty.");
+                    return;
+                }
+                if (!newPass.matches("(?=.*[A-Z])(?=.*\\d)(?=.*[@#$%^&+=!()_.*]).{8,}")) {
+                    view.showError("Password must be 8+ chars, 1 uppercase, 1 number, 1 symbol.");
+                    return;
+                }
+                // Persist new password
+                SavaToJson.updatePassword(username, newPass);
+                view.showSuccess("Password updated. Please log in.");
+            });
+        });
+    }
+
+    public void handleBack() {
+        Main.getMain().setScreen(new AuthView(
+            new AuthController(),
+            GameAssetManager.getGameAssetManager().getAuthSkin())
+        );
     }
 }
