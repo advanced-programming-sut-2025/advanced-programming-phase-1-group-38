@@ -32,7 +32,7 @@ public class PlayerMapView implements Screen {
     private GameController controller;
     private SpriteBatch batch;
     private CraftingMenuView craftingMenuView;
-    private JournalOverlay journalOverlay = new JournalOverlay();
+    private JournalOverlay journalOverlay;
     private ShopView shopView;
     private SellMenuView sellMenuView;
     private ControlsOverlay controlsOverlay = new ControlsOverlay();
@@ -230,6 +230,8 @@ public class PlayerMapView implements Screen {
             0.10f,                 // frameDuration (sec)
             true                   // looping
         );
+
+        journalOverlay = new JournalOverlay(worldController, controller);
 
         speechFont = GameAssetManager.getGameAssetManager().getSmallFont();
         dialogueBoxTex = GameAssetManager.getGameAssetManager().getTexture("dialogue/dialogue_box.png");
