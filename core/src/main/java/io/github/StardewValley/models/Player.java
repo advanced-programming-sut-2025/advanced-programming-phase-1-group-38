@@ -70,6 +70,9 @@ public class Player {
         inventory.add(MaterialType.GoldBar, 1000);
         inventory.add(MaterialType.Coal, 1000);
         inventory.add(MaterialType.CopperOre, 1000);
+        inventory.add(ItemCatalog.chickenCrate(), 1);
+        inventory.add(ItemCatalog.cowCrate(), 1);
+        inventory.add(CropType.WHEAT, 20);
 
     }
 

@@ -102,6 +102,10 @@ LibGdx-Skin-main/mac's Extended Minecraft Bold Italic.fnt
 LibGdx-Skin-main/mac's Minecraft(1).fnt
 Stone.png
 Wood.png
+animals/chicken.png
+animals/chicken_crate.png
+animals/cow.png
+animals/cow_crate.png
 black.png
 button-down.png
 button-up.png

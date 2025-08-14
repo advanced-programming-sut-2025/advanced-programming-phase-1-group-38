@@ -70,6 +70,16 @@ public class GameController {
     private GiftPopupView giftPopup;
     private DoorHook doorHook;
 
+    // GameController.java (fields)
+    private final AnimalController animalController = new AnimalController();
+    public AnimalController animals() { return animalController; }
+
+    // GameController.java (field + types)
+    private AnimalMenuOpener animalMenuOpener;
+    public interface AnimalMenuOpener { void open(io.github.StardewValley.models.Animal a); }
+    public void setAnimalMenuOpener(AnimalMenuOpener o) { this.animalMenuOpener = o; }
+
+
     public GameController(Player player, String initialMapPath, GameTime gameTime, TiledMap sharedNpcMap) {
         this.lastGameDay  = gameTime.getDay();
         this.lastGameHour = gameTime.getHour();
@@ -175,6 +185,7 @@ public class GameController {
             lastUpdatedDay = gameTime.getDay();
         }
 
+        animalController.update(delta);
 
         for (MachineInstance m : machines) m.update(delta);
 
@@ -285,6 +296,9 @@ public class GameController {
                     m.update(gameSec);          // ← ثانیهٔ *بازی* تزریق می‌شود
                 }
             }
+
+            animalController.advanceAll(hoursAdvanced);
+
             lastGameDay  = d;
             lastGameHour = h;
         }
@@ -410,6 +424,19 @@ public class GameController {
             Tile gameTile = getTileAt(tileX, tileY);
             ItemType held = player.getInventoryRenderer().getSelectedType();
 
+// --- place animal from crate ---
+            if (held instanceof AnimalCrateType crate) {
+                // Optional: avoid stacking multiple animals at the exact same spot
+                var nearby = animals().closestOn(getCurrentMapPath(), world.x, world.y, 10f);
+                if (nearby == null) {
+                    if (crate.place(this, world.x, world.y)) {
+                        player.getInventory().remove(crate, 1); // consume one crate
+                    }
+                }
+
+                return; // handled this click
+            }
+
             // --- CLICK TO PLANT: seeds & tree saplings ---
             if (held instanceof SeedType seed) {
                 // only plant on empty tile
@@ -495,6 +522,12 @@ public class GameController {
                     }
                 }
 
+            }
+
+            var a = animals().closestOn(currentMapPath, world.x, world.y, 12f);
+            if (a != null) {
+                if (animalMenuOpener != null) animalMenuOpener.open(a);
+                return; // handled
             }
 
             // --- Trees: shake for fruit / chop for wood ---
@@ -626,12 +659,17 @@ public class GameController {
     }
 
     public void render(SpriteBatch batch) {
+        // draw world/entities first
         player.render(batch);
+        animals().renderOn(batch, currentMapPath); // <— add this
 
+        // fridge / roof UI bits can come after; avoid early return that cancels entity render
         TiledMapTileLayer roofLayer = (TiledMapTileLayer) map.getLayers().get("RoofTiles");
-        if (roofLayer != null && roofLayer.isVisible()) return;
+        if (roofLayer != null && roofLayer.isVisible()) {
+            return; // if you truly want to skip fridge overlay when roof is visible, ok — but animals already drew
+        }
 
-        if (fridgeBounds == null) return; // ← add this
+        if (fridgeBounds == null) return;
 
         if (playingFridgeAnim) {
             Animation<TextureRegion> anim = fridgeOpen ? fridgeOpenAnim : fridgeCloseAnim;
@@ -1066,5 +1104,18 @@ public class GameController {
         public float rise = 24f;    // how many world units to rise over life
         public float size = 16f;    // draw size (world units)
     }
+
+    // GameController.java
+    public boolean placeAnimalFromCrate(io.github.StardewValley.models.AnimalCrateType crate, float x, float y) {
+        // Optional: require barn tile/etc. For now, allow anywhere on current map.
+        String mapId = getCurrentMapPath();
+        String ownerId = worldController != null ? worldController.playerIdOf(this) : "P0";
+        String newId = crate.species().name().toLowerCase() + "_" + System.nanoTime();
+        String defaultName = crate.species().display;
+        var a = new io.github.StardewValley.models.Animal(newId, ownerId, crate.species(), defaultName, mapId, x, y);
+        animals().add(a);
+        return true;
+    }
+
 
 }

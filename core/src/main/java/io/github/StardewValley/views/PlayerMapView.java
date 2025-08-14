@@ -46,10 +46,10 @@ public class PlayerMapView implements Screen {
     private io.github.StardewValley.models.Artisan.MachineType pendingMachine = null;
     private int hoverTx = -1, hoverTy = -1;
 
-
-
     private WorldController worldController;
     private int playerIndex;
+
+    private io.github.StardewValley.views.AnimalMenuOverlay animalMenu;
 
     private WeatherType lastWeatherType = null;
 
@@ -102,7 +102,8 @@ public class PlayerMapView implements Screen {
     private final ShapeRenderer shapeRenderer = new ShapeRenderer();
     private boolean debugDraw = false;          // press F3 to toggle
 
-    private enum Panel { NONE, INVENTORY, CRAFTING, SHOP, SELL, COOKING, JOURNAL, CONTROLS, QUEST, GIFT, CHAT, MACHINE  }
+    // add to enum
+    private enum Panel { NONE, INVENTORY, CRAFTING, SHOP, SELL, COOKING, JOURNAL, CONTROLS, QUEST, GIFT, CHAT, MACHINE, ANIMAL }
     private Panel activePanel = Panel.NONE;
 
     public PlayerMapView(WorldController worldController, int playerIndex) {
@@ -149,6 +150,8 @@ public class PlayerMapView implements Screen {
         );
         machineMenu = new MachineMenuView(controller);
 
+        animalMenu = new AnimalMenuOverlay(controller, controller.getPlayer(), new AnimalMenuOverlay.Listener(){});
+        controller.setAnimalMenuOpener(animalMenu::open);
 
         inventoryMenuView.setOnOpenSellMenu(() -> Gdx.app.postRunnable(() -> {
             if (activePanel == Panel.INVENTORY) {
@@ -601,6 +604,14 @@ public class PlayerMapView implements Screen {
         if (!uiOpen() && Gdx.input.justTouched() && camera != null) {
             Vector3 world = camera.unproject(new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0));
 
+//            var a = controller.animals().closestOn(controller.getCurrentMapPath(), world.x, world.y, 12f);
+//            if (a != null) {
+//                // when opening:
+//                animalMenu.open(a);
+//                activePanel = Panel.ANIMAL;
+//                return;
+//            }
+
             for (var b : worldController.npc().getSellBinsOn(controller.getCurrentMapPath())) {
                 if (b.bounds.contains(world.x, world.y)) {
                     // open your separate SellMenuView
@@ -878,6 +889,7 @@ public class PlayerMapView implements Screen {
         // برگرد به Batch برای متن‌ها و بقیه‌ی UI
         Gdx.gl.glEnable(GL20.GL_BLEND);   // ← مهم
         batch.begin();
+
         batch.setColor(1f, 1f, 1f, 1f);   // هر احتیاطی برای رنگ‌های قبلی
         BitmapFont smallFont = GameAssetManager.getGameAssetManager().getSmallFont();
         smallFont.draw(batch, "Energy: " + controller.getPlayer().getEnergy() + "/" +
@@ -913,6 +925,10 @@ public class PlayerMapView implements Screen {
             craftingMenuView.render(batch);
         }
 
+        if (animalMenu != null && animalMenu.isVisible()) {
+            animalMenu.render(batch);
+            // make your uiOpen() return true if animalMenu.isVisible()
+        }
 
         // جای مناسبی بین بقیه‌ی UIها (مثلاً قبل از batch.end())
         if (machineMenu != null && machineMenu.isVisible()) {
@@ -1039,6 +1055,8 @@ public class PlayerMapView implements Screen {
             case QUEST      -> { if (!npcQuestView.isVisible())       activePanel = Panel.NONE; }
             case GIFT       -> { if (!giftPopupView.isVisible())      activePanel = Panel.NONE; }
             case CHAT       -> { if (chatOverlay == null || !chatOverlay.isVisible()) activePanel = Panel.NONE; }
+            case ANIMAL -> { if (animalMenu == null || !animalMenu.isVisible()) activePanel = Panel.NONE; }
+
             default -> {}
         }
     }
@@ -1139,5 +1157,6 @@ public class PlayerMapView implements Screen {
         if (notifTex != null) notifTex.dispose();
         if (rainTex != null) rainTex.dispose();
         if (snowTex != null) snowTex.dispose();
+        if (animalMenu != null) animalMenu.dispose();
     }
 }
