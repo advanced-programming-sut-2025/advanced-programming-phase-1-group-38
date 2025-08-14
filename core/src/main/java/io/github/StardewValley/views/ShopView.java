@@ -22,6 +22,9 @@ public class ShopView {
     private final List<ShopProduct> all;
     private final List<ShopProduct> filtered = new ArrayList<>();
 
+    private String errorMessage = null;
+    private long errorMessageEndTime = 0;
+
     private final Texture panel;
     private final Texture slot;
     private final Texture slotSel;
@@ -30,11 +33,20 @@ public class ShopView {
     private final Texture btnMinus;
     private String title = "Shop";
 
+    private static final int FILTER_ALL = 0;
+    private static final int FILTER_SEEDS = 1;
+    private static final int FILTER_TOOLS = 2;
+    private static final int FILTER_FOOD = 3;
+    private static final int FILTER_MATERIALS = 4;
+    private static final int FILTER_IN_STOCK = 5;
+    private static final int FILTER_OUT_OF_STOCK = 6;
+
+    private int filter = FILTER_ALL;
+
     private boolean visible = false;
     private int sel = 0;
     private int qty = 1;
 
-    private int filter = 0; // 0=All, 1=Seeds, 2=Tools, 3=Food, 4=Materials
 
     public ShopView(Inventory inv, List<ShopProduct> products, GameEconomy gameEconomy) {
         this.inventory = inv;
@@ -74,12 +86,12 @@ public class ShopView {
         BitmapFont small = GameAssetManager.getGameAssetManager().getSmallFont();
 
         // Filters
-        String[] tabs = {"All", "Seeds", "Tools", "Food", "Materials"};
+        String[] tabs = {"All", "Seeds", "Tools", "Food", "Materials", "In Stock", "Out of Stock"};
         float tabX = px + 16, tabY = py + ph - 44;
         for (int i = 0; i < tabs.length; i++) {
             String t = (i == filter ? "[" + tabs[i] + "]" : tabs[i]);
             small.draw(batch, t, tabX, tabY);
-            tabX += 90;
+            tabX += 80; // a little wider to fit labels
         }
 
         // Grid
@@ -148,8 +160,25 @@ public class ShopView {
             }
         }
 
+        if (errorMessage != null && System.currentTimeMillis() < errorMessageEndTime) {
+            big.setColor(1, 0.2f, 0.2f, 1f); // red
+            big.draw(batch, errorMessage, px + pw/2f - 80, py + ph - 60); // adjust position
+            big.setColor(1, 1, 1, 1f); // reset color
+        } else if (errorMessage != null) {
+            errorMessage = null; // clear after time expires
+        }
+
         // input keys
         if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) visible = false;
+
+        for (int i = 0; i < 7; i++) {
+            if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_1 + i)) {
+                filter = i;          // 0..6
+                applyFilter();
+                sel = Math.min(sel, Math.max(0, filtered.size() - 1));
+            }
+        }
+
         if (Gdx.input.isKeyJustPressed(Input.Keys.LEFT)) sel = Math.max(0, sel - 1);
         if (Gdx.input.isKeyJustPressed(Input.Keys.RIGHT)) sel = Math.min(filtered.size() - 1, sel + 1);
         if (Gdx.input.isKeyJustPressed(Input.Keys.UP)) sel = Math.max(0, sel - 5);
@@ -171,42 +200,75 @@ public class ShopView {
     private void applyFilter() {
         filtered.clear();
         for (ShopProduct p : all) {
-            switch (filter) {
-                case 1: if (p.getItem() instanceof SeedType)   filtered.add(p); break;
-                case 2: if (p.getItem() instanceof ToolType)   filtered.add(p); break;
-                case 3: if (p.getItem() instanceof FoodType)   filtered.add(p); break;
-                 case 4: if (p.getItem() instanceof MaterialType) filtered.add(p); break;
-                default: filtered.add(p);
-            }
+            if (!matchesCategory(p, filter)) continue;
+            if (!matchesStock(p, filter)) continue;
+            filtered.add(p);
         }
+    }
+
+    private boolean matchesCategory(ShopProduct p, int f) {
+        return switch (f) {
+            case FILTER_SEEDS      -> p.getItem() instanceof SeedType;
+            case FILTER_TOOLS      -> p.getItem() instanceof ToolType;
+            case FILTER_FOOD       -> p.getItem() instanceof FoodType;
+            case FILTER_MATERIALS  -> p.getItem() instanceof MaterialType;
+            default                -> true; // All / In Stock / Out of Stock handled elsewhere
+        };
+    }
+
+    private boolean matchesStock(ShopProduct p, int f) {
+        int stock = p.getStock(); // Integer.MAX_VALUE means unlimited
+        boolean inStock = (stock == Integer.MAX_VALUE) || (stock > 0);
+        return switch (f) {
+            case FILTER_IN_STOCK   -> inStock;
+            case FILTER_OUT_OF_STOCK -> !inStock; // i.e., stock == 0
+            default                -> true;
+        };
     }
 
     private void tryBuy(ShopProduct p) {
         if (p.isOutOfStock()) return;
+
         int want = qty;
-        if (p.getStock() > 0 && p.getStock() != Integer.MAX_VALUE) {
-            want = Math.min(want, p.getStock());
+        int stock = p.getStock();
+        if (stock > 0 && stock != Integer.MAX_VALUE) {
+            want = Math.min(want, stock);
         }
 
-        // listener case
-        if (listener != null && p.getEntry() != null) {
-            boolean ok = listener.onBuy(p.getShopType(), p.getEntry(), want);
-            if (!ok) return;
-            // decrement only if not unlimited
-            if (p.getStock() != Integer.MAX_VALUE) {
-                p.take(want);
-            }
+        int total = p.getPrice() * want;
+
+        // --- Show graphical error BEFORE invoking listener ---
+        int goldNow = gameEconomy.getGold(); // or gameEconomy.hasGold(total) if you have it
+        if (goldNow < total) {
+            errorMessage = "Not enough gold!";
+            errorMessageEndTime = System.currentTimeMillis() + 2000; // 2s
             return;
         }
 
-        // fallback
-        int total = p.getPrice() * want;
-        if (!gameEconomy.spendGold(total)) return;
-        if (p.getStock() != Integer.MAX_VALUE) {
-            p.take(want);
+        // Prefer listener (it will actually spend gold / handle tools, etc.)
+        if (listener != null && p.getEntry() != null) {
+            boolean ok = listener.onBuy(p.getShopType(), p.getEntry(), want);
+            if (!ok) {
+                // If your listener can fail for other reasons, you can set other messages here.
+                // For gold shortage we already handled above, so do nothing.
+                return;
+            }
+            if (stock != Integer.MAX_VALUE) p.take(want);
+            return;
         }
+
+        // Fallback path (ShopView handles payment and stock)
+        if (!gameEconomy.spendGold(total)) {
+            // Defensive: in case spendGold can still fail (race, etc.)
+            errorMessage = "Not enough gold!";
+            errorMessageEndTime = System.currentTimeMillis() + 2000;
+            return;
+        }
+
+        if (stock != Integer.MAX_VALUE) p.take(want);
         inventory.add(p.getItem(), want);
     }
+
 
     // ShopView.java
     public interface PurchaseListener {

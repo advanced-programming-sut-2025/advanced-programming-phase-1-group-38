@@ -14,7 +14,7 @@ public enum Blacksmith implements ShopEntry{
     Coal(Type.STOCK, "Coal", "A combustible rock that is useful for crafting and smelting.",
             150, MaterialType.Coal, Integer.MAX_VALUE, 0, null),
     GoldOre(Type.STOCK, "Gold Ore", "A precious ore that can be smelted into bars.",
-            400, MaterialType.GoldOre, Integer.MAX_VALUE, 0, null),
+            400, MaterialType.GoldOre, 10, 0, null),
     IridiumOre(Type.STOCK, "Iridium Ore", "A rare and valuable ore used for advanced crafts.",
             1000, MaterialType.IridiumOre, Integer.MAX_VALUE, 0, null);
 
@@ -67,8 +67,8 @@ public enum Blacksmith implements ShopEntry{
 
     @Override
     public String toString() {
-        return this.displayName + "\nPrice: " + this.price + 
-        "\nDescription: " + this.description + 
+        return this.displayName + "\nPrice: " + this.price +
+        "\nDescription: " + this.description +
         "\n---------------------\n";
     }
 }
