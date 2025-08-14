@@ -29,10 +29,15 @@ public class WorldController {
     private final int playersPerHour = 4;
     private int lastGiftDay = -1;
 
+    private final Weather weather = new Weather(WeatherType.SUNNY);
+    private final java.util.Random rng = new java.util.Random();
+
     public WorldController(String[] chosenMaps) {
         // one shared NPC map instance
         this.npcSlice = new NpcWorldSlice("maps/npcMap.tmx");
         TiledMap sharedNpcMap = npcSlice.getMap();
+
+        weather.setWeatherType(rollWeatherForDay(sharedTime.getDay()));
 
         // services + player-id provider
         NpcSocialService social = new NpcSocialService();
@@ -82,11 +87,12 @@ public class WorldController {
             sharedTime.advanceOneHour();
             int afterDay = sharedTime.getDay();
             if (afterDay != beforeDay) {
-                // ← add this block
-                for (io.github.StardewValley.models.Shop shop : liveShops.values()) {
-                    shop.resetStock();
-                }
+                // reset shops & decay friendships (your code)
+                for (io.github.StardewValley.models.Shop shop : liveShops.values()) shop.resetStock();
                 playerFriends().endOfDayDecay(beforeDay);
+
+                // NEW: roll shared weather for the new day
+                weather.setWeatherType(rollWeatherForDay(afterDay));
             }
             turnsIntoHour = 0;
         }
@@ -164,7 +170,6 @@ public class WorldController {
         return out;
     }
 
-    // WorldController.java
     public static class GiftReceipt {
         public final String fromId, toId, itemId, itemName;
         public final long ts;
@@ -175,7 +180,6 @@ public class WorldController {
         }
     }
 
-    // per-recipient inbox
     private final java.util.Map<String, java.util.Deque<GiftReceipt>> giftInbox = new java.util.HashMap<>();
 
     public void recordGift(String fromId, String toId, String itemId, String itemName, long ts) {
@@ -217,6 +221,17 @@ public class WorldController {
     public Shop getLiveShop(ShopType t) {
         return liveShops.computeIfAbsent(t, Shop::new);
     }
+
+    private WeatherType rollWeatherForDay(int day) {
+        int r = rng.nextInt(100);
+        if (r < 60) return WeatherType.SUNNY;
+        if (r < 80) return WeatherType.RAINY;
+        if (r < 90) return WeatherType.STORMY;
+        return WeatherType.SNOWY;
+    }
+
+    public Weather getWeather() { return weather; }
+
 
     public void dispose() {
         for (GameController gc : controllers) if (gc != null) gc.dispose();

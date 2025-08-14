@@ -52,7 +52,6 @@ public class GameController {
     private String currentMapPath;
     private String previousMapPath;
     private boolean roofVisible = true;
-    private Weather weather;
     private WorldController worldController;
     private boolean greenhouseUnlocked = false;
     private Tile[][] tileGrid;
@@ -91,7 +90,6 @@ public class GameController {
         loadFridgeAnimations();
         loadFridgeFromMap();
 
-        this.weather = new Weather(WeatherType.SUNNY);
         loadDoorsFromMap();
         loadRoofClickZones();
     }
@@ -111,8 +109,10 @@ public class GameController {
     }
 
     public Weather getWeather() {
-        return weather;
+        // Fallback to SUNNY if world is not wired yet (shouldn’t happen in your flow)
+        return (worldController != null) ? worldController.getWeather() : new Weather(WeatherType.SUNNY);
     }
+
 
     public TiledMap getMap() {
         return map;

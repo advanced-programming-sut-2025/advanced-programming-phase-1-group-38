@@ -40,6 +40,8 @@ public class PlayerMapView implements Screen {
     private WorldController worldController;
     private int playerIndex;
 
+    private WeatherType lastWeatherType = null;
+
     private GreenhouseUnlockPopupView greenhousePopup;
 
     private PlayerChatOverlay chatOverlay;
@@ -259,6 +261,14 @@ public class PlayerMapView implements Screen {
 
     @Override
     public void render(float delta) {
+        WeatherType wtNow = controller.getWeather().getWeatherType();
+        if (wtNow != lastWeatherType) {
+            lastWeatherType = wtNow;
+            if (weatherTexture != null) weatherTexture.dispose();
+            weatherTexture = new Texture(Gdx.files.internal(wtNow.getIconPath()));
+            weatherSprite.setTexture(weatherTexture);
+        }
+
         if (!uiOpen() && Gdx.input.isKeyJustPressed(Input.Keys.N)) {
             worldController.endTurnAndAdvanceIfRoundDone();
             int newIndex = worldController.getCurrentPlayerIndex();
