@@ -42,6 +42,8 @@ public class WorldController {
         this.npcController = new NpcController(social, quests, pid);
         npcController.bootstrapDefaults("maps/npcMap.tmx");
 
+        npcController.addSellBin("maps/npcMap.tmx", 14, 20, 1, 1, "shops/sell_bucket.png");
+
         String npcMapPath = npcSlice.getMapId(); // "maps/npcMap.tmx"
 
 //// Add more as you add catalogs:

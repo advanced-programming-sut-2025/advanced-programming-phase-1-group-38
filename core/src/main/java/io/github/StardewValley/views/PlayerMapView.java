@@ -531,9 +531,19 @@ public class PlayerMapView implements Screen {
         mapRenderer.setView(camera);
         mapRenderer.render();
 
+
         // PlayerMapView.render(...) — after handling other input, before world update or right after mapRenderer.render()
         if (!uiOpen() && Gdx.input.justTouched() && camera != null) {
             Vector3 world = camera.unproject(new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0));
+
+            for (var b : worldController.npc().getSellBinsOn(controller.getCurrentMapPath())) {
+                if (b.bounds.contains(world.x, world.y)) {
+                    // open your separate SellMenuView
+                    if (!sellMenuView.isVisible()) sellMenuView.toggle();
+                    activePanel = Panel.SELL;
+                    return; // stop processing this click
+                }
+            }
 
             for (var s : worldController.npc().getShopsOn(controller.getCurrentMapPath())) {
                 if (!s.bounds.contains(world.x, world.y)) continue;
@@ -560,6 +570,12 @@ public class PlayerMapView implements Screen {
 
         batch.setProjectionMatrix(camera.combined);
         batch.begin();
+
+        for (var b : worldController.npc().getSellBinsOn(controller.getCurrentMapPath())) {
+            if (b.texturePath == null) continue;
+            var tex = GameAssetManager.getGameAssetManager().getTexture(b.texturePath);
+            batch.draw(tex, b.bounds.x, b.bounds.y, b.bounds.width, b.bounds.height);
+        }
 
         for (var s : worldController.npc().getShopsOn(controller.getCurrentMapPath())) {
             if (s.texturePath == null) continue; // hotspot only
@@ -606,7 +622,7 @@ public class PlayerMapView implements Screen {
                     TextureRegion fr = tree.getRenderFrame();
                     float baseX = tile.getWorldX();
                     float baseY = tile.getWorldY();
-                    float drawW = TILE_SIZE;
+                    float drawW = TILE_SIZE * 2f;
                     float drawH = TILE_SIZE * 2f; // adjust to your art
                     batch.draw(fr, baseX, baseY, drawW, drawH);
                 }

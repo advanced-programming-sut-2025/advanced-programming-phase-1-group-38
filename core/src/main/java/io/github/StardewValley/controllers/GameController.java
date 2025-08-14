@@ -318,6 +318,41 @@ public class GameController {
             Tile gameTile = getTileAt(tileX, tileY);
             ItemType held = player.getInventoryRenderer().getSelectedType();
 
+            // --- CLICK TO PLANT: seeds & tree saplings ---
+            if (held instanceof SeedType seed) {
+                // only plant on empty tile
+                if (gameTile != null && gameTile.getContent() == null) {
+                    if (!player.hasEnergy(EC_PLANT)) return;
+                    if (plantCrop(tileX, tileY, seed.product())) {
+                        player.consumeEnergy(EC_PLANT);
+                        player.getInventory().remove(seed, 1);
+
+                        // quick plant animation (reuse hoe or pick any “plant” anim you have)
+                        String dir = player.getFacingDirection();
+                        player.setAnimation("hoe_" + dir, "character/hoe/" + dir, 2, 0.10f, false);
+                        player.setActionCooldown(0.25f);
+                    }
+                }
+                return; // handled click
+            }
+
+            if (held instanceof TreeSaplingType sapling) {
+                // only plant on empty tile
+                if (gameTile != null && gameTile.getContent() == null) {
+                    if (!player.hasEnergy(EC_PLANT)) return;
+                    if (plantTree(tileX, tileY, sapling.growsInto())) {
+                        player.consumeEnergy(EC_PLANT);
+                        player.getInventory().remove(sapling, 1);
+
+                        String dir = player.getFacingDirection();
+                        player.setAnimation("hoe_" + dir, "character/hoe/" + dir, 2, 0.10f, false);
+                        player.setActionCooldown(0.25f);
+                    }
+                }
+                return; // handled click
+            }
+
+
             // --- Greenhouse-safe: direct "clicked tile" harvest before any Grass layer logic ---
             if (held instanceof ToolType t && t == ToolType.SCYTHE) {
                 Tile clicked = getTileAt(tileX, tileY);
@@ -478,33 +513,6 @@ public class GameController {
                 }
             }
 
-        } else if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
-
-            int tileX = (int) (player.getX() / TILE_SIZE);
-            int tileY = (int) (player.getY() / TILE_SIZE);
-
-            ItemType selectedItem = player.getInventoryRenderer().getSelectedType();
-
-            // 1) regular seeds → crops (unchanged)
-            if (selectedItem instanceof SeedType seed) {
-                if (!player.hasEnergy(EC_PLANT)) return;
-                if (plantCrop(tileX, tileY, seed.product())) {
-                    player.consumeEnergy(EC_PLANT);
-                    player.getInventory().remove(seed, 1);
-                    if (player.getSkills().get(Skill.FARMING).addXp(3)) player.addMaxEnergy(10);
-                }
-                return;
-            }
-
-            if (selectedItem instanceof TreeSaplingType sapling) {
-                if (!player.hasEnergy(EC_PLANT)) return;
-                if (plantTree(tileX, tileY, sapling.growsInto())) {
-                    player.consumeEnergy(EC_PLANT);
-                    player.getInventory().remove(sapling, 1);
-                    if (player.getSkills().get(Skill.FARMING).addXp(4)) player.addMaxEnergy(10);
-                }
-                return;
-            }
         }
 
         if (!moved && !player.isActionLocked()) {
@@ -693,43 +701,85 @@ public class GameController {
     }
 
     public boolean canMoveTo(float newX, float newY) {
-        TiledMapTileLayer collisionLayer = (TiledMapTileLayer) map.getLayers().get("Collision");
-        if (collisionLayer == null) return true;
-
-        float width = player.getWidth();
+        float width  = player.getWidth();
         float height = player.getHeight();
 
+        // Player AABB in world space
+        com.badlogic.gdx.math.Rectangle playerRect =
+            new com.badlogic.gdx.math.Rectangle(newX, newY, width, height);
+
+        // Layers
+        TiledMapTileLayer collisionLayer = (TiledMapTileLayer) map.getLayers().get("Collision");
+        TiledMapTileLayer floorLayer     = (TiledMapTileLayer) map.getLayers().get("Floor");
+
+        // --- 1) Tile-layer (TMX) blocking as before ---
         int[][] corners = {
-            {(int) (newX / TILE_SIZE), (int) (newY / TILE_SIZE)},
-            {(int) ((newX + width - 1) / TILE_SIZE), (int) (newY / TILE_SIZE)},
-            {(int) (newX / TILE_SIZE), (int) ((newY + height - 1) / TILE_SIZE)},
-            {(int) ((newX + width - 1) / TILE_SIZE), (int) ((newY + height - 1) / TILE_SIZE)}
+            {(int)(newX / TILE_SIZE),                    (int)(newY / TILE_SIZE)},
+            {(int)((newX + width  - 1) / TILE_SIZE),     (int)(newY / TILE_SIZE)},
+            {(int)(newX / TILE_SIZE),                    (int)((newY + height - 1) / TILE_SIZE)},
+            {(int)((newX + width  - 1) / TILE_SIZE),     (int)((newY + height - 1) / TILE_SIZE)}
         };
 
-        for (int[] corner : corners) {
-            int tileX = corner[0];
-            int tileY = corner[1];
-            if (tileX < 0 || tileY < 0 || tileX >= collisionLayer.getWidth() || tileY >= collisionLayer.getHeight())
-                return false;
-            TiledMapTileLayer.Cell cell = collisionLayer.getCell(tileX, tileY);
-            if (cell != null && cell.getTile() != null) return false;
+        for (int[] c : corners) {
+            int tx = c[0], ty = c[1];
+
+            if (tx < 0 || ty < 0 ||
+                tx >= collisionLayer.getWidth() || ty >= collisionLayer.getHeight()) {
+                return false; // outside map
+            }
+
+            TiledMapTileLayer.Cell col = collisionLayer.getCell(tx, ty);
+            if (col != null && col.getTile() != null) return false;
+
+            if (floorLayer != null) {
+                TiledMapTileLayer.Cell floor = floorLayer.getCell(tx, ty);
+                if (floor != null && floor.getTile() != null) return false;
+            }
         }
 
-        if (worldController != null) {
-            // player’s proposed AABB
-            com.badlogic.gdx.math.Rectangle playerRect =
-                new com.badlogic.gdx.math.Rectangle(newX, newY, width, height);
+        // --- 2) Game-logic blocking: crops/trees in your tileGrid ---
+        // Find all tiles touched by the proposed AABB and block if any has content
+        int minTx = (int)Math.floor(newX / TILE_SIZE);
+        int maxTx = (int)Math.floor((newX + width  - 1) / TILE_SIZE);
+        int minTy = (int)Math.floor(newY / TILE_SIZE);
+        int maxTy = (int)Math.floor((newY + height - 1) / TILE_SIZE);
 
+        for (int ty = minTy; ty <= maxTy; ty++) {
+            for (int tx = minTx; tx <= maxTx; tx++) {
+                Tile t = getTileAt(tx, ty);
+                if (t == null) return false; // off-map safety
+
+                Object content = t.getContent();
+                if (content == null) continue;
+
+                // Block on any crop or tree (adjust rules if you want exceptions)
+                if (content instanceof Crop crop) {
+                    // If you want to allow walking on harvested stubble, change to:
+                    // if (!crop.isHarvested()) return false;
+                    return false;
+                }
+                if (content instanceof io.github.StardewValley.models.farming.Tree tree) {
+                    // If you want to allow after it’s chopped, change to:
+                    // if (!tree.isChopped()) return false;
+                    return false;
+                }
+
+                // Any other occupied content also blocks
+                return false;
+            }
+        }
+
+        // --- 3) World objects (shops etc.) ---
+        if (worldController != null) {
             var shops = worldController.npc().getShopsOn(currentMapPath);
             for (var s : shops) {
-                if (s.bounds.overlaps(playerRect)) {
-                    return false; // blocked by a shop building
-                }
+                if (s.bounds.overlaps(playerRect)) return false;
             }
         }
 
         return true;
     }
+
 
     private int getMapWidthInPixels() {
         return map.getProperties().get("width", Integer.class) * TILE_SIZE;

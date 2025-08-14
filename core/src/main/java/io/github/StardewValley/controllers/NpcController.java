@@ -23,7 +23,7 @@ public class NpcController {
     private int absHour(GameTime t) { return t.getDay() * 24 + t.getHour(); }
     private final java.util.Map<String, java.util.Set<ItemType>> favsByNpc = new java.util.HashMap<>();
     private final java.util.List<ShopSpot> shopSpots = new java.util.ArrayList<>();
-
+    private final java.util.List<SellBin> sellBins = new java.util.ArrayList<>();
 
     public NpcController(NpcSocialService social, NpcQuestService quests, PlayerIdProvider pid) {
         this.social = social;
@@ -303,5 +303,30 @@ public class NpcController {
         for (ShopSpot s : shopSpots) if (mapPath.equals(s.mapPath)) out.add(s);
         return out;
     }
+
+    // NpcController.java
+    public static final class SellBin {
+        public final String mapPath;
+        public final com.badlogic.gdx.math.Rectangle bounds; // world pixels
+        public final String texturePath; // can be null for invisible hotspot
+        public SellBin(String mapPath, com.badlogic.gdx.math.Rectangle bounds, String texturePath) {
+            this.mapPath = mapPath; this.bounds = bounds; this.texturePath = texturePath;
+        }
+    }
+
+    public void addSellBin(String mapPath, int tileX, int tileY, int tilesW, int tilesH, String texturePath) {
+        float px = tileX  * io.github.StardewValley.controllers.GameController.TILE_SIZE;
+        float py = tileY  * io.github.StardewValley.controllers.GameController.TILE_SIZE;
+        float w  = tilesW * io.github.StardewValley.controllers.GameController.TILE_SIZE;
+        float h  = tilesH * io.github.StardewValley.controllers.GameController.TILE_SIZE;
+        sellBins.add(new SellBin(mapPath, new com.badlogic.gdx.math.Rectangle(px, py, w, h), texturePath));
+    }
+
+    public java.util.List<SellBin> getSellBinsOn(String mapPath) {
+        java.util.ArrayList<SellBin> out = new java.util.ArrayList<>();
+        for (SellBin b : sellBins) if (mapPath.equals(b.mapPath)) out.add(b);
+        return out;
+    }
+
 
 }
