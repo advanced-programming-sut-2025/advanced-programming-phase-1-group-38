@@ -271,7 +271,11 @@ public class GiftPopupView {
 
         if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) {
             giveSelected();
+        }
+
+        if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
             close();
+            return;
         }
     }
 
@@ -310,29 +314,111 @@ public class GiftPopupView {
         String a = world.playerIdOf(gc);
         String b = world.playerIdOf(targetPlayer);
         int day  = gc.getGameTime().getDay();
-        int delta = world.playerFriends().giftOncePerDay(a, b, day, false);
-        if (delta <= 0) { toast("Already gifted today"); return; }
 
-        if (inventory.remove(t, 1) == 0) { toast("No item left"); return; }
-        targetPlayer.getPlayer().getInventory().add(t, 1);
+// remove from giver (0 = success)
+        int leftoverRemove = inventory.remove(t, 1);
+        if (leftoverRemove > 0) {
+            toast("No item left");
+            return;
+        }
 
-        gc.spawnFloatingIcon("gift.png", gc.getPlayerX()+8, gc.getPlayerY()+GameController.TILE_SIZE, 1.0f);
-        targetPlayer.spawnFloatingIcon("gift.png", targetPlayer.getPlayerX()+8, targetPlayer.getPlayerY()+GameController.TILE_SIZE, 1.0f);
+// add to recipient (0 = success). If not, rollback.
+        Inventory targetInv = targetPlayer.getPlayer().getInventory();
+        int leftoverAdd = targetInv.add(t, 1);
+        if (leftoverAdd > 0) {
+            // recipient couldn't accept → put item back
+            inventory.add(t, 1);
+            toast("Recipient inventory is full");
+            return;
+        }
 
+// success: visuals + notif
+        gc.spawnFloatingIcon("gift.png",
+            gc.getPlayerX()+8, gc.getPlayerY()+GameController.TILE_SIZE, 1.0f);
+        targetPlayer.spawnFloatingIcon("gift.png",
+            targetPlayer.getPlayerX()+8, targetPlayer.getPlayerY()+GameController.TILE_SIZE, 1.0f);
+        String itemName = t.id();
         long now = System.currentTimeMillis();
-        world.pushNotification(b, new Notification(a, b, "sent you a gift", now), true);
-        toast("Gave +" + delta + " friendship");
-        close();
+        world.pushNotification(b,
+            new Notification(a, b, "sent you " + articleFor(itemName) + itemName, now),
+            true);
+
+        world.recordGift(a, b, t.id(), itemName, now);
+
+// optional: echo to sender (not unread)
+        world.pushNotification(a,
+            new Notification(a, b, "You sent " + articleFor(itemName) + itemName + " to " + b, now),
+            false);
+        toast("Gift sent (waiting for rating)");
+//        close();
+
+        int old = selected;
+        rebuildList();
+        if (flat.isEmpty()) {
+            toast("No giftable items left");
+            // optionally close() here if you want to auto-close when nothing left
+        } else {
+            selected = Math.min(old, flat.size() - 1);
+        }
+
+        // GiftPopupView.giveSelected() – PLAYER mode, after recordGift(...) and notifications
+        boolean isFlower = isFlowerItem(t);
+
+        if (isFlower) {
+            boolean unlocked = world.playerFriends().tryUnlockLevel3WithFlower(a, b);
+            long now2 = System.currentTimeMillis();
+
+            if (unlocked) {
+                world.pushNotification(b,
+                    new Notification(a, b, "Flower received: Friendship Level 3 unlocked!", now2, true), true);
+                world.pushNotification(a,
+                    new Notification(a, b, "Level 3 unlocked with a flower!", now2, true), false);
+            } else {
+                // Optional hint if they aren't yet at 300 points of Lv2
+                int pts = world.playerFriends().points(a, b);
+                if (world.playerFriends().level(a, b) == 2 &&
+                    pts < 3 * PlayerFriendService.POINTS_PER_LEVEL) {
+                    world.pushNotification(a,
+                        new Notification(a, b, "Flower given. Fill Level 2 points to unlock Level 3.", now2, true), false);
+                }
+            }
+        }
+
+    }
+
+    // GiftPopupView.java (add near the top or as a private static helper)
+    private static String articleFor(String name) {
+        if (name == null || name.isEmpty()) return "";
+        char c = Character.toLowerCase(name.charAt(0));
+        return "aeiou".indexOf(c) >= 0 ? "an " : "a ";
+    }
+
+    private boolean isFlowerItem(ItemType t) {
+        return (t instanceof CropType ct) && ct == CropType.CORN;
     }
 
     private void toast(String s) { toastText = s; toastTimer = 1.6f; }
 
 
+    // GiftPopupView.java
     public void openForPlayer(GameController other) {
         this.mode = Mode.PLAYER;
         this.targetPlayer = other;
         this.npc = null;
+
+        // NEW: require friendship level >= 1 to gift a player
+        String a = world.playerIdOf(gc);
+        String b = world.playerIdOf(other);
+        if (world.playerFriends().level(a, b) < 1) {
+            long now = System.currentTimeMillis();
+            world.pushNotification(a,
+                new Notification(a, b, "Reach friendship Level 1 to gift this player.", now, true), false);
+            visible = false;   // keep closed
+            return;
+        }
+
         rebuildList();
         visible = true;
     }
+
 }

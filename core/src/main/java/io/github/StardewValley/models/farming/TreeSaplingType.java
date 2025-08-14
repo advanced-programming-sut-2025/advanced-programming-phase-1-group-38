@@ -1,42 +1,25 @@
 package io.github.StardewValley.models.farming;
 
-import io.github.StardewValley.models.enums.Types.MaterialTypes;
+import io.github.StardewValley.models.ItemType;
 
-public enum TreeSaplingType implements TreeSourceType, MaterialTypes {
-    APRICOT_SAPLING("Apricot Sapling", TreeType.APRICOT),
-    CHERRY_SAPLING("Cherry Sapling", TreeType.CHERRY),
-    BANANA_SAPLING("Banana Sapling", TreeType.BANANA),
-    MANGO_SAPLING("Mango Sapling", TreeType.MANGO),
-    ORANGE_SAPLING("Orange Sapling", TreeType.ORANGE),
-    PEACH_SAPLING("Peach Sapling", TreeType.PEACH),
-    APPLE_SAPLING("Apple Sapling", TreeType.APPLE),
-    POMEGRANATE_SAPLING("Pomegranate Sapling", TreeType.POMEGRANATE);
+public enum TreeSaplingType implements ItemType {
+//    OAK_SAPLING   ("OAK_SAPLING",   "trees/oak/icon.png",   999, TreeType.OAK),
+//    MAPLE_SAPLING ("MAPLE_SAPLING", "trees/maple/icon.png", 999, TreeType.MAPLE),
+//    ORANGE_SAPLING("ORANGE_SAPLING","trees/orange/icon.png",999, TreeType.ORANGE_TREE);
+    APPLE_SAPLING("APPLE_SAPLING","trees/sapling/apple.png",0, TreeType.APPLE);
 
-    private final String name;
+    private final String id, iconPath;
+    private final int maxStack;
     private final TreeType treeType;
 
-    TreeSaplingType(String name, TreeType treeType) {
-        this.name = name;
-        this.treeType = treeType;
+    TreeSaplingType(String id, String iconPath, int maxStack, TreeType treeType) {
+        this.id = id; this.iconPath = iconPath; this.maxStack = maxStack; this.treeType = treeType;
     }
 
-    @Override
-    public String getName() {
-        return name;
-    }
+    @Override public String id() { return id; }
+    @Override public String iconPath() { return iconPath; }
+    @Override public int maxStack() { return maxStack; }
 
-    @Override
-    public TreeType getTreeType() {
-        return treeType;
-    }
-
-    @Override
-    public String toString() {
-        return name;
-    }
-
-    @Override
-    public boolean isTool() {
-        return false;
-    }
+    public TreeType growsInto() { return treeType; }
 }
+

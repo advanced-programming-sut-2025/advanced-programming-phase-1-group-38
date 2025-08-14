@@ -2,7 +2,10 @@ package io.github.StardewValley.models;
 
 public enum SeedType implements ItemType {
     CORN_SEED("Corn Seed", CropType.CORN, "seeds/corn.png"),
-    CARROT_SEED("Carrot Seed", CropType.CARROT, "seeds/carrot.png");
+    CARROT_SEED("Carrot Seed", CropType.CARROT, "seeds/carrot.png"),
+    PUMPKIN_SEED("Pumpkin Seed", CropType.PUMPKIN, "seeds/pumpkin.png"),
+    WHEAT_SEED("Wheat Seed", CropType.WHEAT, "seeds/wheat.png");
+
 
     private final String id;
     private final CropType product;

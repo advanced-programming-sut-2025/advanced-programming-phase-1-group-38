@@ -3,8 +3,6 @@ package io.github.StardewValley.controllers;
 // WorldController.java
 import com.badlogic.gdx.maps.tiled.TiledMap;
 import io.github.StardewValley.models.*;
-import io.github.StardewValley.models.Artisan.PlacedMachine;
-import io.github.StardewValley.models.Artisan.MachineType;
 import io.github.StardewValley.views.NpcWorldSlice;
 import io.github.StardewValley.views.PlayerWorldSlice;
 
@@ -69,10 +67,6 @@ public class WorldController {
         turnsIntoHour++;
         if (turnsIntoHour >= playersPerHour) {
             sharedTime.advanceOneHour();
-            // ⬇️ مهم: ماشین‌های همهٔ پلیرها را یک ساعت جلو ببر
-            for (GameController gc : controllers) {
-                gc.advanceMachinesGameHours(1f);
-            }
             turnsIntoHour = 0;
         }
     }
@@ -148,51 +142,6 @@ public class WorldController {
         out.sort((a,b) -> playerIdOf(a).compareTo(playerIdOf(b)));
         return out;
     }
-
-
-
-
-    private final java.util.Map<String, java.util.List<PlacedMachine>> machinesByMap = new java.util.HashMap<>();
-
-    private java.util.List<PlacedMachine> listFor(String mapId){
-        return machinesByMap.computeIfAbsent(mapId, k -> new java.util.ArrayList<>());
-    }
-
-    public boolean hasMachineAt(String mapId, int tx, int ty) {
-        for (PlacedMachine pm : listFor(mapId)) {
-            if (pm.tx() == tx && pm.ty() == ty) return true;
-        }
-        return false;
-    }
-
-    public PlacedMachine findMachineAt(String mapId, int tx, int ty) {
-        for (PlacedMachine pm : listFor(mapId)) {
-            if (pm.tx() == tx && pm.ty() == ty) return pm;
-        }
-        return null;
-    }
-
-    public PlacedMachine placeMachine(String mapId, int tx, int ty, MachineType type) {
-        PlacedMachine pm = new PlacedMachine(mapId, tx, ty, type);
-        listFor(mapId).add(pm);
-        return pm;
-    }
-
-    public boolean canPlaceMachineAt(String mapId, int tx, int ty, Tile[][] tiles) {
-        if (tx < 0 || ty < 0 || tx >= tiles.length || ty >= tiles[0].length) return false;
-        if (hasMachineAt(mapId, tx, ty)) return false;
-        Tile t = tiles[tx][ty];
-        if (t.hasCrop()) return false;                // روی محصول نذار
-        // اگر لایه‌ی بلاک/کلاژن داری، همین‌جا چک کن.
-        return true;
-    }
-
-    public void updateMachines(float dt) {
-        for (var list : machinesByMap.values())
-            for (var m : list) m.update(dt);
-    }
-
-
 
 
     public void dispose() {

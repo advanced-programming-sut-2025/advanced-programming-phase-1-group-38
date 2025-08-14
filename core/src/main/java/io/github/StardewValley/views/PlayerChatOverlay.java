@@ -7,8 +7,7 @@ import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import io.github.StardewValley.controllers.GameController;
 import io.github.StardewValley.controllers.WorldController;
-import io.github.StardewValley.models.GameAssetManager;
-import io.github.StardewValley.models.Notification;
+import io.github.StardewValley.models.*;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -18,6 +17,16 @@ public class PlayerChatOverlay {
     private final WorldController world;
     private final GameController me;
 
+    private static final int MAX_CONTACTS = 4;
+    private int suppressTypingFrames = 0;
+
+    private final Texture starEmpty = GameAssetManager.getGameAssetManager().getTexture("empty_star.png");
+    private final Texture starFull  = GameAssetManager.getGameAssetManager().getTexture("full_star.png");
+
+    // PlayerChatOverlay.java (fields)
+    private final Texture hugBtn = GameAssetManager.getGameAssetManager().getTexture("hug.png");
+
+    private int giftScroll = 0;
     private int scroll = 0;              // how many lines up from the newest
     private static final int LINES_VISIBLE = 8;
     private static final float LINE_STEP = 22f;
@@ -30,6 +39,9 @@ public class PlayerChatOverlay {
     private String selectedId = null;            // current target playerId
     private final Texture avatarBg = GameAssetManager.getGameAssetManager().getTexture("inventory/slot.png");
 
+    private final Texture ringBtn = GameAssetManager.getGameAssetManager().getTexture("ring.png");
+
+
     private final Texture panelBg = GameAssetManager.getGameAssetManager().getTexture("inventory/panel_bg.png");
     private final BitmapFont small = GameAssetManager.getGameAssetManager().getSmallFont();
     private final List<String> buffer = new ArrayList<>(); // tiny ring buffer
@@ -38,11 +50,19 @@ public class PlayerChatOverlay {
     public PlayerChatOverlay(WorldController world, GameController me) {
         this.world = world; this.me = me;
     }
-    public void toggle(){ visible = !visible; }
+    public void toggle() {
+        visible = !visible;
+        if (visible) {
+            scroll = 0;              // jump to newest
+            suppressTypingFrames = 2; // ← ignore typing for the next 2 frames
+        }
+    }
     public boolean isVisible(){ return visible; }
 
     public void render(SpriteBatch b) {
         if (!visible) return;
+
+        // Panel placement
         float screenW = Gdx.graphics.getWidth();
         float screenH = Gdx.graphics.getHeight();
         float w = PANEL_W, h = PANEL_H;
@@ -51,22 +71,29 @@ public class PlayerChatOverlay {
 
         b.draw(panelBg, x, y, w, h);
 
-        // Build nearby list
-        java.util.List<GameController> nearby = world.nearbyPlayers(me, RADIUS);
-        // Ensure selection is valid
-        if ((selectedId == null || nearby.stream().noneMatch(gc -> world.playerIdOf(gc).equals(selectedId)))
-            && !nearby.isEmpty()) {
-            selectedId = world.playerIdOf(nearby.get(0));
+        // Build contact list = all others (limit 4)
+        java.util.List<GameController> contacts = new java.util.ArrayList<>();
+        for (GameController gc : world.getAllControllers()) {
+            if (gc != me) contacts.add(gc);
+        }
+        if (contacts.size() > MAX_CONTACTS) contacts = contacts.subList(0, MAX_CONTACTS);
+
+        // keep selected if still exists; otherwise pick first (or null if none)
+        if (selectedId != null && contacts.stream().noneMatch(gc -> world.playerIdOf(gc).equals(selectedId))) {
+            selectedId = null;
+        }
+        if (selectedId == null && !contacts.isEmpty()) {
+            selectedId = world.playerIdOf(contacts.get(0));
         }
 
-        // LEFT: nearby players
-        float listX = x + 10, listY = y + h - 16;
-        small.draw(b, "Nearby", listX, listY);
+        // LEFT: players list (always visible even if far)
+        float listX = x + 30, listY = y + h - 20;
+        small.draw(b, "Players", listX, listY);
         float cy = listY - 10;
-
         int maxRows = (int)((h - 40) / ROW_H);
+
         int shown = 0;
-        for (GameController gc : nearby) {
+        for (GameController gc : contacts) {
             if (shown >= maxRows) break;
             String pid = world.playerIdOf(gc);
 
@@ -74,44 +101,47 @@ public class PlayerChatOverlay {
             float rx = listX;
             float ry = rowTop - ROW_H + 4;
 
-            // background
-            b.draw(avatarBg, rx, ry, LIST_W - 20, ROW_H - 6);
+            // row background
+            b.draw(avatarBg, rx, ry - 10, LIST_W - 20, ROW_H - 6);
 
-            // tiny avatar (use player frame if you have it)
+            // tiny avatar
             var fr = gc.getPlayer().getCurrentFrame();
-            if (fr != null) {
-                b.draw(fr, rx + 6, ry + 4, 32, 32);
-            }
+            if (fr != null) b.draw(fr, rx + 6, ry - 6, 32, 32);
 
-            // name + level
+            // proximity + friendship level
+            boolean nearby = world.nearbyPlayers(me, RADIUS)
+                .stream().anyMatch(p -> world.playerIdOf(p).equals(pid));
             int lvl = world.playerFriends().level(world.playerIdOf(me), pid);
-            small.draw(b, pid + "  (Lv" + lvl + ")", rx + 44, ry + 24);
 
-            // selection highlight
-            if (pid.equals(selectedId)) {
-                // reuse slot_selected if you want a highlight; otherwise text marker:
-                small.draw(b, "●", rx + LIST_W - 30, ry + 24);
-            }
+            String nameLine = pid + "  (Lv" + lvl + ")  " + (nearby ? "(nearby)" : "(far)");
+            small.draw(b, nameLine, rx + 44, ry + 13);
 
             // click to select
             if (Gdx.input.isButtonJustPressed(com.badlogic.gdx.Input.Buttons.LEFT)) {
                 float mx = Gdx.input.getX(), my = Gdx.graphics.getHeight() - Gdx.input.getY();
                 if (mx >= rx && mx <= rx + (LIST_W - 20) && my >= ry && my <= ry + (ROW_H - 6)) {
                     selectedId = pid;
+                    scroll = 0;
+                    giftScroll = 0; // reset gift-history scroll on selection change
                 }
             }
             shown++;
         }
 
-        // RIGHT: chat with selectedId
-        float chatX = x + LIST_W + 10f;
+        // RIGHT side layout
+        float chatX = x + LIST_W + 25f;
         float chatW = w - LIST_W - 20f;
         float chatY = y + 14f;
         float chatH = h - 84f;
 
-        String header = (selectedId != null) ? ("Chat with " + selectedId) : "No one nearby";
-        small.draw(b, header, chatX, y + h - 16);
+        // Header
+        String header = (selectedId != null) ? ("Chat with " + selectedId) : "Select a player";
+        small.draw(b, header, chatX, y + h - 20);
 
+        // Gift history + per-row star rating (full, scrollable)
+        drawGiftHistoryAndRating(b, chatX, chatW, y, h);
+
+        // Chat messages for selected contact
         String myId = world.playerIdOf(me);
         java.util.Deque<Notification> inbox = world.getInbox(myId);
 
@@ -125,35 +155,37 @@ public class PlayerChatOverlay {
                     convo.add(n);
                 }
             }
-            java.util.Collections.reverse(convo); // now oldest → newest
+            java.util.Collections.reverse(convo); // oldest → newest
 
-            int linesVisible = Math.max(1, (int)(chatH / LINE_STEP)); // adapt to panel size
+            int linesVisible = Math.max(1, (int)(chatH / LINE_STEP));
             int maxScroll = Math.max(0, convo.size() - linesVisible);
-            scroll = Math.max(0, Math.min(scroll, maxScroll));        // clamp
+            scroll = Math.max(0, Math.min(scroll, maxScroll));
 
             int start = Math.max(0, convo.size() - linesVisible - scroll);
             int end   = Math.min(convo.size(), start + linesVisible);
+            int windowSize = end - start;
 
-            float bottom = chatY + 10f; // draw from bottom up
-            for (int i = 0; i < (end - start); i++) {
+            // draw TOP → DOWN
+            float top = chatY + chatH - 10f;
+            for (int i = 0; i < windowSize; i++) {
                 Notification n = convo.get(start + i);
                 String who = n.fromId.equals(myId) ? "You" : n.fromId;
-                float lineY = bottom + i * LINE_STEP;
+                float lineY = top - i * LINE_STEP;
                 small.draw(b, who + ": " + n.text, chatX, lineY);
             }
         } else {
-            small.draw(b, "No nearby players.", chatX, chatY + 10f);
+            small.draw(b, "", chatX, chatY + 10f);
         }
 
-        // gift button (only if someone selected)
-        if (selectedId != null) {
+        // Gift button (only if someone selected & nearby → popup will check too)
+        if (selectedId != null && world.playerFriends().level(world.playerIdOf(me), selectedId) >= 1) {
             Texture giftBtn = GameAssetManager.getGameAssetManager().getTexture("gift.png");
-            float gx = chatX + chatW - 54, gy = y + 8, gw = 44, gh = 44;
+            float gx = chatX + chatW - 70, gy = y + 15, gw = 44, gh = 44;
             b.draw(giftBtn, gx, gy, gw, gh);
             if (Gdx.input.isButtonJustPressed(com.badlogic.gdx.Input.Buttons.LEFT)) {
                 float mx = Gdx.input.getX(), my = Gdx.graphics.getHeight() - Gdx.input.getY();
                 if (mx >= gx && mx <= gx + gw && my >= gy && my <= gy + gh) {
-                    // find the selected controller and open player gift popup
+                    // find the selected controller and open player gift popup (only if within radius)
                     GameController target = null;
                     for (GameController gc : world.nearbyPlayers(me, RADIUS)) {
                         if (world.playerIdOf(gc).equals(selectedId)) { target = gc; break; }
@@ -161,14 +193,338 @@ public class PlayerChatOverlay {
                     if (target != null) me.getGiftPopup().openForPlayer(target);
                 }
             }
+
+            int lvlForHug = world.playerFriends().level(myId, selectedId);
+            if (lvlForHug >= 2) {
+                float hx = chatX + chatW - 70 - 52;  // left of gift button
+                float hy = y + 15, hw = 44, hh = 44;
+                b.draw(hugBtn, hx, hy, hw, hh);
+
+                if (Gdx.input.isButtonJustPressed(com.badlogic.gdx.Input.Buttons.LEFT)) {
+                    float mx = Gdx.input.getX(), my = Gdx.graphics.getHeight() - Gdx.input.getY();
+                    if (mx >= hx && mx <= hx + hw && my >= hy && my <= hy + hh) {
+                        // find selected target (can be anywhere; we’ll do the distance check below)
+                        GameController target = null;
+                        for (GameController gc2 : world.getAllControllers()) {
+                            if (gc2 != me && world.playerIdOf(gc2).equals(selectedId)) { target = gc2; break; }
+                        }
+                        if (target != null) {
+                            // same map + close enough?
+                            if (target.getMap() != me.getMap()) {
+                                long now = System.currentTimeMillis();
+                                world.pushNotification(myId,
+                                    new Notification(myId, myId, "Player not on this map", now, true), false);
+                            } else {
+                                float dx = target.getPlayerX() - me.getPlayerX();
+                                float dy = target.getPlayerY() - me.getPlayerY();
+                                if (dx*dx + dy*dy > 64f*64f) {
+                                    long now = System.currentTimeMillis();
+                                    world.pushNotification(myId,
+                                        new Notification(myId, myId, "Get closer to hug", now, true), false);
+                                } else {
+                                    int day = me.getGameTime().getDay();
+                                    long now = System.currentTimeMillis();
+                                    if (world.playerFriends().markFirstHugToday(myId, selectedId, day)) {
+                                        // pop the hug icon over both players
+                                        me.spawnFloatingIcon("hug.png",
+                                            me.getPlayerX() + 8,
+                                            me.getPlayerY() + GameController.TILE_SIZE,
+                                            1.0f
+                                        );
+                                        target.spawnFloatingIcon(
+                                            "hug.png",
+                                            target.getPlayerX() + 8,
+                                            target.getPlayerY() + GameController.TILE_SIZE,
+                                            1.0f
+                                        );
+
+                                        // award hug points once per day (respect caps)
+                                        int before = world.playerFriends().points(myId, selectedId);
+                                        world.playerFriends().addPoints(myId, selectedId, 60);
+                                        int after  = world.playerFriends().points(myId, selectedId);
+                                        int gained = after - before;
+
+                                        // notify both players with the actual gained amount
+                                        world.pushNotification(selectedId,
+                                            new Notification(myId, selectedId, myId + " hugged you (+" + gained + ")", now, true),
+                                            true);
+                                        world.pushNotification(myId,
+                                            new Notification(myId, selectedId, "You hugged " + selectedId + " (+" + gained + ")", now, true),
+                                            false);
+
+                                        // if no points were added, explain why (level locks)
+                                        if (gained == 0) {
+                                            String reason;
+                                            if (!world.playerFriends().isLevel3Unlocked(myId, selectedId)
+                                                && before >= 3 * PlayerFriendService.POINTS_PER_LEVEL) {
+                                                reason = "No points gained: Level 3 is locked. Give a flower to unlock.";
+                                            } else if (world.playerFriends().isLevel3Unlocked(myId, selectedId)
+                                                && before >= 4 * PlayerFriendService.POINTS_PER_LEVEL) {
+                                                reason = "No points gained: Level 4 is locked. Propose & accept to unlock.";
+                                            } else {
+                                                reason = "No points gained.";
+                                            }
+                                            world.pushNotification(myId,
+                                                new Notification(myId, selectedId, reason, now, true),
+                                                false);
+                                        }
+
+                                        // hint about Lv3 gate if points filled but still locked
+                                        if (!world.playerFriends().isLevel3Unlocked(myId, selectedId)
+                                            && after >= 3 * PlayerFriendService.POINTS_PER_LEVEL) {
+                                            world.pushNotification(selectedId,
+                                                new Notification(myId, selectedId, "Level 3 locked: a flower is needed to unlock.", now, true),
+                                                true);
+                                            world.pushNotification(myId,
+                                                new Notification(myId, selectedId, "Level 3 locked: give a flower to unlock.", now, true),
+                                                false);
+                                        }
+                                    } else {
+                                        world.pushNotification(myId,
+                                            new Notification(myId, selectedId, "You already hugged today", now, true),
+                                            false);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
 
-        // input line
-        small.draw(b, "> " + input + "_", chatX + 10, y + 24);
+// --- PROPOSE button (I am proposer) ---
+        // --- PROPOSE button (I am proposer) ---
+// Show as soon as the pair is eligible (>= 400, Lv3 unlocked, not already L4 or married).
+        if (selectedId != null && world.playerFriends().canPropose(myId, selectedId)) {
+            float px = chatX + chatW - 70 - 52 - 52;  // left of hug
+            float py = y + 15, pw = 44, ph = 44;
+            b.draw(ringBtn, px, py, pw, ph);
+
+            if (Gdx.input.isButtonJustPressed(Input.Buttons.LEFT)) {
+                float mx = Gdx.input.getX(), my = Gdx.graphics.getHeight() - Gdx.input.getY();
+                if (mx >= px && mx <= px+pw && my >= py && my <= py+ph) {
+                    long now = System.currentTimeMillis();
+
+                    // Must have a ring in inventory to propose.
+                    if (!hasRingInInventory(me)) {
+                        world.pushNotification(
+                            myId, // add to MY inbox only
+                            new Notification(myId, selectedId, "You need a ring to propose.", now, true),
+                            false // don't flag as unread for the other player
+                        );
+                    } else {
+                        // Remove one ring before sending the request.
+                        if (removeOneRingFromInventory(me)) {
+                            if (world.playerFriends().proposeMarriage(myId, selectedId)) {
+                                world.pushNotification(selectedId,
+                                    new Notification(myId, selectedId, myId + " proposed marriage 💍", now, true),
+                                    true);
+                                world.pushNotification(myId,
+                                    new Notification(myId, selectedId, "Proposal sent. Waiting for answer…", now, true),
+                                    false);
+                            } else {
+                                world.pushNotification(myId,
+                                    new Notification(myId, selectedId, "Cannot propose right now.", now, true),
+                                    false);
+                            }
+                        } else {
+                            world.pushNotification(myId,
+                                new Notification(myId, selectedId, "Failed to remove ring from inventory.", now, true),
+                                false);
+                        }
+                    }
+                }
+            }
+        }
+
+        // --- ACCEPT / DECLINE (I am recipient) ---
+        if (selectedId != null) {
+            String proposer = world.playerFriends().pendingProposer(myId);
+            if (proposer != null && proposer.equals(selectedId)) {
+                // Draw buttons + define bounds
+                float ax = chatX + 14, ay = y + 16, bw = 60, bh = 28;
+
+                // Accept button
+                b.draw(avatarBg, ax, ay, bw, bh);
+                small.draw(b, "Accept", ax + 8, ay + 20);
+
+                // Decline button
+                float dxBtn = ax + bw + 10; // <-- define dxBtn here
+                b.draw(avatarBg, dxBtn, ay, bw, bh);
+                small.draw(b, "Decline", dxBtn + 6, ay + 20);
+
+                if (Gdx.input.isButtonJustPressed(Input.Buttons.LEFT)) {
+                    float mx = Gdx.input.getX();
+                    float my = Gdx.graphics.getHeight() - Gdx.input.getY();
+
+                    boolean hitAccept  = (mx >= ax    && mx <= ax + bw   && my >= ay && my <= ay + bh);
+                    boolean hitDecline = (mx >= dxBtn && mx <= dxBtn + bw && my >= ay && my <= ay + bh);
+
+                    long now = System.currentTimeMillis();
+                    if (hitAccept) {
+                        if (world.playerFriends().acceptMarriage(myId, selectedId)) {
+                            // make sure the texture is loaded
+                            GameAssetManager.getGameAssetManager().getTexture("ring.png");
+
+                            // ring popup on both players
+                            me.spawnFloatingIcon("ring.png",
+                                me.getPlayerX()+8, me.getPlayerY()+GameController.TILE_SIZE, 1.0f);
+
+                            GameController other = null;
+                            for (GameController gc : world.getAllControllers())
+                                if (world.playerIdOf(gc).equals(selectedId)) { other = gc; break; }
+                            if (other != null) {
+                                other.spawnFloatingIcon("ring.png",
+                                    other.getPlayerX()+8, other.getPlayerY()+GameController.TILE_SIZE, 1.0f);
+                            }
+
+                            world.pushNotification(selectedId,
+                                new Notification(myId, selectedId, "Marriage accepted! ❤️ Reached Level 4.", now, true), true);
+                            world.pushNotification(myId,
+                                new Notification(selectedId, myId, "You’re now Level 4 together!", now, true), false);
+                        }
+                    } else if (hitDecline) {
+                        if (world.playerFriends().declineMarriage(myId)) {
+                            world.pushNotification(selectedId,
+                                new Notification(myId, selectedId, "Marriage declined. Friendship reset to Level 0.", now, true), true);
+                            world.pushNotification(myId,
+                                new Notification(selectedId, myId, "You declined. Friendship reset to Level 0.", now, true), false);
+                        }
+                    }
+                }
+            }
+        }
+
+        // Input line (only type when nearby)
+        boolean canType = selectedId != null && isSelectedNearby();
+        if (canType) {
+            small.draw(b, "> " + input + "_", chatX + 10, y + 24);
+        } else {
+            small.draw(b, "> (get closer to chat/gift)", chatX + 10, y + 24);
+        }
+
+        // Key handling (typing, chat scroll, etc.)
         handleTyping();
     }
 
+    /** Full, scrollable gift history with per-row heart rating; scroll with LEFT/RIGHT keys. */
+    private void drawGiftHistoryAndRating(SpriteBatch b, float chatX, float chatW, float y, float h) {
+        if (selectedId == null) return;
+
+        // Right-side panel area
+        final float histW   = 170f;
+        final float histX   = chatX + chatW - histW;
+        final float histTop = y + h - 40f;
+        final float histBot = y + 60f;
+
+        small.draw(b, "Gifts from " + selectedId, histX, histTop);
+
+        String myId = world.playerIdOf(me);
+        java.util.List<WorldController.GiftReceipt> recs =
+            world.giftsBetween(myId, selectedId); // oldest → newest
+
+        // Three-line layout per gift: NAME → DATE → HEARTS
+        final float ROW_H        = 44f;  // tall enough for 3 lines
+        final float NAME_OFFSET  = 14f;  // rowTop → name baseline
+        final float DATE_GAP     = 14f;  // name → date
+        final float HEART_GAP    = 14f;  // date → hearts
+
+        int total = recs.size();
+        float areaH = Math.max(1f, histTop - histBot);
+        int linesVisible = Math.max(1, (int)(areaH / ROW_H));
+        int maxGiftScroll = Math.max(0, total - linesVisible);
+
+        // NEW: keyboard scrolling — LEFT = older (scroll up), RIGHT = newer (scroll down)
+        if (Gdx.input.isKeyJustPressed(Input.Keys.LEFT)) {
+            giftScroll = Math.min(maxGiftScroll, giftScroll + 1);
+        }
+        if (Gdx.input.isKeyJustPressed(Input.Keys.RIGHT)) {
+            giftScroll = Math.max(0, giftScroll - 1);
+        }
+        // (optional) page jump with SHIFT+LEFT/RIGHT
+        boolean shift = Gdx.input.isKeyPressed(Input.Keys.SHIFT_LEFT) || Gdx.input.isKeyPressed(Input.Keys.SHIFT_RIGHT);
+        if (shift && Gdx.input.isKeyJustPressed(Input.Keys.LEFT))  giftScroll = Math.min(maxGiftScroll, giftScroll + Math.max(1, linesVisible - 1));
+        if (shift && Gdx.input.isKeyJustPressed(Input.Keys.RIGHT)) giftScroll = Math.max(0, giftScroll - Math.max(1, linesVisible - 1));
+
+        // clamp (in case list size changed)
+        giftScroll = Math.max(0, Math.min(giftScroll, maxGiftScroll));
+
+        int start = Math.max(0, total - linesVisible - giftScroll);
+        int end   = Math.min(total, start + linesVisible);
+
+        java.text.SimpleDateFormat fmt = new java.text.SimpleDateFormat("MMM d, HH:mm");
+
+        // Input snapshot for rating hit-tests
+        float mx = Gdx.input.getX();
+        float my = Gdx.graphics.getHeight() - Gdx.input.getY();
+        boolean clicked = Gdx.input.isButtonJustPressed(Input.Buttons.LEFT);
+
+        // Heart metrics
+        final float HEART_SIZE   = 16f;
+        final float HEART_GAP_X  = 4f;
+        final float heartsTotalW = 5 * HEART_SIZE + 4 * HEART_GAP_X;
+
+        // Draw visible rows (top → down so newer appear lower)
+        for (int i = 0; i < (end - start); i++) {
+            WorldController.GiftReceipt r = recs.get(start + i);
+
+            float rowTop = histTop - 8f - i * ROW_H;
+            if (rowTop < histBot + NAME_OFFSET) break;
+
+            // 1) Name
+            float nameY = rowTop - NAME_OFFSET;
+            small.draw(b, r.itemName, histX, nameY);
+
+            // 2) Date
+            float dateY = nameY - DATE_GAP;
+            if (dateY < histBot) continue;
+            String when = fmt.format(new java.util.Date(r.ts));
+            small.draw(b, "(" + when + ")", histX, dateY);
+
+            // 3) Hearts (UNDER the date, left-aligned)
+            float heartsLeft = histX;
+            float heartsTop  = dateY - HEART_GAP;
+            float heartsY    = heartsTop - HEART_SIZE;
+
+            // Which heart is hovered?
+            int hoveredIdx = -1;
+            if (my >= heartsY && my <= heartsY + HEART_SIZE &&
+                mx >= heartsLeft && mx <= heartsLeft + heartsTotalW) {
+                hoveredIdx = (int)((mx - heartsLeft) / (HEART_SIZE + HEART_GAP_X)) + 1;
+                if (hoveredIdx < 1) hoveredIdx = 1;
+                if (hoveredIdx > 5) hoveredIdx = 5;
+            }
+
+            // Draw hearts: filled up to rating; if unrated, preview up to hovered
+            for (int s = 1; s <= 5; s++) {
+                float sx = heartsLeft + (s - 1) * (HEART_SIZE + HEART_GAP_X);
+                Texture tex;
+                if (r.rating != null) {
+                    tex = (s <= r.rating) ? starFull : starEmpty;
+                } else if (hoveredIdx >= 1 && s <= hoveredIdx) {
+                    tex = starFull; // hover preview
+                } else {
+                    tex = starEmpty;
+                }
+                b.draw(tex, sx, heartsY, HEART_SIZE, HEART_SIZE);
+            }
+
+            // Click to rate this specific gift
+            if (clicked && r.rating == null && hoveredIdx >= 1) {
+                world.rateGift(r, hoveredIdx);
+            }
+        }
+    }
+
+
     private void handleTyping() {
+        if (selectedId == null || !isSelectedNearby()) return;
+
+        if (suppressTypingFrames > 0) {
+            suppressTypingFrames--;
+            return;
+        }
+
         // keyboard scrolling while overlay is open
         if (Gdx.input.isKeyJustPressed(Input.Keys.PAGE_UP) || Gdx.input.isKeyJustPressed(Input.Keys.UP)) {
             scroll++;
@@ -204,13 +560,59 @@ public class PlayerChatOverlay {
         String meId = world.playerIdOf(me);
         String toId = selectedId;
 
-        world.playerFriends().talkAnytime(meId, toId, 10);
+        int day = me.getGameTime().getDay();
+        if (world.playerFriends().markFirstTalkToday(meId, toId, day)) {
+            world.playerFriends().add(meId, toId, 20); // +20 only once per day (pairwise)
+        }
 
         long now = System.currentTimeMillis();
         world.pushNotification(toId, new Notification(meId, toId, text, now), true);   // unread for receiver
         world.pushNotification(meId, new Notification(meId, toId, text, now), false);  // echo, not unread
 
         scroll = 0; // snap to newest after sending
+    }
+
+    // helper: does the player have a "ring" item?
+    // import your MaterialType
+// import io.github.StardewValley.models.MaterialType;
+
+    private boolean hasRingInInventory(GameController gc) {
+        var inv = gc.getPlayer().getInventory();
+        for (int i = 0; i < inv.size(); i++) {
+            var s = inv.peek(i);
+            if (s == null) continue;
+            var t = s.getType();
+            if (t instanceof ToolType) continue;                // skip tools
+            if (t instanceof CropType mt && mt == CropType.CARROT) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean removeOneRingFromInventory(GameController gc) {
+        var inv = gc.getPlayer().getInventory();
+        for (int i = 0; i < inv.size(); i++) {
+            var s = inv.peek(i);
+            if (s == null) continue;
+            var t = s.getType();
+            if (t instanceof ToolType) continue;                // skip tools
+            if (t instanceof CropType mt && mt == CropType.CARROT) {
+                // inventory.remove returns leftover; 0 == success removing 1
+                return inv.remove(mt, 1) == 0;
+            }
+        }
+        return false;
+    }
+
+
+
+    private boolean isSelectedNearby() {
+        if (selectedId == null) return false;
+        for (GameController gc : world.nearbyPlayers(me, RADIUS)) {
+            if (world.playerIdOf(gc).equals(selectedId)) return true;
+        }
+        return false;
     }
 
 }

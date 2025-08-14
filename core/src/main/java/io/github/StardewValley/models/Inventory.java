@@ -110,6 +110,17 @@ public class Inventory {
         return -1;
     }
 
+    public ItemType get(int index) {                      // <-- to fix “Cannot resolve get”
+        return peekType(index);
+    }
+
+    // Hard-sets a slot to an item/qty (overwrites whatever was there)
+    public void set(int index, ItemType type, int qty) {  // <-- to fix “Cannot resolve set”
+        if (index < 0 || index >= slots.size()) return;
+        Stack s = slots.get(index);
+        s.type = type;
+        s.qty  = Math.max(0, qty);
+    }
 
     public static class Stack {
         public ItemType type;

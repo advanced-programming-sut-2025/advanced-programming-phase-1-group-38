@@ -1,5 +1,6 @@
 package io.github.StardewValley.models.enums.Shop;
 
+import io.github.StardewValley.models.ItemType;
 import io.github.StardewValley.models.enums.Types.MaterialTypes;
 
 public interface ShopEntry {
@@ -7,5 +8,5 @@ public interface ShopEntry {
     String getDescription();
     int getPrice();
     int getDailyLimit();
-    MaterialTypes getItemType();
+    ItemType getItemType();
 }

@@ -18,7 +18,6 @@ import com.badlogic.gdx.utils.Array;
 import io.github.StardewValley.models.*;
 import io.github.StardewValley.models.Artisan.MachineInstance;
 import io.github.StardewValley.models.Artisan.MachineType;
-import io.github.StardewValley.models.Artisan.PlacedMachine;
 import io.github.StardewValley.models.enums.Skill;
 import io.github.StardewValley.views.GiftPopupView;
 
@@ -72,8 +71,6 @@ public class GameController {
     private static final int TILLED_TILE_ID = 89;
 
     public GameController(Player player, String initialMapPath, GameTime gameTime, TiledMap sharedNpcMap) {
-        this.lastGameDay  = gameTime.getDay();
-        this.lastGameHour = gameTime.getHour();
         this.player = player;
         this.gameTime = gameTime;
         this.currentMapPath = initialMapPath;
@@ -88,7 +85,6 @@ public class GameController {
         // Set all tiles as walkable by default
         for (int x = 0; x < width; x++) {
             for (int y = 0; y < height; y++) {
-                boolean walkable = !isBlockedByLayers(x, y);
                 tileGrid[x][y] = new Tile(true, x * TILE_SIZE, y * TILE_SIZE);
             }
         }
@@ -171,78 +167,6 @@ public class GameController {
             if (d2 <= best2) { best2 = d2; best = m; }
         }
         return best;
-    }
-
-    // فیلد:
-    private final java.util.Map<String, java.util.HashMap<Long, PlacedMachine>> machinesOnMap = new java.util.HashMap<>();
-    private static long key(int tx, int ty){ return (((long)tx)<<32) ^ (ty & 0xffffffffL); }
-
-    public java.util.Collection<PlacedMachine> getMachinesOn(String mapId){
-        return machinesOnMap.computeIfAbsent(mapId, k-> new java.util.HashMap<>()).values();
-    }
-
-    public PlacedMachine getMachineAt(String mapId, int tx, int ty){
-        var m = machinesOnMap.get(mapId);
-        return (m==null)? null : m.get(key(tx,ty));
-    }
-
-
-    public boolean placeMachine(MachineType type, String mapId, int tx, int ty, Inventory inv){
-        if (!canPlaceMachineAt(mapId, tx, ty)) return false;
-        if (!inv.contains(type, 1)) return false;
-        inv.remove(type, 1);
-        machinesOnMap
-                .computeIfAbsent(mapId, k-> new java.util.HashMap<>())
-                .put(key(tx,ty), new PlacedMachine(mapId, tx, ty, type));
-        return true;
-    }
-
-    public boolean canPlaceMachineAt(String mapId, int tx, int ty) {
-        if (tx < 0 || ty < 0 || tx >= tileGrid.length || ty >= tileGrid[0].length) return false;
-
-        if (getMachineAt(mapId, tx, ty) != null) return false;      // روی دستگاه دیگه نه
-        if (isBlockedByLayers(tx, ty)) return false;                // آب/خانه/کلاژن...
-        Tile t = tileGrid[tx][ty];
-        if (t.hasCrop()) return false;                              // روی محصول نه
-
-        return true;
-    }
-
-    // GameController.java — فیلدهای جدید
-    private int lastGameDay  = -1;
-    private int lastGameHour = -1;
-
-    public void updateMachines(float ignoredDelta) {
-        int d = gameTime.getDay();
-        int h = gameTime.getHour();
-
-        if (lastGameDay < 0) { // اولین بار
-            lastGameDay  = d;
-            lastGameHour = h;
-            return;
-        }
-
-        int hoursAdvanced = (d - lastGameDay) * 24 + (h - lastGameHour);
-        if (hoursAdvanced > 0) {
-            float gameSec = hoursAdvanced * 3600f;
-
-            for (var perMap : machinesOnMap.values()) {
-                for (var m : perMap.values()) {
-                    m.update(gameSec);          // ← ثانیهٔ *بازی* تزریق می‌شود
-                }
-            }
-            lastGameDay  = d;
-            lastGameHour = h;
-        }
-    }
-
-    // GameController.java
-    public void advanceMachinesGameHours(float hours) {
-        for (var perMap : machinesOnMap.values()) {
-            for (var m : perMap.values()) {
-                m.advanceGameHours(hours);
-            }
-        }
     }
 
 
@@ -558,15 +482,9 @@ public class GameController {
             if (tileX < 0 || tileY < 0 || tileX >= collisionLayer.getWidth() || tileY >= collisionLayer.getHeight()) return false;
             TiledMapTileLayer.Cell cell = collisionLayer.getCell(tileX, tileY);
             if (cell != null && cell.getTile() != null) return false;
-            if (getMachineAt(currentMapPath, tileX, tileY) != null) return false;
-
         }
 
         return true;
-    }
-
-    public void renderMachines(SpriteBatch batch) {
-        for (var m : getMachinesOn(currentMapPath)) m.render(batch);
     }
 
     private int getMapWidthInPixels() {
@@ -776,19 +694,6 @@ public class GameController {
             e.age += dt;
             if (e.age >= e.life) floatingIcons.removeIndex(i);
         }
-    }
-
-    // helper:
-    private boolean isBlockedByLayers(int tx, int ty) {
-        String[] layers = { "Collision", "Water", "House", "Quarry", "Greenhouse" };
-        for (String ln : layers) {
-            TiledMapTileLayer L = (TiledMapTileLayer) map.getLayers().get(ln);
-            if (L != null) {
-                TiledMapTileLayer.Cell c = L.getCell(tx, ty);
-                if (c != null && c.getTile() != null) return true; // مسدود
-            }
-        }
-        return false;
     }
 
 }
