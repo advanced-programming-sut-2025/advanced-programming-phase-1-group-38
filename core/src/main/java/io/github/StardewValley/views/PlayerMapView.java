@@ -44,6 +44,18 @@ public class PlayerMapView implements Screen {
     private boolean placingBarn = false;
     private int barnW = 8, barnH = 6;
 
+    // --- Boat (raw PNG, no TMX object) ---
+    private Texture boatIdleTex;
+    private Animation<TextureRegion> boatAnim;
+    private float boatAnimTime = 0f;
+    private boolean boatPlaying = false;
+    private int boatLoopsLeft = 0;
+
+
+    // world position/size (px) – tweak these to place your boat
+    private float boatX = 425f, boatY = 110f;
+    private float boatW = 48f,  boatH = 32f;
+
     // Placement mode
     private boolean placingMachine = false;
     private io.github.StardewValley.models.Artisan.MachineType pendingMachine = null;
@@ -155,6 +167,17 @@ public class PlayerMapView implements Screen {
 
         animalMenu = new AnimalMenuOverlay(controller, controller.getPlayer(), new AnimalMenuOverlay.Listener(){});
         controller.setAnimalMenuOpener(animalMenu::open);
+
+        boatIdleTex = new Texture(Gdx.files.internal("boat/idle.png"));
+
+        boatAnim = GameAssetManager.getGameAssetManager().getFrameAnimation(
+            "boat/row",   // cache key
+            "boat/",      // base path (method appends 1..N + ".png")
+            2,            // frames
+            0.10f,        // frame duration
+            false         // not looping
+        );
+
 
         inventoryMenuView.setOnOpenSellMenu(() -> Gdx.app.postRunnable(() -> {
             if (activePanel == Panel.INVENTORY) {
@@ -289,6 +312,20 @@ public class PlayerMapView implements Screen {
             weatherSprite.setTexture(weatherTexture);
         }
 
+        if (boatPlaying) {
+            boatAnimTime += delta;
+            float dur = boatAnim.getAnimationDuration();
+            if (boatAnimTime >= dur) {
+                boatLoopsLeft--;
+                if (boatLoopsLeft > 0) {
+                    boatAnimTime = 0f;     // start next loop
+                } else {
+                    boatPlaying = false;   // finished 2 loops
+                    boatAnimTime = 0f;
+                }
+            }
+        }
+
         if (!uiOpen() && Gdx.input.isKeyJustPressed(Input.Keys.N)) {
             worldController.endTurnAndAdvanceIfRoundDone();
             int newIndex = worldController.getCurrentPlayerIndex();
@@ -393,6 +430,42 @@ public class PlayerMapView implements Screen {
 
         if (!uiOpen() && !placingMachine && Gdx.input.isButtonJustPressed(Input.Buttons.LEFT)) {
             Vector3 w = camera.unproject(new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0));
+
+            float wx = w.x, wy = w.y;
+
+            // --- boat click (raw png, fixed rect) ---
+            if (wx >= boatX && wx <= boatX + boatW && wy >= boatY && wy <= boatY + boatH) {
+                ItemType held = inventoryRenderer.getSelectedType();
+                boolean holdingPole = (held instanceof ToolType t) &&
+                    (t == ToolType.FISHINGPOLE);
+
+                if (holdingPole) {
+                    if (boatPlaying) return;
+                    boatPlaying = true;
+                    boatLoopsLeft = 2;
+                    boatAnimTime = 0f;
+
+                    controller.spawnFloatingIcon("items/Fish.png",
+                        boatX + boatW/2f, boatY + boatH + 10f, 1.0f);
+
+                    controller.getPlayer().getInventory().add(FoodType.FISH, 1);
+
+                    if (inventoryMenuView != null) inventoryMenuView.onInventoryChanged();
+                    if (inventoryRenderer  != null) inventoryRenderer.onInventoryChanged();
+
+                    String fishIcon = "items/Fish.png"; // safe fallback
+
+                    controller.spawnFloatingIcon(fishIcon,
+                        boatX + boatW/2f, boatY + boatH + 20f, 1.0f);
+
+                } else {
+                    // feedback when not holding the pole
+                    controller.spawnFloatingIcon("shops/close.png",
+                        boatX + boatW/2f, boatY + boatH + 10f, 0.8f);
+                }
+                return; // consume the click
+            }
+
             int tx = (int)(w.x / TILE_SIZE);
             int ty = (int)(w.y / TILE_SIZE);
 
@@ -680,6 +753,14 @@ public class PlayerMapView implements Screen {
         batch.begin();
         batch.setColor(worldTint);
         controller.renderMachines(batch);
+
+        if (boatPlaying) {
+            TextureRegion fr = boatAnim.getKeyFrame(boatAnimTime, false);
+            batch.draw(fr, boatX, boatY, boatW, boatH);
+        } else {
+            batch.draw(boatIdleTex, boatX, boatY, boatW, boatH);
+        }
+
         // ----- Placement ghost -----
         if (placingMachine && pendingMachine != null) {
             Vector3 w = camera.unproject(new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0));
@@ -1224,5 +1305,6 @@ public class PlayerMapView implements Screen {
         if (rainTex != null) rainTex.dispose();
         if (snowTex != null) snowTex.dispose();
         if (animalMenu != null) animalMenu.dispose();
+        if (boatIdleTex != null) boatIdleTex.dispose();
     }
 }

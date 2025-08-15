@@ -2,9 +2,13 @@ package io.github.StardewValley.models;
 
 public enum ToolType implements ItemType {
     SCYTHE ("scythe",  "tools/scythe.png"),
-    PICKAXE("pickaxe", "tools/scythe.png"),
+    PICKAXE("pickaxe", "tools/pickaxe.png"),
     WATERCAN("watercan", "tools/watercan/basic.png"),
-    AXE("axe", "tools/axe/basic.png");
+    AXE("axe", "tools/axe/basic.png"),
+    HOE("hoe", "tools/hoe.png"),
+    SHEARS("shears", "tools/shears.png"),
+    MILKPAIL("milkpail", "tools/milkpail.png"),
+    FISHINGPOLE("fishingpole", "tools/fishingpole.png");
 
     private final String id;
     private final String iconPath;

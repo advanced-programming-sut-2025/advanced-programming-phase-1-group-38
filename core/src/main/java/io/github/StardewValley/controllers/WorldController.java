@@ -60,7 +60,7 @@ public class WorldController {
 
         // players + controllers
         for (int i = 0; i < 4; i++) {
-            players[i] = new Player(560, 380, 24);
+            players[i] = new Player(560, 380, 36);
             controllers[i] = new GameController(players[i], chosenMaps[i], sharedTime, sharedNpcMap);
             controllers[i].setWorldController(this);
             playerIds.put(controllers[i], "P" + i);   // stable per-player id

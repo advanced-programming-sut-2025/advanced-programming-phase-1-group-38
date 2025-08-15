@@ -14,6 +14,7 @@ public enum FoodType implements ItemType {
     RICE_PUDDING("Rice Pudding", r("Rice_Pudding.png"), 99),
     ICE_CREAM("Ice Cream", r("Ice_Cream.png"), 99),
     COOKIE("Cookie", r("Cookie.png"), 99),
+    FISH("Fish", r("Fish.png"), 0),
 
     // ——— Fish & soups
     TROUT_SOUP("Trout Soup", r("Trout_Soup.png"), 99),

@@ -108,6 +108,9 @@ animals/cow.png
 animals/cow_crate.png
 barn.png
 black.png
+boat/1.png
+boat/2.png
+boat/idle.png
 button-down.png
 button-up.png
 character/hoe/down1.png
@@ -808,6 +811,7 @@ recipes/Eggplant_Parmesan.png
 recipes/Escargot.png
 recipes/Farmer%27s_Lunch.png
 recipes/Fiddlehead_Risotto.png
+recipes/Fish.png
 recipes/Fish_Stew.png
 recipes/Fish_Taco.png
 recipes/Fried_Calamari.png
@@ -881,7 +885,12 @@ tools/axe/copper.png
 tools/axe/gold.png
 tools/axe/iridium.png
 tools/axe/iron.png
+tools/fishingpole.png
+tools/hoe.png
+tools/milkpail.png
+tools/pickaxe.png
 tools/scythe.png
+tools/shears.png
 tools/watercan/basic.png
 tools/watercan/copper.png
 tools/watercan/gold.png
