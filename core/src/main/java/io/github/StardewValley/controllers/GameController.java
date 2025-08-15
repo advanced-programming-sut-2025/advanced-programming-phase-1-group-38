@@ -70,7 +70,9 @@ public class GameController {
     private GiftPopupView giftPopup;
     private DoorHook doorHook;
 
-    // GameController.java (fields)
+    private final java.util.Random dailyRng = new java.util.Random();
+    private int lastSpawnDay = -1;
+
     private final AnimalController animalController = new AnimalController();
     public AnimalController animals() { return animalController; }
 
@@ -182,6 +184,9 @@ public class GameController {
                     }
                 }
             }
+
+            spawnDailyResources();
+
             lastUpdatedDay = gameTime.getDay();
         }
 
@@ -424,6 +429,24 @@ public class GameController {
             // after: int tileX = ..., int tileY = ...;
             Tile gameTile = getTileAt(tileX, tileY);
             ItemType held = player.getInventoryRenderer().getSelectedType();
+
+            // pick up ores/resources with PICKAXE
+            if (gameTile != null && gameTile.getContent() instanceof GroundDrop node) {
+                if (held instanceof ToolType t && t == ToolType.PICKAXE) {
+                    if (!player.hasEnergy(1)) return;
+                    player.consumeEnergy(1);
+
+                    player.getInventory().add(node.item(), 1);
+                    spawnFloatingIcon(node.item().iconPath(),
+                        gameTile.getWorldX() + TILE_SIZE/2f, gameTile.getWorldY() + TILE_SIZE, 0.8f);
+                    gameTile.setContent(null);
+
+                    String dir = player.getFacingDirection();
+                    player.setAnimation("pickaxe_" + dir, "character/pickaxe/" + dir, 2, 0.10f, false);
+                    player.setActionCooldown(0.25f);
+                    return;  // handled click
+                }
+            }
 
 // --- place animal from crate ---
             if (held instanceof AnimalCrateType crate) {
@@ -1198,6 +1221,94 @@ public class GameController {
 
         if (kit != null) inv.remove(kit, 1); // consume the kit
         return true;
+    }
+
+    private void spawnDailyResources() {
+        int day = gameTime.getDay();
+        if (day == lastSpawnDay) return;   // run once per in-game day
+        lastSpawnDay = day;
+
+        int spawnedQuarryCount = 0;
+        int spawnedWildCropCount = 0;
+
+        // --- 1) QUARRY: sprinkle materials on tiles that have a Quarry cell ---
+        TiledMapTileLayer quarry = (TiledMapTileLayer) map.getLayers().get("Quarry");
+        if (quarry != null) {
+            MaterialType[] mats = new MaterialType[] {
+                MaterialType.CopperOre, MaterialType.IronOre, MaterialType.GoldOre, MaterialType.IridiumOre,
+                MaterialType.Coal, MaterialType.Stone, MaterialType.Diamond
+            };
+            final float chance = 0.08f; // tweak density
+
+            int w = quarry.getWidth(), h = quarry.getHeight();
+            for (int x = 0; x < w; x++) for (int y = 0; y < h; y++) {
+                TiledMapTileLayer.Cell cell = quarry.getCell(x, y);
+                if (cell == null || cell.getTile() == null) continue;
+
+                Tile t = getTileAt(x, y);
+                if (t == null) continue;
+                if (t.getContent() != null) continue;
+                if (getMachineAt(getCurrentMapPath(), x, y) != null) continue;
+
+                if (blockedByAny(x, y, "Collision", "Water", "House", "Greenhouse")) continue;
+
+                if (dailyRng.nextFloat() < chance) {
+                    MaterialType mat = mats[dailyRng.nextInt(mats.length)];
+                    t.setContent(new GroundDrop(mat));
+                    spawnedQuarryCount++;
+                }
+            }
+        }
+
+        TiledMapTileLayer grass = (TiledMapTileLayer) map.getLayers().get("Grass");
+        if (grass != null) {
+            CropType[] crops = new CropType[]{CropType.CORN, CropType.CARROT, CropType.PUMPKIN, CropType.WHEAT};
+            MaterialType[] grassResources = new MaterialType[]{MaterialType.Wood};
+
+            final float resourceChance = 0.005f;
+            final float cropChance = 0.015f;
+
+            int w = grass.getWidth(), h = grass.getHeight();
+            for (int x = 0; x < w; x++)
+                for (int y = 0; y < h; y++) {
+                    TiledMapTileLayer.Cell cell = grass.getCell(x, y);
+                    if (cell == null || cell.getTile() == null) continue;
+
+                    Tile t = getTileAt(x, y);
+                    if (t == null) continue;
+                    if (t.getContent() != null) continue;
+                    if (getMachineAt(getCurrentMapPath(), x, y) != null) continue;
+
+                    if (blockedByAny(x, y, "Collision", "Water", "House", "Greenhouse", "Quarry")) continue;
+
+                    float roll = dailyRng.nextFloat();
+
+                    if (roll < resourceChance) {
+                        MaterialType m = grassResources[dailyRng.nextInt(grassResources.length)];
+                        t.setContent(new GroundDrop(m));
+                        continue;
+                    }
+
+                    roll -= resourceChance;
+                    if (roll < cropChance) {
+                        CropType ct = crops[dailyRng.nextInt(crops.length)];
+                        Crop c = new Crop(ct);
+                        c.water();
+                        t.setContent(c);
+                    }
+                }
+        }
+    }
+
+    private boolean blockedByAny(int tx, int ty, String... layers) {
+        for (String ln : layers) {
+            TiledMapTileLayer L = (TiledMapTileLayer) map.getLayers().get(ln);
+            if (L != null) {
+                TiledMapTileLayer.Cell c = L.getCell(tx, ty);
+                if (c != null && c.getTile() != null) return true;
+            }
+        }
+        return false;
     }
 
 }

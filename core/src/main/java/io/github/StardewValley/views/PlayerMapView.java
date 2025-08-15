@@ -887,6 +887,15 @@ public class PlayerMapView implements Screen {
                     batch.draw(fr, baseX, baseY, drawW, drawH);
                 }
 
+                float baseX = tile.getWorldX();
+                float baseY = tile.getWorldY();
+
+                if (tile.getContent() instanceof GroundDrop drop) {
+                    Texture tex = GameAssetManager.getGameAssetManager().getTexture(drop.iconPath());
+                    batch.draw(tex, baseX, baseY, TILE_SIZE, TILE_SIZE); // 16x16 icon on tile
+                }
+
+
             }
         }
 
@@ -1004,7 +1013,12 @@ public class PlayerMapView implements Screen {
         weatherSprite.draw(batch);
         dayNightClockSprite.draw(batch);
         clockPointer.draw(batch);
-        font.draw(batch, controller.getGameTime().getFormattedDayAndHour(), clockBgSprite.getX() + clockBgSprite.getWidth() / 2f - 35f, clockBgSprite.getY() + clockBgSprite.getHeight() / 2f - 16.5f); // Adjust position if needed
+        String timeText = controller.getGameTime().getFormattedDayAndHour();
+        String season   = controller.getGameTime().getSeasonName();
+        font.draw(batch,
+            timeText + " (" + season + ")",
+            clockBgSprite.getX() + clockBgSprite.getWidth() / 2f - 50f,
+            clockBgSprite.getY() + clockBgSprite.getHeight() / 2f - 16.5f);
 // ── Energy bar (UI) ─────────────────────────────────────
         float barW = 140f, barH = 12f;
         float ex = clockBgSprite.getX() + clockBgSprite.getWidth() + 20f;
