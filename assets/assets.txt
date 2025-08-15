@@ -106,6 +106,7 @@ animals/chicken.png
 animals/chicken_crate.png
 animals/cow.png
 animals/cow_crate.png
+barn.png
 black.png
 button-down.png
 button-up.png
@@ -150,6 +151,7 @@ character/watercan/right2.png
 character/watercan/up1.png
 character/watercan/up2.png
 clock.png
+collect.png
 crops/carrot/0.png
 crops/carrot/1.png
 crops/carrot/2.png
@@ -184,6 +186,7 @@ dialogue/6.png
 dialogue/7.png
 dialogue/dialogue_box.png
 empty_star.png
+feed.png
 food/carrotSoup.png
 fridge/fridge1.png
 fridge/fridge2.png
@@ -773,6 +776,7 @@ npc/robin/1.png
 npc/robin/2.png
 npc/robin/3.png
 npc/robin/4.png
+pet.png
 pixelFont-7-8x14-sproutLands.ttf
 pixelFont.ttf
 player.png
@@ -867,7 +871,9 @@ seeds/pumpkin.png
 seeds/wheat.png
 shops/Blacksmith.png
 shops/buy.png
+shops/close.png
 shops/closed.png
+shops/open.png
 shops/sell.png
 shops/sell_bucket.png
 tools/axe/basic.png

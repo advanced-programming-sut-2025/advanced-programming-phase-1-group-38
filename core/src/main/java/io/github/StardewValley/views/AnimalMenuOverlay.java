@@ -45,11 +45,11 @@ public class AnimalMenuOverlay {
         this.listener = (listener != null) ? listener : new Listener(){};
 
         this.panel      = new Texture("inventory/panel_bg.png");
-        this.iconFeed   = new Texture("ring.png");
-        this.iconPet    = new Texture("ring.png");
-        this.iconCollect= new Texture("ring.png");
+        this.iconFeed   = new Texture("feed.png");
+        this.iconPet    = new Texture("pet.png");
+        this.iconCollect= new Texture("collect.png");
         this.iconSell   = new Texture("shops/sell.png");
-        this.iconClose  = new Texture("shops/closed.png");
+        this.iconClose  = new Texture("shops/close.png");
         this.heart = new Texture("inventory/heart.png");
 
     }

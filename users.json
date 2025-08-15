@@ -1,0 +1,22 @@
+{
+"Mehrsa": {
+	"class": "io.github.StardewValley.models.SavaToJson$UserRecord",
+	"username": "Mehrsa",
+	"passwordHash": "6dc32072309a04b0e582cee4919170a4e11befa5fc36c08a502e633b8c547cec",
+	"nickname": "Mehrsa",
+	"email": "Mehrsa@gmail.com",
+	"gender": "WOMAN",
+	"securityQuestion": "What was the name of your first pet?",
+	"securityAnswerHash": "489f719cadf919094ddb38e7654de153ac33c02febb5de91e5345cbe372cf4a0"
+},
+"Soroush": {
+	"class": "io.github.StardewValley.models.SavaToJson$UserRecord",
+	"username": "Soroush",
+	"passwordHash": "c681c33158b4cfd9f3652b12b32c4329aee55144f77085e0e5cc42671e53a3ba",
+	"nickname": "Sorough",
+	"email": "Soroush@gmail.com",
+	"gender": "WOMAN",
+	"securityQuestion": "What was the name of your first pet?",
+	"securityAnswerHash": "489f719cadf919094ddb38e7654de153ac33c02febb5de91e5345cbe372cf4a0"
+}
+}

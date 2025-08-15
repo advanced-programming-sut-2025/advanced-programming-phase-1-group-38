@@ -73,6 +73,8 @@ public class Player {
         inventory.add(ItemCatalog.chickenCrate(), 1);
         inventory.add(ItemCatalog.cowCrate(), 1);
         inventory.add(CropType.WHEAT, 20);
+        inventory.add(ItemCatalog.barnKit(), 1);
+
 
     }
 

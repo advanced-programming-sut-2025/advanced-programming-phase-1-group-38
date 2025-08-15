@@ -41,6 +41,9 @@ public class PlayerMapView implements Screen {
     private com.badlogic.gdx.graphics.Texture ghostTex;
     private MachineMenuView machineMenu;
 
+    private boolean placingBarn = false;
+    private int barnW = 8, barnH = 6;
+
     // Placement mode
     private boolean placingMachine = false;
     private io.github.StardewValley.models.Artisan.MachineType pendingMachine = null;
@@ -380,6 +383,11 @@ public class PlayerMapView implements Screen {
                 placingMachine = true;
                 pendingMachine = mt;
             }
+
+            if (sel == ItemCatalog.barnKit()
+                && controller.getPlayer().getInventory().getTotalQty(sel) > 0) {
+                placingBarn = true;
+            }
         }
 
 
@@ -387,6 +395,10 @@ public class PlayerMapView implements Screen {
             Vector3 w = camera.unproject(new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0));
             int tx = (int)(w.x / TILE_SIZE);
             int ty = (int)(w.y / TILE_SIZE);
+
+            if (controller.toggleBarnGateAt(w.x, w.y)) {
+                return; // click consumed (toggled gate)
+            }
 
             var pm = controller.getMachineAt(controller.getCurrentMapPath(), tx, ty);
             if (pm != null) {
@@ -430,6 +442,20 @@ public class PlayerMapView implements Screen {
                 () -> { if (!shopView.isVisible()) shopView.toggle(); },
                 () -> { if (shopView.isVisible())  shopView.toggle(); }
             );
+        }
+
+        if (Gdx.input.isKeyJustPressed(Input.Keys.O)) {
+            if (Gdx.input.isKeyPressed(Input.Keys.SHIFT_LEFT) || Gdx.input.isKeyPressed(Input.Keys.SHIFT_RIGHT)) {
+                controller.animals().sendCowsOutOfBarn(
+                    controller.getCurrentMapPath(),
+                    controller.getBarnsOn(controller.getCurrentMapPath())
+                );
+            } else {
+                controller.animals().sendCowsToBarn(
+                    controller.getCurrentMapPath(),
+                    controller.getBarnsOn(controller.getCurrentMapPath())
+                );
+            }
         }
 
         if (Gdx.input.isKeyJustPressed(Input.Keys.C)) {
@@ -494,6 +520,13 @@ public class PlayerMapView implements Screen {
 
         if (!uiOpen()) {
             worldController.updateAll(delta);
+
+            controller.animals().updateWithBarns(
+                controller.getCurrentMapPath(),
+                delta,
+                controller.getBarnsOn(controller.getCurrentMapPath())
+            );
+
             controller.updateFloatingIcons(delta);
         }
 
@@ -678,13 +711,45 @@ public class PlayerMapView implements Screen {
                 }
             }
 
-
-
             // لغو
             if (Gdx.input.isButtonJustPressed(Input.Buttons.RIGHT) || Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
                 placingMachine = false; pendingMachine = null;
             }
         }
+
+        // still in PlayerMapView.render(...) where you draw placement ghost for machines
+        if (placingBarn) {
+            Vector3 wpos = camera.unproject(new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0));
+            int baseTx = (int)(wpos.x / TILE_SIZE);
+            int baseTy = (int)(wpos.y / TILE_SIZE);
+
+            boolean ok = controller.canPlaceBarnAt(controller.getCurrentMapPath(), baseTx, baseTy, barnW, barnH);
+
+            // draw ghost (semi transparent scaled barn png)
+            Texture ghost = GameAssetManager.getGameAssetManager().getTexture("barn.png");
+            float gx = baseTx * TILE_SIZE, gy = baseTy * TILE_SIZE;
+            float gw = barnW * TILE_SIZE,  gh = barnH * TILE_SIZE;
+            batch.setColor(1f, 1f, 1f, ok ? 0.85f : 0.35f);
+            batch.draw(ghost, gx, gy, gw, gh);
+            batch.setColor(1f, 1f, 1f, 1f);
+
+            if (ok && Gdx.input.isButtonJustPressed(Input.Buttons.LEFT)) {
+                boolean placed = controller.placeBarn(
+                    controller.getCurrentMapPath(), baseTx, baseTy, barnW, barnH, controller.getPlayer().getInventory()
+                );
+                if (placed) {
+                    if (inventoryMenuView != null) inventoryMenuView.onInventoryChanged();
+                    if (inventoryRenderer  != null) inventoryRenderer.onInventoryChanged();
+                    placingBarn = false;
+                }
+            }
+
+            if (Gdx.input.isButtonJustPressed(Input.Buttons.RIGHT) ||
+                Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
+                placingBarn = false;
+            }
+        }
+
         for (var b : worldController.npc().getSellBinsOn(controller.getCurrentMapPath())) {
             if (b.texturePath == null) continue;
             var tex = GameAssetManager.getGameAssetManager().getTexture(b.texturePath);
@@ -744,6 +809,7 @@ public class PlayerMapView implements Screen {
             }
         }
 
+        controller.animals().renderOn(batch, controller.getCurrentMapPath());
 
         // ---------- DEBUG OVERLAYS (world space) ----------
         if (debugDraw) {

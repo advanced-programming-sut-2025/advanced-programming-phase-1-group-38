@@ -186,6 +186,7 @@ public class GameController {
         }
 
         animalController.update(delta);
+        animals().updateWithBarns(currentMapPath, delta, getBarnsOn(currentMapPath));
 
         for (MachineInstance m : machines) m.update(delta);
 
@@ -661,7 +662,8 @@ public class GameController {
     public void render(SpriteBatch batch) {
         // draw world/entities first
         player.render(batch);
-        animals().renderOn(batch, currentMapPath); // <— add this
+        renderBarns(batch);
+        animals().renderOn(batch, currentMapPath);
 
         // fridge / roof UI bits can come after; avoid early return that cancels entity render
         TiledMapTileLayer roofLayer = (TiledMapTileLayer) map.getLayers().get("RoofTiles");
@@ -1117,5 +1119,85 @@ public class GameController {
         return true;
     }
 
+    // GameController.java (fields)
+    private final java.util.Map<String, java.util.ArrayList<BarnPen>> barnsByMap = new java.util.HashMap<>();
+
+    public java.util.List<BarnPen> getBarnsOn(String mapId) {
+        return barnsByMap.computeIfAbsent(mapId, k -> new java.util.ArrayList<>());
+    }
+
+    public void renderBarns(SpriteBatch batch) {
+        for (var b : getBarnsOn(currentMapPath)) b.render(batch);
+    }
+
+    // GameController.toggleBarnGateAt(...)
+    public boolean toggleBarnGateAt(float worldX, float worldY) {
+        for (var b : getBarnsOn(currentMapPath)) {
+            if (b.hitGate(worldX, worldY)) {
+                b.gateOpen = !b.gateOpen;
+                spawnFloatingIcon(b.gateOpen ? "shops/open.png" : "shops/closed.png",
+                    b.gate.x + b.gate.width/2f, b.gate.y + b.gate.height, 0.9f);
+
+                if (b.gateOpen) {
+                    // nudge cows that are inside to walk out through the gate
+                    animals().sendCowsOutOfBarn(currentMapPath, getBarnsOn(currentMapPath));
+                }
+                return true;
+            }
+        }
+        return false;
+    }
+
+
+    // GameController.java
+    public boolean canPlaceBarnAt(String mapId, int baseTx, int baseTy, int wTiles, int hTiles) {
+        // bounds check vs map
+        if (baseTx < 0 || baseTy < 0) return false;
+        if (baseTx + wTiles > tileGrid.length) return false;
+        if (baseTy + hTiles > tileGrid[0].length) return false;
+
+        // block layers (Collision/Water/House/Quarry/Greenhouse)
+        for (int tx = baseTx; tx < baseTx + wTiles; tx++) {
+            for (int ty = baseTy; ty < baseTy + hTiles; ty++) {
+                if (isBlockedByLayers(tx, ty)) return false;
+                // don’t place on top of crops/machines
+                Tile t = getTileAt(tx, ty);
+                if (t != null && t.getContent() != null) return false;
+                if (getMachineAt(mapId, tx, ty) != null) return false;
+            }
+        }
+
+        // don’t overlap an existing barn
+        float x = baseTx * TILE_SIZE, y = baseTy * TILE_SIZE;
+        float w = wTiles * TILE_SIZE,  h = hTiles * TILE_SIZE;
+        com.badlogic.gdx.math.Rectangle r = new com.badlogic.gdx.math.Rectangle(x, y, w, h);
+        for (var b : getBarnsOn(mapId)) {
+            if (b.bounds.overlaps(r)) return false;
+        }
+
+        return true;
+    }
+
+    public boolean placeBarn(String mapId, int baseTx, int baseTy,
+                             int wTiles, int hTiles, Inventory inv) {
+
+        if (!canPlaceBarnAt(mapId, baseTx, baseTy, wTiles, hTiles)) return false;
+
+        ItemType kit = ItemCatalog.barnKit();
+        if (kit != null && !inv.contains(kit, 1)) return false; // need a Barn kit to place
+
+        float x = baseTx * TILE_SIZE, y = baseTy * TILE_SIZE;
+        float w = wTiles * TILE_SIZE,  h = hTiles * TILE_SIZE;
+
+        // 1-tile wide gate centered on bottom edge
+        float gateW = TILE_SIZE, gateH = TILE_SIZE;
+        float gateX = x + (w - gateW) / 2f, gateY = y;
+
+        BarnPen pen = new BarnPen(mapId, x, y, w, h, gateX, gateY, gateW, gateH, "barn.png", true);
+        getBarnsOn(mapId).add(pen);
+
+        if (kit != null) inv.remove(kit, 1); // consume the kit
+        return true;
+    }
 
 }

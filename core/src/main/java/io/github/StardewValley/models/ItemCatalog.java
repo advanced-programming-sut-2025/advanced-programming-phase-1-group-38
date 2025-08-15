@@ -109,4 +109,23 @@ public final class ItemCatalog {
         if (id == null || id.isEmpty() || target == null) return;
         REGISTRY.put(id.toLowerCase(), target);
     }
+
+    // models/ItemCatalog.java  (add near the other built-ins)
+
+    private static final class BarnKit implements ItemType {
+        @Override public String id()       { return "barn"; }
+        @Override public String iconPath() { return "barn.png"; } // use your fence png as the icon too
+        @Override public int maxStack()    { return 99; }
+    }
+    private static final ItemType BARN_KIT = new BarnKit();
+
+    static {
+        // existing registers...
+        register(BARN_KIT);
+        alias("barn", BARN_KIT);
+    }
+
+    // convenience accessor
+    public static ItemType barnKit() { return BARN_KIT; }
+
 }

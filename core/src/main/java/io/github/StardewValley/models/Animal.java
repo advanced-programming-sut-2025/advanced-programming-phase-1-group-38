@@ -24,6 +24,13 @@ public class Animal {
     // gating: one feed per production cycle
     private boolean fedThisCycle = false;
 
+    private float moveSpeed = 32f;        // px/sec
+    private Float targetX = null, targetY = null;
+
+    public void moveTo(float x, float y) { targetX = x; targetY = y; }
+    public void clearTarget()            { targetX = targetY = null; }
+    public void setPosition(float x, float y) { this.x = x; this.y = y; }
+
     // ---- Feeding results for UI messaging ----
     public enum FeedResult { OK, WRONG_FOOD, PRODUCT_READY, ALREADY_FED }
 
@@ -36,7 +43,15 @@ public class Animal {
     }
 
     public void update(float dt) {
-        // production is advanced in game hours by GameController.updateMachines(...)
+        // already had: production logic is elsewhere (game hours), so just movement here
+        if (targetX != null && targetY != null) {
+            float dx = targetX - x, dy = targetY - y;
+            float d2 = dx*dx + dy*dy;
+            if (d2 < 1f) { clearTarget(); return; }
+            float d = (float)Math.sqrt(d2);
+            x += moveSpeed * dx/d * dt;
+            y += moveSpeed * dy/d * dt;
+        }
     }
 
     /** Advance by *game* hours. */
